@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 
 const DownloadPage = () => {
+  // What is the purpose of this?
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  // What is the purpose of this?
   const [showInstallButton, setShowInstallButton] = useState(false);
 
   useEffect(() => {
@@ -42,11 +44,9 @@ const DownloadPage = () => {
 
   return (
     <div>
-      <h1>Install the App</h1>
+      <h1>Download the App</h1>
       <p>Click the button below to install the app.</p>
-      {showInstallButton && (
         <button onClick={handleInstallClick}>Install App</button>
-      )}
     </div>
   );
 };
