@@ -9,7 +9,10 @@ function Settings({
   voices, 
   selectedVoice, 
   setSelectedVoice, 
-  showSettings 
+  autoSendEnabled, 
+  setAutoSendEnabled, 
+  showSettings, 
+  onClose 
 }) {
   const [testText, setTestText] = useState("This is a test of the voice");
 
@@ -18,7 +21,8 @@ function Settings({
     setTtsEnabled(newValue);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
       ttsEnabled: newValue,
-      selectedVoice
+      selectedVoice: selectedVoice,
+      autoSendEnabled: autoSendEnabled 
     }));
     console.log('Saving TTS enabled:', newValue);
   };
@@ -27,8 +31,19 @@ function Settings({
     const newVoice = e.target.value;
     setSelectedVoice(newVoice);
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      ttsEnabled,
-      selectedVoice: newVoice
+      ttsEnabled: ttsEnabled,
+      selectedVoice: newVoice,
+      autoSendEnabled: autoSendEnabled 
+    }));
+  };
+
+  const handleAutoSendChange = (e) => {
+    const newValue = e.target.checked;
+    setAutoSendEnabled(newValue);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+      ttsEnabled: ttsEnabled, 
+      selectedVoice: selectedVoice,
+      autoSendEnabled: newValue 
     }));
   };
 
@@ -60,20 +75,31 @@ function Settings({
           Enable Text-to-Speech
         </label>
       </div>
+      {ttsEnabled && (
+        <div className="setting-item">
+          <label>
+            Voice:
+            <select
+              value={selectedVoice}
+              onChange={handleVoiceChange}
+            >
+              {voices.map((voice) => (
+                <option key={voice.name} value={voice.name}>
+                  {voice.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
       <div className="setting-item">
         <label>
-          Voice:
-          <select
-            value={selectedVoice}
-            onChange={handleVoiceChange}
-            disabled={!ttsEnabled}
-          >
-            {voices.map((voice) => (
-              <option key={voice.name} value={voice.name}>
-                {voice.name}
-              </option>
-            ))}
-          </select>
+          <input
+            type="checkbox"
+            checked={autoSendEnabled}
+            onChange={handleAutoSendChange}
+          />
+          Auto-send after 5 seconds of inactivity
         </label>
       </div>
       <div className="setting-item">
@@ -92,6 +118,7 @@ function Settings({
           Test Voice
         </button>
       </div>
+      <button onClick={onClose}>Close</button>
     </div>
   );
 }

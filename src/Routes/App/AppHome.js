@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import './AppHome.css'
 import Settings from './Settings'
+import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 const STORAGE_KEY = 'chat-app-settings';
 
@@ -8,47 +9,50 @@ function AppHome() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [ttsEnabled, setTtsEnabled] = useState(() => {
+  
+  // Load settings from localStorage
+  const loadInitialSettings = () => {
     try {
       const savedSettings = localStorage.getItem(STORAGE_KEY);
       if (savedSettings) {
-        const { ttsEnabled } = JSON.parse(savedSettings);
-        console.log('Loading TTS enabled:', ttsEnabled);
-        return ttsEnabled;
+        const settings = JSON.parse(savedSettings);
+        return {
+          ttsEnabled: settings.ttsEnabled ?? false,
+          selectedVoice: settings.selectedVoice || '',
+          autoSendEnabled: settings.autoSendEnabled ?? false
+        };
       }
     } catch (error) {
       console.error('Error loading settings:', error);
     }
-    return false;
-  });
+    return { ttsEnabled: false, selectedVoice: '', autoSendEnabled: false };
+  };
+
+  const initialSettings = loadInitialSettings();
+  const [ttsEnabled, setTtsEnabled] = useState(initialSettings.ttsEnabled);
+  const [selectedVoice, setSelectedVoice] = useState(initialSettings.selectedVoice);
+  const [autoSendEnabled, setAutoSendEnabled] = useState(initialSettings.autoSendEnabled);
+  
   const [voices, setVoices] = useState([]);
-  const [selectedVoice, setSelectedVoice] = useState(() => {
-    try {
-      const savedSettings = localStorage.getItem(STORAGE_KEY);
-      if (savedSettings) {
-        const { selectedVoice } = JSON.parse(savedSettings);
-        return selectedVoice || '';
-      }
-    } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-    return '';
-  });
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const recognitionRef = useRef(null);
+  const autoSendTimerRef = useRef(null);
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition();
 
   useEffect(() => {
     // Get available voices
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
-      if (availableVoices.length > 0) {
-        // If no voice is selected or selected voice isn't available, set default
-        if (!selectedVoice || !availableVoices.some(v => v.name === selectedVoice)) {
-          setSelectedVoice(availableVoices[0].name);
-        }
+      if (availableVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(availableVoices[0].name);
       }
     };
 
@@ -60,49 +64,23 @@ function AppHome() {
     };
   }, [selectedVoice]);
 
-  // Initialize speech recognition
+  // Update input value when transcript changes
   useEffect(() => {
-    if ('webkitSpeechRecognition' in window) {
-      const recognition = new window.webkitSpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-      
-      recognition.onresult = (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
-          .join('');
-        
-        if (event.results[0].isFinal) {
-          inputRef.current.value = transcript;
-        }
-      };
-
-
-      recognitionRef.current = recognition;
+    if (transcript && inputRef.current) {
+      inputRef.current.value = transcript;
     }
+  }, [transcript]);
 
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
+  // Update isListening state when listening changes
+  useEffect(() => {
+    setIsListening(listening);
+  }, [listening]);
 
   const speakText = (text) => {
     if (ttsEnabled && selectedVoice) {
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+
       const utterance = new SpeechSynthesisUtterance(text);
       const voice = voices.find(v => v.name === selectedVoice);
       if (voice) {
@@ -120,12 +98,34 @@ function AppHome() {
     scrollToBottom();
   }, [messages]);
 
-  async function sendPrompt() {
-    const prompt = inputRef.current.value;
-    if (!prompt.trim()) return;
+  const handleInputChange = () => {
+    if (autoSendEnabled && inputRef.current.value.trim()) {
+      // Clear any existing timer
+      if (autoSendTimerRef.current) {
+        clearTimeout(autoSendTimerRef.current);
+      }
+      
+      // Set new timer
+      autoSendTimerRef.current = setTimeout(() => {
+        if (inputRef.current.value.trim()) {
+          handleSubmit();
+        }
+      }, 5000);
+    }
+  };
+
+  const handleSubmit = async () => {
+    // Clear any existing auto-send timer
+    if (autoSendTimerRef.current) {
+      clearTimeout(autoSendTimerRef.current);
+      autoSendTimerRef.current = null;
+    }
+
+    const userInput = inputRef.current.value.trim();
+    if (!userInput) return;
 
     // Add user message
-    const newMessage = { role: 'user', content: prompt };
+    const newMessage = { role: 'user', content: userInput };
     setMessages(prev => [...prev, newMessage]);
     setIsLoading(true);
     inputRef.current.value = '';
@@ -165,12 +165,12 @@ function AppHome() {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendPrompt();
+      handleSubmit();
     }
   };
 
@@ -178,17 +178,24 @@ function AppHome() {
     setShowSettings(!showSettings);
   };
 
-  const toggleVoiceInput = () => {
-    if (!recognitionRef.current) {
+  const toggleVoiceInput = async () => {
+    if (!browserSupportsSpeechRecognition) {
       alert('Speech recognition is not supported in your browser.');
       return;
     }
 
-    if (isListening) {
-      recognitionRef.current.stop();
-    } else {
-      recognitionRef.current.start();
-      setIsListening(true);
+    try {
+      // Request microphone permissions
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      if (isListening) {
+        SpeechRecognition.stopListening();
+      } else {
+        resetTranscript();
+        await SpeechRecognition.startListening({ continuous: true });
+      }
+    } catch (error) {
+      alert("Microphone permission required to record voice");
     }
   };
 
@@ -204,6 +211,8 @@ function AppHome() {
         voices={voices}
         selectedVoice={selectedVoice}
         setSelectedVoice={setSelectedVoice}
+        autoSendEnabled={autoSendEnabled}
+        setAutoSendEnabled={setAutoSendEnabled}
         showSettings={showSettings}
       />
 
@@ -226,7 +235,8 @@ function AppHome() {
         <textarea 
           ref={inputRef}
           placeholder="Type your message..."
-          onKeyPress={handleKeyPress}
+          onKeyDown={handleKeyPress}
+          onChange={handleInputChange}
         />
         <div className="button-container">
           <button 
@@ -236,7 +246,7 @@ function AppHome() {
           >
             {isListening ? '🎤' : '🎤'}
           </button>
-          <button className="submit-button" onClick={sendPrompt}>Send</button>
+          <button className="submit-button" onClick={handleSubmit}>Send</button>
         </div>
       </div>
     </div>
