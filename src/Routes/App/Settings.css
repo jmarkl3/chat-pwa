@@ -11,6 +11,7 @@
     max-width: calc(100% - 20px);
     max-height: calc(100vh - 60px);
     overflow-y: auto;
+    border: 2px solid #2196f3;
 }
 
 .settings-menu h3 {
@@ -73,6 +74,27 @@
 .test-voice-button:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
+}
+
+.close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.close-button:hover {
+    background-color: #f0f0f0;
 }
 
 @media (max-width: 600px) {

@@ -12,7 +12,7 @@ function Settings({
   autoSendEnabled, 
   setAutoSendEnabled, 
   showSettings, 
-  onClose 
+  setShowSettings 
 }) {
   const [testText, setTestText] = useState("This is a test of the voice");
 
@@ -65,6 +65,7 @@ function Settings({
   return (
     <div className="settings-menu">
       <h3>Settings</h3>
+      <button className="close-button" onClick={() => setShowSettings(false)}>×</button>
       <div className="setting-item">
         <label>
           <input
@@ -118,7 +119,6 @@ function Settings({
           Test Voice
         </button>
       </div>
-      <button onClick={onClose}>Close</button>
     </div>
   );
 }

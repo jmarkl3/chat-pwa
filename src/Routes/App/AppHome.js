@@ -205,17 +205,19 @@ function AppHome() {
         <span title={"Settings"} style={{ fontSize: '26px' }}>⚙️</span>
       </button>
 
-      <Settings
-        ttsEnabled={ttsEnabled}
-        setTtsEnabled={setTtsEnabled}
-        voices={voices}
-        selectedVoice={selectedVoice}
-        setSelectedVoice={setSelectedVoice}
-        autoSendEnabled={autoSendEnabled}
-        setAutoSendEnabled={setAutoSendEnabled}
-        showSettings={showSettings}
-      />
-
+      {showSettings && (
+        <Settings
+          ttsEnabled={ttsEnabled}
+          setTtsEnabled={setTtsEnabled}
+          voices={voices}
+          selectedVoice={selectedVoice}
+          setSelectedVoice={setSelectedVoice}
+          autoSendEnabled={autoSendEnabled}
+          setAutoSendEnabled={setAutoSendEnabled}
+          showSettings={showSettings}
+          setShowSettings={setShowSettings}
+        />
+      )}
       <div className="messages-container">
         {messages.map((message, index) => (
           <div key={index} className={`message ${message.role}`}>
