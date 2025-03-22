@@ -44,15 +44,24 @@ function AppHome() {
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
-      if (availableVoices.length > 0 && !selectedVoice) {
-        setSelectedVoice(availableVoices[0].name);
+      if (availableVoices.length > 0) {
+        // If no voice is selected or selected voice isn't available, set default
+        if (!selectedVoice || !availableVoices.some(v => v.name === selectedVoice)) {
+          setSelectedVoice(availableVoices[0].name);
+        }
       }
     };
 
     loadVoices();
     window.speechSynthesis.onvoiceschanged = loadVoices;
 
-    // Initialize speech recognition
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, [selectedVoice]);
+
+  // Initialize speech recognition
+  useEffect(() => {
     if ('webkitSpeechRecognition' in window) {
       const recognition = new window.webkitSpeechRecognition();
       recognition.continuous = true;
@@ -219,14 +228,16 @@ function AppHome() {
           placeholder="Type your message..."
           onKeyPress={handleKeyPress}
         />
-        <button 
-          className={`voice-input-button ${isListening ? 'listening' : ''}`} 
-          onClick={toggleVoiceInput}
-          title={isListening ? 'Stop voice input' : 'Start voice input'}
-        >
-          {isListening ? '🎤' : '🎤'}
-        </button>
-        <button className="submit-button" onClick={sendPrompt}>Send</button>
+        <div className="button-container">
+          <button 
+            className={`voice-input-button ${isListening ? 'listening' : ''}`} 
+            onClick={toggleVoiceInput}
+            title={isListening ? 'Stop voice input' : 'Start voice input'}
+          >
+            {isListening ? '🎤' : '🎤'}
+          </button>
+          <button className="submit-button" onClick={sendPrompt}>Send</button>
+        </div>
       </div>
     </div>
   )
