@@ -8,7 +8,6 @@ function App() {
   return (
     <HashRouter>
       <div>
-        <div>This is version 1</div>
         <Routes>
           <Route path="/" element={<Landing/>} />
           <Route path="/app" element={<AppHome/>} />
