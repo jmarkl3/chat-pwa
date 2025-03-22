@@ -226,3 +226,35 @@
 .voice-input-button.listening:hover {
     background-color: #ff5555;
 }
+
+.test-voice-input {
+    width: 100%;
+    margin: 8px 0;
+    padding: 8px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+    font-size: inherit;
+}
+
+.test-voice-button {
+    width: 100%;
+    padding: 8px;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.test-voice-button:hover:not(:disabled) {
+    background-color: #1976d2;
+}
+
+.test-voice-button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}

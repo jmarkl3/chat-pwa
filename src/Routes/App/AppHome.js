@@ -1,13 +1,39 @@
 import React, { useState, useRef, useEffect } from 'react'
 import './AppHome.css'
+import Settings from './Settings'
+
+const STORAGE_KEY = 'chat-app-settings';
 
 function AppHome() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [ttsEnabled, setTtsEnabled] = useState(() => {
+    try {
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const { ttsEnabled } = JSON.parse(savedSettings);
+        console.log('Loading TTS enabled:', ttsEnabled);
+        return ttsEnabled;
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+    return false;
+  });
   const [voices, setVoices] = useState([]);
-  const [selectedVoice, setSelectedVoice] = useState('');
+  const [selectedVoice, setSelectedVoice] = useState(() => {
+    try {
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const { selectedVoice } = JSON.parse(savedSettings);
+        return selectedVoice || '';
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+    return '';
+  });
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -31,6 +57,19 @@ function AppHome() {
       const recognition = new window.webkitSpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
       
       recognition.onresult = (event) => {
         const transcript = Array.from(event.results)
@@ -42,20 +81,11 @@ function AppHome() {
         }
       };
 
-      recognition.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
 
       recognitionRef.current = recognition;
     }
 
     return () => {
-      window.speechSynthesis.onvoiceschanged = null;
       if (recognitionRef.current) {
         recognitionRef.current.stop();
       }
@@ -159,37 +189,14 @@ function AppHome() {
         <span title={"Settings"} style={{ fontSize: '26px' }}>⚙️</span>
       </button>
 
-      {showSettings && (
-        <div className="settings-menu">
-          <h3>Settings</h3>
-          <div className="setting-item">
-            <label>
-              <input
-                type="checkbox"
-                checked={ttsEnabled}
-                onChange={(e) => setTtsEnabled(e.target.checked)}
-              />
-              Enable Text-to-Speech
-            </label>
-          </div>
-          <div className="setting-item">
-            <label>
-              Voice:
-              <select
-                value={selectedVoice}
-                onChange={(e) => setSelectedVoice(e.target.value)}
-                disabled={!ttsEnabled}
-              >
-                {voices.map((voice) => (
-                  <option key={voice.name} value={voice.name}>
-                    {voice.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-        </div>
-      )}
+      <Settings
+        ttsEnabled={ttsEnabled}
+        setTtsEnabled={setTtsEnabled}
+        voices={voices}
+        selectedVoice={selectedVoice}
+        setSelectedVoice={setSelectedVoice}
+        showSettings={showSettings}
+      />
 
       <div className="messages-container">
         {messages.map((message, index) => (
