@@ -1,6 +1,6 @@
 {
-  "short_name": "PWA Test",
-  "name": "PWA Test App",
+  "short_name": "Chat PWA",
+  "name": "Chat PWA",
   "start_url": ".",
   "scope": ".",
   "icons": [
