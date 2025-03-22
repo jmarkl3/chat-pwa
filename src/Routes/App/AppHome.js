@@ -9,6 +9,9 @@ function AppHome() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const lastSpokenTextRef = useRef('');
   
   // Load settings from localStorage
   const loadInitialSettings = () => {
@@ -80,11 +83,31 @@ function AppHome() {
     if (ttsEnabled && selectedVoice) {
       // Cancel any ongoing speech
       window.speechSynthesis.cancel();
+      setIsSpeaking(true);
+      setIsPaused(false);
+      lastSpokenTextRef.current = text;
 
       const utterance = new SpeechSynthesisUtterance(text);
       const voice = voices.find(v => v.name === selectedVoice);
       if (voice) {
         utterance.voice = voice;
+        
+        utterance.onend = () => {
+          console.log('Speech ended');
+          setIsSpeaking(false);
+          setIsPaused(false);
+        };
+
+        utterance.onpause = () => {
+          console.log('Speech paused');
+          setIsPaused(true);
+        };
+
+        utterance.onresume = () => {
+          console.log('Speech resumed');
+          setIsPaused(false);
+        };
+
         window.speechSynthesis.speak(utterance);
       }
     }
@@ -142,7 +165,7 @@ function AppHome() {
     const body = JSON.stringify({
       model: 'deepseek-chat',
       messages: [
-        { role: 'system', content: 'You are a helpful assistant.' },
+        { role: 'system', content: 'This is a speech based conversation app. GIve relatively short answers that would be expected during a spoken conversation.' },
         ...recentMessages
       ],
       stream: false,
@@ -199,6 +222,35 @@ function AppHome() {
     }
   };
 
+  const togglePause = () => {
+    const currentState = { speaking: isSpeaking, paused: isPaused };
+    console.log('Current state:', currentState);
+
+    if (isSpeaking) {
+      if (isPaused) {
+        // Currently paused, should resume
+        console.log('Action: Resume speech');
+        window.speechSynthesis.resume();
+        setIsPaused(false);
+      } else {
+        // Currently speaking, should pause
+        console.log('Action: Pause speech');
+        window.speechSynthesis.pause();
+        setIsPaused(true);
+      }
+    } else if (lastSpokenTextRef.current) {
+      // Not speaking, should start new speech
+      console.log('Action: Replay last speech');
+      speakText(lastSpokenTextRef.current);
+    }
+
+    // Log state after change
+    // setTimeout(() => {
+    //   const newState = { speaking: isSpeaking, paused: isPaused };
+    //   console.log('New state:', newState);
+    // }, 100);
+  };
+
   return (
     <div className="chat-container">
       <button className="settings-button" onClick={toggleSettings}>
@@ -234,21 +286,32 @@ function AppHome() {
         <div ref={messagesEndRef} />
       </div>
       <div className="input-container">
-        <textarea 
+        <textarea
           ref={inputRef}
           placeholder="Type your message..."
           onKeyDown={handleKeyPress}
           onChange={handleInputChange}
         />
         <div className="button-container">
-          <button 
-            className={`voice-input-button ${isListening ? 'listening' : ''}`} 
-            onClick={toggleVoiceInput}
-            title={isListening ? 'Stop voice input' : 'Start voice input'}
-          >
-            {isListening ? '🎤' : '🎤'}
+          <div className="left-buttons">
+            <button
+              className={`voice-input-button ${isListening ? 'listening' : ''}`}
+              onClick={toggleVoiceInput}
+            >
+              🎤
+            </button>
+            <button
+              className={`pause-button ${isSpeaking ? (isPaused ? 'paused' : 'speaking') : ''}`}
+              onClick={togglePause}
+              disabled={!lastSpokenTextRef.current && !isSpeaking}
+              title={isSpeaking ? (isPaused ? 'Resume speech' : 'Pause speech') : 'Replay last speech'}
+            >
+              {isSpeaking ? (isPaused ? '▶️' : '⏸️') : '▶️'}
+            </button>
+          </div>
+          <button className="submit-button" onClick={handleSubmit}>
+            Send
           </button>
-          <button className="submit-button" onClick={handleSubmit}>Send</button>
         </div>
       </div>
     </div>
