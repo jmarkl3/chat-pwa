@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import SlidePanel from './SlidePanel';
 import './Settings.css';
 
 const STORAGE_KEY = 'chat-app-settings';
@@ -12,7 +13,8 @@ function Settings({
   autoSendEnabled, 
   setAutoSendEnabled, 
   showSettings, 
-  setShowSettings 
+  setShowSettings,
+  setShowPromptPreface
 }) {
   const [testText, setTestText] = useState("This is a test of the voice");
 
@@ -60,66 +62,72 @@ function Settings({
     }
   };
 
-  if (!showSettings) return null;
-
   return (
-    <div className="settings-menu">
-      <h3>Settings</h3>
-      <button className="close-button" onClick={() => setShowSettings(false)}>×</button>
-      <div className="setting-item">
-        <label>
-          <input
-            type="checkbox"
-            checked={ttsEnabled}
-            onChange={handleTtsChange}
-          />
-          Enable Text-to-Speech
-        </label>
-      </div>
-      {ttsEnabled && (
+    <SlidePanel title="Settings" isOpen={showSettings} setIsOpen={setShowSettings}>
+      <div className="settings-content">
         <div className="setting-item">
           <label>
-            Voice:
-            <select
-              value={selectedVoice}
-              onChange={handleVoiceChange}
-            >
-              {voices.map((voice) => (
-                <option key={voice.name} value={voice.name}>
-                  {voice.name}
-                </option>
-              ))}
-            </select>
+            <input
+              type="checkbox"
+              checked={ttsEnabled}
+              onChange={handleTtsChange}
+            />
+            Enable Text-to-Speech
           </label>
         </div>
-      )}
-      <div className="setting-item">
-        <label>
-          <input
-            type="checkbox"
-            checked={autoSendEnabled}
-            onChange={handleAutoSendChange}
+        {ttsEnabled && (
+          <div className="setting-item">
+            <label>
+              Voice:
+              <select
+                value={selectedVoice}
+                onChange={handleVoiceChange}
+              >
+                {voices.map((voice) => (
+                  <option key={voice.name} value={voice.name}>
+                    {voice.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
+        <div className="setting-item">
+          <label>
+            <input
+              type="checkbox"
+              checked={autoSendEnabled}
+              onChange={handleAutoSendChange}
+            />
+            Auto-send after 5 seconds of inactivity
+          </label>
+        </div>
+        <div className="setting-item">
+          <button 
+            className="settings-action-button"
+            onClick={() => setShowPromptPreface(true)}
+          >
+            Edit Prompt Preface
+          </button>
+        </div>
+        <div className="setting-item">
+          <label>Test Voice:</label>
+          <textarea
+            value={testText}
+            onChange={(e) => setTestText(e.target.value)}
+            className="test-voice-input"
+            rows="2"
           />
-          Auto-send after 5 seconds of inactivity
-        </label>
+          <button 
+            onClick={testVoice}
+            className="test-voice-button"
+            disabled={!ttsEnabled}
+          >
+            Test Voice
+          </button>
+        </div>
       </div>
-      <div className="setting-item">
-        <label>Test Voice:</label>
-        <textarea
-          value={testText}
-          onChange={(e) => setTestText(e.target.value)}
-          className="test-voice-input"
-          rows="2"
-        />
-        <button 
-          onClick={testVoice}
-          className="test-voice-button"
-          disabled={!ttsEnabled}
-        >
-          Test Voice
-        </button>
-      </div>
-    </div>
+    </SlidePanel>
   );
 }
 

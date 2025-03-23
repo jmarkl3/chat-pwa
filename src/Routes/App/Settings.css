@@ -1,106 +1,58 @@
-.settings-menu {
-    position: fixed;
-    top: 50px;
-    left: 10px;
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    z-index: 1000;
-    min-width: 250px;
-    max-width: calc(100% - 20px);
-    max-height: calc(100vh - 60px);
-    overflow-y: auto;
-    border: 2px solid #2196f3;
-}
-
-.settings-menu h3 {
-    margin: 0 0 15px 0;
-    color: #333;
+.settings-content {
+  padding: 20px;
 }
 
 .setting-item {
-    margin-bottom: 15px;
+  margin-bottom: 20px;
 }
 
 .setting-item label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #555;
+  display: block;
+  margin-bottom: 5px;
 }
 
 .setting-item select {
-    margin-top: 8px;
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    background-color: white;
-}
-
-.setting-item input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
+  width: 100%;
+  padding: 8px;
+  margin-top: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 
 .test-voice-input {
-    width: 100%;
-    margin: 8px 0;
-    padding: 8px;
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
-    resize: vertical;
-    min-height: 60px;
-    font-family: inherit;
-    font-size: inherit;
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  resize: vertical;
 }
 
 .test-voice-button {
-    width: 100%;
-    padding: 8px;
-    background-color: #2196f3;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.test-voice-button:hover:not(:disabled) {
-    background-color: #1976d2;
+  padding: 8px 16px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
 .test-voice-button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
+  background-color: #ccc;
+  cursor: not-allowed;
 }
 
-.close-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #666;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
+.settings-action-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
 }
 
-.close-button:hover {
-    background-color: #f0f0f0;
-}
-
-@media (max-width: 600px) {
-    .settings-menu {
-        left: 50%;
-        transform: translateX(-50%);
-        width: calc(100% - 20px);
-    }
+.settings-action-button:hover {
+  background-color: #e0e0e0;
 }

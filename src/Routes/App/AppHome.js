@@ -1,55 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react'
 import './AppHome.css'
 import Settings from './Settings'
+import Menu from './Menu'
+import TextInput from './TextInput'
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 
 const STORAGE_KEY = 'chat-app-settings';
-
-function AppHome() {
-  const [messages, setMessages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const lastSpokenTextRef = useRef('');
-  
-  // Load settings from localStorage
-  const loadInitialSettings = () => {
-    try {
-      const savedSettings = localStorage.getItem(STORAGE_KEY);
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        return {
-          ttsEnabled: settings.ttsEnabled ?? false,
-          selectedVoice: settings.selectedVoice || '',
-          autoSendEnabled: settings.autoSendEnabled ?? false
-        };
-      }
-    } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-    return { ttsEnabled: false, selectedVoice: '', autoSendEnabled: false };
-  };
-
-  const initialSettings = loadInitialSettings();
-  const [ttsEnabled, setTtsEnabled] = useState(initialSettings.ttsEnabled);
-  const [selectedVoice, setSelectedVoice] = useState(initialSettings.selectedVoice);
-  const [autoSendEnabled, setAutoSendEnabled] = useState(initialSettings.autoSendEnabled);
-  
-  const [voices, setVoices] = useState([]);
-  const [isListening, setIsListening] = useState(false);
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
-  const autoSendTimerRef = useRef(null);
-
-  const {
-    transcript,
-    listening,
-    resetTranscript,
-    browserSupportsSpeechRecognition
-  } = useSpeechRecognition();
-
-  const conversationPreface = `
+const PROMPT_PREFACE = `
     This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
   
     If the user just says hi or the conversation is not in an interesting place you can ask the user if they want to play one of these games (choose one randomly)
@@ -112,9 +69,62 @@ function AppHome() {
     math/logic games
     ask the user to solve basic math problems in their head like multiplication or multiplication etc
     also ask them riddles and logic word puzzles
+  `;
 
+function AppHome() {
+  const [messages, setMessages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showLongTermMemory, setShowLongTermMemory] = useState(false);
+  const [showPromptPreface, setShowPromptPreface] = useState(false);
+  const [longTermMemory, setLongTermMemory] = useState('');
+  const [isPaused, setIsPaused] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const lastSpokenTextRef = useRef('');
+  
+  // Load settings from localStorage
+  const loadInitialSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        return {
+          ttsEnabled: settings.ttsEnabled ?? false,
+          selectedVoice: settings.selectedVoice || '',
+          autoSendEnabled: settings.autoSendEnabled ?? false,
+          promptPreface: settings.promptPreface ?? PROMPT_PREFACE
+        };
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+    return { 
+      ttsEnabled: false, 
+      selectedVoice: '', 
+      autoSendEnabled: false,
+      promptPreface: PROMPT_PREFACE
+    };
+  };
 
-  `
+  const initialSettings = loadInitialSettings();
+  const [ttsEnabled, setTtsEnabled] = useState(initialSettings.ttsEnabled);
+  const [selectedVoice, setSelectedVoice] = useState(initialSettings.selectedVoice);
+  const [autoSendEnabled, setAutoSendEnabled] = useState(initialSettings.autoSendEnabled);
+  const [settingsPromptPreface, setSettingsPromptPreface] = useState(initialSettings.promptPreface);
+  
+  const [voices, setVoices] = useState([]);
+  const [isListening, setIsListening] = useState(false);
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const autoSendTimerRef = useRef(null);
+
+  const {
+    transcript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition
+  } = useSpeechRecognition();
 
   useEffect(() => {
     // Get available voices
@@ -232,7 +242,8 @@ function AppHome() {
     const body = JSON.stringify({
       model: 'deepseek-chat',
       messages: [
-        { role: 'system', content: conversationPreface},
+        { role: 'system', content: settingsPromptPreface},
+        { role: 'system', content: longTermMemory},
         ...recentMessages
       ],
       stream: false,
@@ -319,24 +330,65 @@ function AppHome() {
   };
 
   return (
-    <div className="chat-container">
-      <button className="settings-button" onClick={toggleSettings}>
-        <span title={"Settings"} style={{ fontSize: '26px' }}>⚙️</span>
+    <div className="app-container">
+      {/* <button className="settings-button" onClick={() => setShowSettings(!showSettings)}>⚙️</button> */}
+      <button className="hamburger-button" onClick={() => setShowMenu(!showMenu)}>
+        <span className="hamburger-line"></span>
+        <span className="hamburger-line"></span>
+        <span className="hamburger-line"></span>
       </button>
-
-      {showSettings && (
-        <Settings
-          ttsEnabled={ttsEnabled}
-          setTtsEnabled={setTtsEnabled}
-          voices={voices}
-          selectedVoice={selectedVoice}
-          setSelectedVoice={setSelectedVoice}
-          autoSendEnabled={autoSendEnabled}
-          setAutoSendEnabled={setAutoSendEnabled}
-          showSettings={showSettings}
-          setShowSettings={setShowSettings}
-        />
-      )}
+      <Settings
+        ttsEnabled={ttsEnabled}
+        setTtsEnabled={setTtsEnabled}
+        voices={voices}
+        selectedVoice={selectedVoice}
+        setSelectedVoice={setSelectedVoice}
+        autoSendEnabled={autoSendEnabled}
+        setAutoSendEnabled={setAutoSendEnabled}
+        showSettings={showSettings}
+        setShowSettings={setShowSettings}
+        setShowPromptPreface={setShowPromptPreface}
+      />
+      <Menu 
+        isOpen={showMenu} 
+        setIsOpen={setShowMenu} 
+        setShowSettings={setShowSettings}
+        setShowLongTermMemory={setShowLongTermMemory}
+      />
+      <TextInput
+        title="Long Term Memory"
+        isOpen={showLongTermMemory}
+        setIsOpen={setShowLongTermMemory}
+        defaultValue={longTermMemory}
+        onChange={setLongTermMemory}
+      />
+      <TextInput
+        title="Prompt Preface"
+        isOpen={showPromptPreface}
+        setIsOpen={setShowPromptPreface}
+        defaultValue={settingsPromptPreface}
+        onChange={(value) => {
+          setSettingsPromptPreface(value);
+          const settings = {
+            ttsEnabled,
+            selectedVoice,
+            autoSendEnabled,
+            promptPreface: value
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        }}
+        showRestoreDefault={true}
+        onRestoreDefault={() => {
+          setSettingsPromptPreface(PROMPT_PREFACE);
+          const settings = {
+            ttsEnabled,
+            selectedVoice,
+            autoSendEnabled,
+            promptPreface: PROMPT_PREFACE
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        }}
+      />
       <div className="messages-container">
         {messages.map((message, index) => (
           <div key={index} className={`message ${message.role}`}>
