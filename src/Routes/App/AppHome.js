@@ -93,7 +93,8 @@ function AppHome() {
           ttsEnabled: settings.ttsEnabled ?? false,
           selectedVoice: settings.selectedVoice || '',
           autoSendEnabled: settings.autoSendEnabled ?? false,
-          promptPreface: settings.promptPreface ?? PROMPT_PREFACE
+          promptPreface: settings.promptPreface ?? PROMPT_PREFACE,
+          longTermMemory: settings.longTermMemory ?? ''
         };
       }
     } catch (error) {
@@ -103,7 +104,8 @@ function AppHome() {
       ttsEnabled: false, 
       selectedVoice: '', 
       autoSendEnabled: false,
-      promptPreface: PROMPT_PREFACE
+      promptPreface: PROMPT_PREFACE,
+      longTermMemory: ''
     };
   };
 
@@ -112,6 +114,7 @@ function AppHome() {
   const [selectedVoice, setSelectedVoice] = useState(initialSettings.selectedVoice);
   const [autoSendEnabled, setAutoSendEnabled] = useState(initialSettings.autoSendEnabled);
   const [settingsPromptPreface, setSettingsPromptPreface] = useState(initialSettings.promptPreface);
+  const [initialLongTermMemory, setInitialLongTermMemory] = useState(initialSettings.longTermMemory);
   
   const [voices, setVoices] = useState([]);
   const [isListening, setIsListening] = useState(false);
@@ -243,7 +246,7 @@ function AppHome() {
       model: 'deepseek-chat',
       messages: [
         { role: 'system', content: settingsPromptPreface},
-        { role: 'system', content: longTermMemory},
+        { role: 'system', content: "Memory from previous: " + initialLongTermMemory},
         ...recentMessages
       ],
       stream: false,
@@ -359,8 +362,18 @@ function AppHome() {
         title="Long Term Memory"
         isOpen={showLongTermMemory}
         setIsOpen={setShowLongTermMemory}
-        defaultValue={longTermMemory}
-        onChange={setLongTermMemory}
+        defaultValue={initialLongTermMemory}
+        onChange={(value) => {
+          setInitialLongTermMemory(value);
+          const settings = {
+            ttsEnabled,
+            selectedVoice,
+            autoSendEnabled,
+            promptPreface: settingsPromptPreface,
+            longTermMemory: value
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+        }}
       />
       <TextInput
         title="Prompt Preface"
@@ -373,7 +386,8 @@ function AppHome() {
             ttsEnabled,
             selectedVoice,
             autoSendEnabled,
-            promptPreface: value
+            promptPreface: value,
+            longTermMemory: initialLongTermMemory
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }}
@@ -384,7 +398,8 @@ function AppHome() {
             ttsEnabled,
             selectedVoice,
             autoSendEnabled,
-            promptPreface: PROMPT_PREFACE
+            promptPreface: PROMPT_PREFACE,
+            longTermMemory: initialLongTermMemory
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }}
