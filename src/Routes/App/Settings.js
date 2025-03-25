@@ -22,7 +22,7 @@ function Settings({
   setSaveHistoryEnabled
 }) {
   const [testText, setTestText] = useState("This is a test of the voice");
-  const [generalOpen, setGeneralOpen] = useState(true);
+  const [generalOpen, setGeneralOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
 

@@ -117,18 +117,34 @@ function AppHome() {
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       setVoices(availableVoices);
-      if (availableVoices.length > 0 && !selectedVoice) {
+
+      // Load saved settings
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        // Only set the voice if it exists in available voices
+        if (settings.selectedVoice && availableVoices.some(v => v.name === settings.selectedVoice)) {
+          setSelectedVoice(settings.selectedVoice);
+        } else if (availableVoices.length > 0) {
+          // If saved voice not found, use first available voice
+          setSelectedVoice(availableVoices[0].name);
+        }
+      } else if (availableVoices.length > 0 && !selectedVoice) {
+        // If no saved settings, use first available voice
         setSelectedVoice(availableVoices[0].name);
       }
     };
 
+    // Try to load voices immediately
     loadVoices();
+
+    // Also set up event listener for when voices are loaded asynchronously
     window.speechSynthesis.onvoiceschanged = loadVoices;
 
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
-  }, [selectedVoice]);
+  }, []);
 
   // Load settings from localStorage
   const loadInitialSettings = () => {
@@ -138,7 +154,6 @@ function AppHome() {
         const settings = JSON.parse(savedSettings);
         return {
           ttsEnabled: settings.ttsEnabled ?? false,
-          selectedVoice: settings.selectedVoice || '',
           autoSendEnabled: settings.autoSendEnabled ?? false,
           promptPreface: settings.promptPreface ?? PROMPT_PREFACE,
           longTermMemory: settings.longTermMemory ?? '',
@@ -151,7 +166,6 @@ function AppHome() {
     }
     return { 
       ttsEnabled: false, 
-      selectedVoice: '', 
       autoSendEnabled: false,
       promptPreface: PROMPT_PREFACE,
       longTermMemory: '',
@@ -160,11 +174,10 @@ function AppHome() {
     };
   };
 
-  // Initialize settings
+  // Load settings from localStorage
   useEffect(() => {
     const settings = loadInitialSettings();
     setTtsEnabled(settings.ttsEnabled);
-    setSelectedVoice(settings.selectedVoice);
     setAutoSendEnabled(settings.autoSendEnabled);
     setSettingsPromptPreface(settings.promptPreface);
     setLongTermMemory(settings.longTermMemory || '');
@@ -207,6 +220,15 @@ function AppHome() {
           console.log('Speech ended');
           setIsSpeaking(false);
           setIsPaused(false);
+          lastSpokenTextRef.current = '';
+        };
+
+        utterance.onerror = (event) => {
+          console.log('Speech error:', event);
+          setIsSpeaking(false);
+          setIsPaused(false);
+          // Clear the last spoken text so it can be retried
+          lastSpokenTextRef.current = '';
         };
 
         utterance.onpause = () => {
@@ -226,6 +248,11 @@ function AppHome() {
 
   const speakFromMessage = (startIndex) => {
     if (ttsEnabled && selectedVoice) {
+      // If there's no valid startIndex or we don't know where we left off, start from beginning
+      if (startIndex === undefined || startIndex < 0 || startIndex >= messages.length) {
+        startIndex = 0;
+      }
+
       window.speechSynthesis.cancel();
       setIsSpeaking(true);
       setIsPaused(false);
@@ -233,15 +260,31 @@ function AppHome() {
       const messagesToSpeak = messages.slice(startIndex);
       const speakNext = (index) => {
         if (index < messagesToSpeak.length) {
-          const utterance = new SpeechSynthesisUtterance(messagesToSpeak[index].content);
-          const voice = voices.find(v => v.name === selectedVoice);
-          if (voice) {
-            utterance.voice = voice;
-            utterance.onend = () => speakNext(index + 1);
-            window.speechSynthesis.speak(utterance);
+          const message = messagesToSpeak[index];
+          // Only speak assistant messages
+          if (message.role === 'assistant') {
+            const utterance = new SpeechSynthesisUtterance(message.content);
+            const voice = voices.find(v => v.name === selectedVoice);
+            if (voice) {
+              utterance.voice = voice;
+              utterance.onend = () => speakNext(index + 1);
+              utterance.onerror = (event) => {
+                console.log('Speech error:', event);
+                // On error, try the next message
+                speakNext(index + 1);
+              };
+              window.speechSynthesis.speak(utterance);
+            } else {
+              // If voice not found, try next message
+              speakNext(index + 1);
+            }
+          } else {
+            // If not assistant message, skip to next
+            speakNext(index + 1);
           }
         } else {
           setIsSpeaking(false);
+          setIsPaused(false);
         }
       };
       speakNext(0);
@@ -288,58 +331,16 @@ function AppHome() {
     const userInput = inputRef.current.value.trim();
     if (!userInput) return;
 
-    // Add user message
-    const newMessage = { role: 'user', content: userInput };
-    setMessages(prev => [...prev, newMessage]);
-    setIsLoading(true);
+    // Clear input immediately
     inputRef.current.value = '';
 
-    // Get previous messages (last 4) plus the new message
-    const recentMessages = [...messages.slice(-previousMessagesCount), newMessage];
-
-    // Fetch variables
-    const url = 'https://api.deepseek.com/chat/completions';
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${"sk-6e0ec3f3dc5e42e6b259179411dd2f06"}`,
-    };
-    const body = JSON.stringify({
-      model: 'deepseek-chat',
-      messages: [
-        { role: 'system', content: settingsPromptPreface},
-        { role: 'system', content: "Memory from previous: " + initialLongTermMemory},
-        ...recentMessages
-      ],
-      stream: false,
-    });
-
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: headers,
-        body: body,
-      });
-      
-      const data = await response.json();
-      const responseMessage = { role: 'assistant', content: data.choices[0].message.content };
-      setMessages(prev => [...prev, responseMessage]);
-      speakText(responseMessage.content);
-    } catch (error) {
-      const errorMessage = { role: 'assistant', content: 'Sorry, there was an error processing your request.' };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
+    // Handle the message through handleSendMessage
+    await handleSendMessage(userInput);
   };
 
   const handleSendMessage = async (message) => {
+    if (!message.trim()) return;
+
     if (!chatIdRef.current && saveHistoryEnabled) {
       chatIdRef.current = Math.floor(Math.random() * 1000000).toString();
       const newChat = {
@@ -357,21 +358,32 @@ function AppHome() {
       content: message
     };
 
+    // Add user message and scroll
     setMessages(prev => [...prev, userMessage]);
-    scrollToBottom(); // Scroll after user message
+    setIsLoading(true);
+    scrollToBottom();
 
     try {
-      const response = await fetch('/api/chat', {
+      const url = 'https://api.deepseek.com/chat/completions';
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${"sk-6e0ec3f3dc5e42e6b259179411dd2f06"}`,
+      };
+      const body = JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: settingsPromptPreface},
+          { role: 'system', content: "Memory from previous: " + longTermMemory},
+          ...messages.slice(-previousMessagesCount),
+          userMessage
+        ],
+        stream: false,
+      });
+
+      const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          previousMessages: messages.slice(-previousMessagesCount),
-          promptPreface: settingsPromptPreface,
-          longTermMemory
-        }),
+        headers: headers,
+        body: body,
       });
 
       if (!response.ok) {
@@ -381,13 +393,18 @@ function AppHome() {
       const data = await response.json();
       const assistantMessage = {
         role: 'assistant',
-        content: data.message
+        content: data.choices[0].message.content
       };
 
+      // Add assistant message and scroll
       setMessages(prev => [...prev, assistantMessage]);
-      scrollToBottom(); // Scroll after assistant message
+      scrollToBottom();
 
-      if (saveHistoryEnabled) {
+      // Speak the response if TTS is enabled
+      speakText(assistantMessage.content);
+
+      // Update chat history if enabled
+      if (saveHistoryEnabled && chatIdRef.current) {
         const updatedChat = {
           messages: [...messages, userMessage, assistantMessage],
           timestamp: Date.now()
@@ -404,6 +421,21 @@ function AppHome() {
       }
     } catch (error) {
       console.error('Error:', error);
+      const errorMessage = {
+        role: 'assistant',
+        content: 'Sorry, there was an error processing your request.'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      speakText(errorMessage.content);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
     }
   };
 
@@ -570,7 +602,7 @@ function AppHome() {
               {isSpeaking ? (isPaused ? '▶️' : '⏸️') : '▶️'}
             </button>
           </div>
-          <button className="submit-button" onClick={() => handleSendMessage(inputRef.current.value)}>
+          <button className="submit-button" onClick={handleSubmit}>
             Send
           </button>
         </div>
