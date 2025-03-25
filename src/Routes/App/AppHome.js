@@ -3,9 +3,13 @@ import './AppHome.css'
 import Settings from './Settings'
 import Menu from './Menu'
 import TextInput from './TextInput'
+import Message from './Message'
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import SlidePanel from './SlidePanel';
+import ChatHistory from './ChatHistory';
 
 const STORAGE_KEY = 'chat-app-settings';
+const CHATS_STORAGE_KEY = 'chat-app-chats';
 const PROMPT_PREFACE = `
     This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
   
@@ -26,6 +30,7 @@ const PROMPT_PREFACE = `
     mood lifter
     like if
     math/logic games
+
 
     reminds of
     given a word the user describes what it reminds them of.
@@ -78,49 +83,27 @@ function AppHome() {
   const [showMenu, setShowMenu] = useState(false);
   const [showLongTermMemory, setShowLongTermMemory] = useState(false);
   const [showPromptPreface, setShowPromptPreface] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [longTermMemory, setLongTermMemory] = useState('');
   const [isPaused, setIsPaused] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const lastSpokenTextRef = useRef('');
-  
-  // Load settings from localStorage
-  const loadInitialSettings = () => {
-    try {
-      const savedSettings = localStorage.getItem(STORAGE_KEY);
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        return {
-          ttsEnabled: settings.ttsEnabled ?? false,
-          selectedVoice: settings.selectedVoice || '',
-          autoSendEnabled: settings.autoSendEnabled ?? false,
-          promptPreface: settings.promptPreface ?? PROMPT_PREFACE,
-          longTermMemory: settings.longTermMemory ?? ''
-        };
-      }
-    } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-    return { 
-      ttsEnabled: false, 
-      selectedVoice: '', 
-      autoSendEnabled: false,
-      promptPreface: PROMPT_PREFACE,
-      longTermMemory: ''
-    };
-  };
-
-  const initialSettings = loadInitialSettings();
-  const [ttsEnabled, setTtsEnabled] = useState(initialSettings.ttsEnabled);
-  const [selectedVoice, setSelectedVoice] = useState(initialSettings.selectedVoice);
-  const [autoSendEnabled, setAutoSendEnabled] = useState(initialSettings.autoSendEnabled);
-  const [settingsPromptPreface, setSettingsPromptPreface] = useState(initialSettings.promptPreface);
-  const [initialLongTermMemory, setInitialLongTermMemory] = useState(initialSettings.longTermMemory);
-  
+  const [chats, setChats] = useState({});
+  const [saveHistoryEnabled, setSaveHistoryEnabled] = useState(true);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [selectedVoice, setSelectedVoice] = useState('');
+  const [autoSendEnabled, setAutoSendEnabled] = useState(false);
+  const [settingsPromptPreface, setSettingsPromptPreface] = useState(PROMPT_PREFACE);
+  const [initialLongTermMemory, setInitialLongTermMemory] = useState('');
+  const [previousMessagesCount, setPreviousMessagesCount] = useState(10);
   const [voices, setVoices] = useState([]);
   const [isListening, setIsListening] = useState(false);
-  const messagesEndRef = useRef(null);
+
+  const chatIdRef = useRef(null);
+  const lastSpokenTextRef = useRef('');
+  const shortTermMemoryRef = useRef('');
   const inputRef = useRef(null);
   const autoSendTimerRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   const {
     transcript,
@@ -146,6 +129,54 @@ function AppHome() {
       window.speechSynthesis.onvoiceschanged = null;
     };
   }, [selectedVoice]);
+
+  // Load settings from localStorage
+  const loadInitialSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem(STORAGE_KEY);
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        return {
+          ttsEnabled: settings.ttsEnabled ?? false,
+          selectedVoice: settings.selectedVoice || '',
+          autoSendEnabled: settings.autoSendEnabled ?? false,
+          promptPreface: settings.promptPreface ?? PROMPT_PREFACE,
+          longTermMemory: settings.longTermMemory ?? '',
+          previousMessagesCount: settings.previousMessagesCount ?? 10,
+          saveHistoryEnabled: settings.saveHistoryEnabled ?? true
+        };
+      }
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+    return { 
+      ttsEnabled: false, 
+      selectedVoice: '', 
+      autoSendEnabled: false,
+      promptPreface: PROMPT_PREFACE,
+      longTermMemory: '',
+      previousMessagesCount: 10,
+      saveHistoryEnabled: true
+    };
+  };
+
+  // Initialize settings
+  useEffect(() => {
+    const settings = loadInitialSettings();
+    setTtsEnabled(settings.ttsEnabled);
+    setSelectedVoice(settings.selectedVoice);
+    setAutoSendEnabled(settings.autoSendEnabled);
+    setSettingsPromptPreface(settings.promptPreface);
+    setLongTermMemory(settings.longTermMemory || '');
+    setPreviousMessagesCount(settings.previousMessagesCount);
+    setSaveHistoryEnabled(settings.saveHistoryEnabled);
+
+    // Load chats from localStorage
+    const savedChats = localStorage.getItem(CHATS_STORAGE_KEY);
+    if (savedChats) {
+      setChats(JSON.parse(savedChats));
+    }
+  }, []);
 
   // Update input value when transcript changes
   useEffect(() => {
@@ -193,8 +224,38 @@ function AppHome() {
     }
   };
 
+  const speakFromMessage = (startIndex) => {
+    if (ttsEnabled && selectedVoice) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(true);
+      setIsPaused(false);
+
+      const messagesToSpeak = messages.slice(startIndex);
+      const speakNext = (index) => {
+        if (index < messagesToSpeak.length) {
+          const utterance = new SpeechSynthesisUtterance(messagesToSpeak[index].content);
+          const voice = voices.find(v => v.name === selectedVoice);
+          if (voice) {
+            utterance.voice = voice;
+            utterance.onend = () => speakNext(index + 1);
+            window.speechSynthesis.speak(utterance);
+          }
+        } else {
+          setIsSpeaking(false);
+        }
+      };
+      speakNext(0);
+    }
+  };
+
+  const addToShortTermMemory = (message) => {
+    shortTermMemoryRef.current += message + "\n";
+  };
+
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
   };
 
   useEffect(() => {
@@ -234,7 +295,7 @@ function AppHome() {
     inputRef.current.value = '';
 
     // Get previous messages (last 4) plus the new message
-    const recentMessages = [...messages.slice(-4), newMessage];
+    const recentMessages = [...messages.slice(-previousMessagesCount), newMessage];
 
     // Fetch variables
     const url = 'https://api.deepseek.com/chat/completions';
@@ -275,6 +336,74 @@ function AppHome() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
+    }
+  };
+
+  const handleSendMessage = async (message) => {
+    if (!chatIdRef.current && saveHistoryEnabled) {
+      chatIdRef.current = Math.floor(Math.random() * 1000000).toString();
+      const newChat = {
+        messages: [],
+        timestamp: Date.now()
+      };
+      setChats(prev => ({
+        ...prev,
+        [chatIdRef.current]: newChat
+      }));
+    }
+
+    const userMessage = {
+      role: 'user',
+      content: message
+    };
+
+    setMessages(prev => [...prev, userMessage]);
+    scrollToBottom(); // Scroll after user message
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          previousMessages: messages.slice(-previousMessagesCount),
+          promptPreface: settingsPromptPreface,
+          longTermMemory
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+      const assistantMessage = {
+        role: 'assistant',
+        content: data.message
+      };
+
+      setMessages(prev => [...prev, assistantMessage]);
+      scrollToBottom(); // Scroll after assistant message
+
+      if (saveHistoryEnabled) {
+        const updatedChat = {
+          messages: [...messages, userMessage, assistantMessage],
+          timestamp: Date.now()
+        };
+        
+        setChats(prev => {
+          const updated = {
+            ...prev,
+            [chatIdRef.current]: updatedChat
+          };
+          localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
@@ -332,14 +461,120 @@ function AppHome() {
     // }, 100);
   };
 
+  const handleLongTermMemoryChange = (e) => {
+    const newValue = e.target.value;
+    setLongTermMemory(newValue);
+    const settings = {
+      ttsEnabled,
+      selectedVoice,
+      autoSendEnabled,
+      promptPreface: settingsPromptPreface,
+      longTermMemory: newValue,
+      previousMessagesCount,
+      saveHistoryEnabled
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  };
+
+  const loadChat = (chatId) => {
+    const chat = chats[chatId];
+    if (chat) {
+      setMessages(chat.messages);
+      chatIdRef.current = chatId;
+    }
+  };
+
+  const saveCurrentChat = () => {
+    if (!chatIdRef.current || messages.length === 0 || !saveHistoryEnabled) return;
+    
+    const updatedChats = {
+      ...chats,
+      [chatIdRef.current]: {
+        messages: messages,
+        timestamp: Date.now()
+      }
+    };
+    setChats(updatedChats);
+    localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updatedChats));
+  };
+
+  useEffect(() => {
+    if (chatIdRef.current) {
+      saveCurrentChat();
+    }
+  }, [messages]);
+
+  const handleNewChat = () => {
+    setMessages([]);
+    chatIdRef.current = null;
+    setShowMenu(false);
+  };
+
   return (
     <div className="app-container">
-      {/* <button className="settings-button" onClick={() => setShowSettings(!showSettings)}>⚙️</button> */}
       <button className="hamburger-button" onClick={() => setShowMenu(!showMenu)}>
         <span className="hamburger-line"></span>
         <span className="hamburger-line"></span>
         <span className="hamburger-line"></span>
       </button>
+      <Menu 
+        isOpen={showMenu} 
+        setIsOpen={setShowMenu}
+        setShowSettings={setShowSettings}
+        setShowHistory={setShowHistory}
+        setShowLongTermMemory={setShowLongTermMemory}
+      />
+      <div className="messages-container" ref={messagesEndRef}>
+        {messages.map((message, index) => (
+          <Message
+            key={index}
+            message={message.content}
+            type={message.role}
+            selectedVoice={selectedVoice}
+            voices={voices}
+            onSpeakFromHere={() => speakFromMessage(index)}
+            onAddToShortTermMemory={addToShortTermMemory}
+          />
+        ))}
+        {isLoading && (
+          <div className="message assistant">
+            <div className="loading-dots">
+              <span>.</span>
+              <span>.</span>
+              <span>.</span>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="input-container">
+        <textarea
+          ref={inputRef}
+          placeholder="Type your message..."
+          onKeyDown={handleKeyPress}
+          onChange={handleInputChange}
+        />
+        <div className="button-container">
+          <div className="left-buttons">
+            <button
+              className={`voice-input-button ${isListening ? 'listening' : ''}`}
+              onClick={toggleVoiceInput}
+            >
+              🎤
+            </button>
+            <button
+              className={`pause-button ${isSpeaking ? (isPaused ? 'paused' : 'speaking') : ''}`}
+              onClick={togglePause}
+              disabled={!lastSpokenTextRef.current && !isSpeaking}
+              title={isSpeaking ? (isPaused ? 'Resume speech' : 'Pause speech') : 'Replay last speech'}
+            >
+              {isSpeaking ? (isPaused ? '▶️' : '⏸️') : '▶️'}
+            </button>
+          </div>
+          <button className="submit-button" onClick={() => handleSendMessage(inputRef.current.value)}>
+            Send
+          </button>
+        </div>
+      </div>
       <Settings
         ttsEnabled={ttsEnabled}
         setTtsEnabled={setTtsEnabled}
@@ -351,30 +586,37 @@ function AppHome() {
         showSettings={showSettings}
         setShowSettings={setShowSettings}
         setShowPromptPreface={setShowPromptPreface}
-      />
-      <Menu 
-        isOpen={showMenu} 
-        setIsOpen={setShowMenu} 
-        setShowSettings={setShowSettings}
+        previousMessagesCount={previousMessagesCount}
+        setPreviousMessagesCount={setPreviousMessagesCount}
         setShowLongTermMemory={setShowLongTermMemory}
+        saveHistoryEnabled={saveHistoryEnabled}
+        setSaveHistoryEnabled={setSaveHistoryEnabled}
       />
-      <TextInput
-        title="Long Term Memory"
-        isOpen={showLongTermMemory}
-        setIsOpen={setShowLongTermMemory}
-        defaultValue={initialLongTermMemory}
-        onChange={(value) => {
-          setInitialLongTermMemory(value);
-          const settings = {
-            ttsEnabled,
-            selectedVoice,
-            autoSendEnabled,
-            promptPreface: settingsPromptPreface,
-            longTermMemory: value
-          };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-        }}
+      <ChatHistory
+        isOpen={showHistory}
+        setIsOpen={setShowHistory}
+        chats={chats}
+        onSelectChat={loadChat}
+        currentChatId={chatIdRef.current}
+        onNewChat={handleNewChat}
       />
+      {showLongTermMemory && (
+        <div className="overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h2>Long Term Memory</h2>
+              <button onClick={() => setShowLongTermMemory(false)}>&times;</button>
+            </div>
+            <div className="prompt-editor">
+              <textarea
+                value={longTermMemory}
+                onChange={handleLongTermMemoryChange}
+                rows="20"
+              />
+            </div>
+          </div>
+        </div>
+      )}
       <TextInput
         title="Prompt Preface"
         isOpen={showPromptPreface}
@@ -404,50 +646,6 @@ function AppHome() {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }}
       />
-      <div className="messages-container">
-        {messages.map((message, index) => (
-          <div key={index} className={`message ${message.role}`}>
-            {message.content}
-          </div>
-        ))}
-        {isLoading && (
-          <div className="message assistant loading">
-            <div className="loading-dots">
-              <span>.</span><span>.</span><span>.</span>
-            </div>
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-      <div className="input-container">
-        <textarea
-          ref={inputRef}
-          placeholder="Type your message..."
-          onKeyDown={handleKeyPress}
-          onChange={handleInputChange}
-        />
-        <div className="button-container">
-          <div className="left-buttons">
-            <button
-              className={`voice-input-button ${isListening ? 'listening' : ''}`}
-              onClick={toggleVoiceInput}
-            >
-              🎤
-            </button>
-            <button
-              className={`pause-button ${isSpeaking ? (isPaused ? 'paused' : 'speaking') : ''}`}
-              onClick={togglePause}
-              disabled={!lastSpokenTextRef.current && !isSpeaking}
-              title={isSpeaking ? (isPaused ? 'Resume speech' : 'Pause speech') : 'Replay last speech'}
-            >
-              {isSpeaking ? (isPaused ? '▶️' : '⏸️') : '▶️'}
-            </button>
-          </div>
-          <button className="submit-button" onClick={handleSubmit}>
-            Send
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

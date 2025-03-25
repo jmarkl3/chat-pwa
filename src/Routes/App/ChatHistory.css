@@ -1,0 +1,133 @@
+.chat-history {
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.chat-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.new-chat-button {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.2s;
+  box-sizing: border-box;
+  min-height: 36px;
+}
+
+.new-chat-button:hover {
+  background-color: #0056b3;
+}
+
+.chat-item {
+  padding: 10px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  border: 1px solid #dee2e6;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 60px;
+}
+
+.chat-item:hover {
+  background-color: #e9ecef;
+}
+
+.chat-item.active {
+  background-color: #e2e6ea;
+  border-color: #007bff;
+}
+
+.chat-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.chat-id {
+  font-weight: 500;
+  color: #333;
+}
+
+.chat-date {
+  font-size: 0.9em;
+  color: #666;
+}
+
+.chat-preview {
+  font-size: 13px;
+  color: #212529;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.chat-timestamp {
+  font-size: 11px;
+  color: #6c757d;
+}
+
+.no-chats {
+  text-align: center;
+  color: #666;
+  padding: 24px;
+  font-style: italic;
+}
+
+/* Mobile optimizations */
+@media (max-width: 600px) {
+  .chat-history {
+    padding: 8px;
+  }
+
+  .chat-list {
+    gap: 4px;
+  }
+
+  .new-chat-button {
+    padding: 8px;
+    font-size: 13px;
+    margin-bottom: 6px;
+    min-height: 32px;
+  }
+
+  .chat-item {
+    padding: 8px;
+    min-height: 52px;
+  }
+
+  .chat-preview {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .chat-timestamp {
+    font-size: 10px;
+  }
+}

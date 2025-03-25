@@ -1,10 +1,15 @@
 import React from 'react';
 import './Menu.css';
 
-function Menu({ isOpen, setIsOpen, setShowSettings, setShowLongTermMemory }) {
+function Menu({ isOpen, setIsOpen, setShowSettings, setShowHistory, setShowLongTermMemory }) {
   const handleSettingsClick = () => {
     setIsOpen(false);
     setShowSettings(true);
+  };
+
+  const handleHistoryClick = () => {
+    setIsOpen(false);
+    setShowHistory(true);
   };
 
   const handleLongTermMemoryClick = () => {
@@ -22,7 +27,7 @@ function Menu({ isOpen, setIsOpen, setShowSettings, setShowLongTermMemory }) {
           <h3>Menu</h3>
           <div className="menu-items">
             <button className="menu-item" onClick={handleSettingsClick}>Settings</button>
-            <button className="menu-item">History</button>
+            <button className="menu-item" onClick={handleHistoryClick}>History</button>
             <button className="menu-item" onClick={handleLongTermMemoryClick}>Long Term Memory</button>
           </div>
         </div>

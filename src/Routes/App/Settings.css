@@ -3,12 +3,18 @@
 }
 
 .setting-item {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .setting-item label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-item label span {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .setting-item select {
@@ -42,17 +48,84 @@
   cursor: not-allowed;
 }
 
+.settings-section {
+    margin-bottom: 16px;
+}
+
+.section-header {
+    width: 100%;
+    padding: 12px;
+    background: #f5f5f5;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.section-header:hover {
+    background: #e8e8e8;
+}
+
+.section-content {
+    padding: 16px;
+    background: white;
+    border-radius: 0 0 4px 4px;
+    animation: slideDown 0.2s ease-out;
+}
+
+.arrow {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .settings-action-button {
-  width: 100%;
-  padding: 10px;
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s;
+    width: 100%;
+    padding: 8px 16px;
+    background-color: #2196f3;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: background-color 0.2s;
 }
 
 .settings-action-button:hover {
-  background-color: #e0e0e0;
+    background-color: #1976d2;
+}
+
+.setting-item input[type="number"] {
+    width: 120px;
+    padding: 8px;
+    font-size: 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 4px;
+    background-color: #f8f8f8;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.setting-item input[type="number"]:focus {
+    outline: none;
+    border-color: #2196f3;
+    background-color: white;
+}
+
+.setting-item input[type="number"]:hover {
+    background-color: #f0f0f0;
 }
