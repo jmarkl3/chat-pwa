@@ -15,6 +15,7 @@
 .setting-item label span {
   display: block;
   margin-bottom: 4px;
+  margin-right: 8px;
 }
 
 .setting-item select {
@@ -128,4 +129,10 @@
 
 .setting-item input[type="number"]:hover {
     background-color: #f0f0f0;
+}
+
+.setting-item input[type="number"].auto-send-timeout {
+  width: 60px;
+  margin-left: 10px;
+  padding: 4px;
 }

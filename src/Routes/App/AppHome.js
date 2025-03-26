@@ -92,6 +92,7 @@ function AppHome() {
   const [ttsEnabled, setTtsEnabled] = useState(false);
   const [selectedVoice, setSelectedVoice] = useState('');
   const [autoSendEnabled, setAutoSendEnabled] = useState(false);
+  const [autoSendTimeout, setAutoSendTimeout] = useState(5);
   const [settingsPromptPreface, setSettingsPromptPreface] = useState(PROMPT_PREFACE);
   const [initialLongTermMemory, setInitialLongTermMemory] = useState('');
   const [previousMessagesCount, setPreviousMessagesCount] = useState(10);
@@ -155,6 +156,7 @@ function AppHome() {
         return {
           ttsEnabled: settings.ttsEnabled ?? false,
           autoSendEnabled: settings.autoSendEnabled ?? false,
+          autoSendTimeout: settings.autoSendTimeout ?? 5,
           promptPreface: settings.promptPreface ?? PROMPT_PREFACE,
           longTermMemory: settings.longTermMemory ?? '',
           previousMessagesCount: settings.previousMessagesCount ?? 10,
@@ -167,6 +169,7 @@ function AppHome() {
     return { 
       ttsEnabled: false, 
       autoSendEnabled: false,
+      autoSendTimeout: 5,
       promptPreface: PROMPT_PREFACE,
       longTermMemory: '',
       previousMessagesCount: 10,
@@ -179,6 +182,7 @@ function AppHome() {
     const settings = loadInitialSettings();
     setTtsEnabled(settings.ttsEnabled);
     setAutoSendEnabled(settings.autoSendEnabled);
+    setAutoSendTimeout(settings.autoSendTimeout);
     setSettingsPromptPreface(settings.promptPreface);
     setLongTermMemory(settings.longTermMemory || '');
     setPreviousMessagesCount(settings.previousMessagesCount);
@@ -312,13 +316,73 @@ function AppHome() {
         clearTimeout(autoSendTimerRef.current);
       }
       
-      // Set new timer
+      // Set new timer - use default of 5 seconds if autoSendTimeout is empty
+      const timeoutSeconds = autoSendTimeout === '' ? 5 : autoSendTimeout;
       autoSendTimerRef.current = setTimeout(() => {
         if (inputRef.current.value.trim()) {
           handleSubmit();
         }
-      }, 5000);
+      }, timeoutSeconds * 1000);
     }
+  };
+
+  const handleCommand = (command, args) => {
+    switch (command.toLowerCase()) {
+      case 'replay':
+        // Get number of messages to replay (default to 1 if not specified)
+        const count = args.length > 0 ? parseInt(args[0]) : 1;
+        
+        // Validate count is a number and within reasonable range
+        if (isNaN(count) || count < 1 || count > 10) {
+          console.log('Invalid replay count. Please use a number between 1 and 10');
+          return;
+        }
+
+        // Get the last N assistant messages in chronological order
+        const assistantMessages = [...messages]
+          .reverse() // Reverse to get newest first
+          .filter(msg => msg.role === 'assistant')
+          .slice(0, count) // Get the N most recent messages
+          .reverse(); // Reverse again to get oldest first
+
+        if (assistantMessages.length > 0) {
+          // Cancel any ongoing speech
+          window.speechSynthesis.cancel();
+          
+          // Create a function to speak messages sequentially
+          const speakMessages = (index = 0) => {
+            if (index < assistantMessages.length) {
+              const utterance = new SpeechSynthesisUtterance(assistantMessages[index].content);
+              const voice = voices.find(v => v.name === selectedVoice);
+              if (voice) {
+                utterance.voice = voice;
+                // When this message ends, speak the next one
+                utterance.onend = () => speakMessages(index + 1);
+                window.speechSynthesis.speak(utterance);
+              }
+            }
+          };
+
+          // Start speaking messages
+          speakMessages();
+        }
+        break;
+      // Add more commands here in the future
+      default:
+        console.log('Unknown command:', command);
+    }
+  };
+
+  const processInput = (input) => {
+    const words = input.trim().split(/\s+/);
+    let firstWord = words[0].toLowerCase()
+    if (words.length >= 2 && (firstWord === 'command' || firstWord === 'commands')) {
+      const command = words[1];
+      const args = words.slice(2);
+      handleCommand(command, args);
+      return false; // Don't send to API
+    }
+    return true; // Send to API
   };
 
   const handleSubmit = async () => {
@@ -334,8 +398,10 @@ function AppHome() {
     // Clear input immediately
     inputRef.current.value = '';
 
-    // Handle the message through handleSendMessage
-    await handleSendMessage(userInput);
+    // Process input and only send to API if it's not a command
+    if (processInput(userInput)) {
+      await handleSendMessage(userInput);
+    }
   };
 
   const handleSendMessage = async (message) => {
@@ -584,6 +650,7 @@ function AppHome() {
           placeholder="Type your message..."
           onKeyDown={handleKeyPress}
           onChange={handleInputChange}
+          // onInput={handleInputChange}
         />
         <div className="button-container">
           <div className="left-buttons">
@@ -623,6 +690,8 @@ function AppHome() {
         setShowLongTermMemory={setShowLongTermMemory}
         saveHistoryEnabled={saveHistoryEnabled}
         setSaveHistoryEnabled={setSaveHistoryEnabled}
+        autoSendTimeout={autoSendTimeout}
+        setAutoSendTimeout={setAutoSendTimeout}
       />
       <ChatHistory
         isOpen={showHistory}

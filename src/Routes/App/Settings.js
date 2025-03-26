@@ -12,6 +12,8 @@ function Settings({
   setSelectedVoice, 
   autoSendEnabled, 
   setAutoSendEnabled, 
+  autoSendTimeout,
+  setAutoSendTimeout,
   showSettings, 
   setShowSettings,
   setShowPromptPreface,
@@ -33,6 +35,7 @@ function Settings({
       ttsEnabled: newValue,
       selectedVoice: selectedVoice,
       autoSendEnabled: autoSendEnabled,
+      autoSendTimeout: autoSendTimeout,
       previousMessagesCount: previousMessagesCount,
       saveHistoryEnabled: saveHistoryEnabled
     }));
@@ -46,6 +49,7 @@ function Settings({
       ttsEnabled: ttsEnabled,
       selectedVoice: newVoice,
       autoSendEnabled: autoSendEnabled,
+      autoSendTimeout: autoSendTimeout,
       previousMessagesCount: previousMessagesCount,
       saveHistoryEnabled: saveHistoryEnabled
     }));
@@ -58,6 +62,21 @@ function Settings({
       ttsEnabled: ttsEnabled, 
       selectedVoice: selectedVoice,
       autoSendEnabled: newValue,
+      autoSendTimeout: autoSendTimeout,
+      previousMessagesCount: previousMessagesCount,
+      saveHistoryEnabled: saveHistoryEnabled
+    }));
+  };
+
+  const handleAutoSendTimeoutChange = (e) => {
+    const newValue = e.target.value === '' ? '' : parseInt(e.target.value);
+    setAutoSendTimeout(newValue);
+    const valueToSave = newValue === '' ? 5 : newValue;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+      ttsEnabled: ttsEnabled, 
+      selectedVoice: selectedVoice,
+      autoSendEnabled: autoSendEnabled,
+      autoSendTimeout: valueToSave,
       previousMessagesCount: previousMessagesCount,
       saveHistoryEnabled: saveHistoryEnabled
     }));
@@ -70,19 +89,22 @@ function Settings({
       ttsEnabled: ttsEnabled, 
       selectedVoice: selectedVoice,
       autoSendEnabled: autoSendEnabled,
+      autoSendTimeout: autoSendTimeout,
       previousMessagesCount: previousMessagesCount,
       saveHistoryEnabled: newValue
     }));
   };
 
   const handlePreviousMessagesCountChange = (e) => {
-    const newValue = parseInt(e.target.value) || 10;
+    const newValue = e.target.value === '' ? '' : parseInt(e.target.value);
     setPreviousMessagesCount(newValue);
+    const valueToSave = newValue === '' ? 10 : newValue;
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
       ttsEnabled: ttsEnabled, 
       selectedVoice: selectedVoice,
       autoSendEnabled: autoSendEnabled,
-      previousMessagesCount: newValue,
+      autoSendTimeout: autoSendTimeout,
+      previousMessagesCount: valueToSave,
       saveHistoryEnabled: saveHistoryEnabled
     }));
   };
@@ -134,10 +156,26 @@ function Settings({
                   <input
                     type="checkbox"
                     checked={autoSendEnabled}
-                    onChange={(e) => setAutoSendEnabled(e.target.checked)}
+                    onChange={handleAutoSendChange}
                   />
                   Auto-send when voice input ends
                 </label>
+                {autoSendEnabled && (
+                  <div className="setting-item" style={{ marginLeft: '20px', marginTop: '8px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center' }}>
+                      <span>Auto-send timeout:</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="30"
+                        value={autoSendTimeout}
+                        onChange={handleAutoSendTimeoutChange}
+                        className="auto-send-timeout"
+                      />
+                      <span style={{ marginLeft: '4px' }}>seconds</span>
+                    </label>
+                  </div>
+                )}
               </div>
               <div className="setting-item">
                 <label>
