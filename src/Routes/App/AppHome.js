@@ -10,6 +10,15 @@ import ChatHistory from './ChatHistory';
 
 const STORAGE_KEY = 'chat-app-settings';
 const CHATS_STORAGE_KEY = 'chat-app-chats';
+const AVAILABLE_COMMANDS = `Available commands:
+1. command replay <number> - Replays the last few messages. For example: "command replay 3"
+2. command repeat <number> - Same as replay
+3. command say <number> - Same as replay
+4. command setting auto send <true/false> - Enables or disables auto send
+5. command setting timeout <seconds> - Sets the auto send timeout
+6. command setting previous messages <number> - Sets how many previous messages to include
+7. command setting text to speech <true/false> - Enables or disables text to speech
+8. command setting save history <true/false> - Enables or disables chat history saving`;
 const PROMPT_PREFACE = `
     This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
   
@@ -326,14 +335,93 @@ function AppHome() {
     }
   };
 
+  const wordToNumber = (word) => {
+    const numberWords = {
+      'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+      'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+      'to': 2, 'too': 2, // Common TTS interpretations
+      '1': 1, '2': 2, '3': 3, '4': 4, '5': 5,
+      '6': 6, '7': 7, '8': 8, '9': 9, '10': 10
+    };
+    return numberWords[word.toLowerCase()] || null;
+  };
+
+  const findNumberInArgs = (args) => {
+    // Look through all args to find a number
+    for (const arg of args) {
+      const num = wordToNumber(arg);
+      if (num !== null) {
+        return num;
+      }
+    }
+    return 1; // Default to 1 if no number found
+  };
+
+  const updateSetting = (settingName, value) => {
+    // Convert setting name to lowercase 
+    const setting = settingName.toLowerCase();
+    
+    // Convert string "true"/"false" to boolean
+    const boolValue = value.toLowerCase();
+    const isBool = boolValue === 'true' || boolValue === 'false';
+    const parsedValue = isBool ? boolValue === 'true' : value;
+
+    let settingDisplayName = '';
+
+    // Handle different settings - using includes() for more flexible matching
+    if (setting.includes('auto send') || setting === 'autosend') {
+      setAutoSendEnabled(parsedValue);
+      settingDisplayName = 'auto send';
+    }
+    else if (setting.includes('timeout') || setting.includes('auto send timeout')) {
+      const timeoutValue = parseInt(value) || 5;
+      setAutoSendTimeout(timeoutValue);
+      settingDisplayName = 'auto send timeout';
+    }
+    else if (setting.includes('previous message') || setting.includes('messages')) {
+      const messageCount = parseInt(value) || 10;
+      setPreviousMessagesCount(messageCount);
+      settingDisplayName = 'previous messages';
+    }
+    else if (setting.includes('text to speech') || setting === 'tts') {
+      setTtsEnabled(parsedValue);
+      settingDisplayName = 'text to speech';
+    }
+    else if (setting.includes('save history') || setting === 'history') {
+      setSaveHistoryEnabled(parsedValue);
+      settingDisplayName = 'save history';
+    }
+    else {
+      console.log('Unknown setting:', settingName);
+      console.log('Available settings: auto send, timeout, previous messages, text to speech (tts), save history');
+      return false;
+    }
+
+    // Save to localStorage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      ttsEnabled,
+      selectedVoice,
+      autoSendEnabled,
+      autoSendTimeout,
+      previousMessagesCount,
+      saveHistoryEnabled
+    }));
+
+    // Announce the update via TTS
+    speakText(`${settingDisplayName} updated to ${value}`);
+    return true;
+  };
+
   const handleCommand = (command, args) => {
     switch (command.toLowerCase()) {
       case 'replay':
+      case 'repeat':
+      case 'say':
         // Get number of messages to replay (default to 1 if not specified)
-        const count = args.length > 0 ? parseInt(args[0]) : 1;
+        const count = findNumberInArgs(args);
         
-        // Validate count is a number and within reasonable range
-        if (isNaN(count) || count < 1 || count > 10) {
+        // Validate count is within reasonable range
+        if (count < 1 || count > 10) {
           console.log('Invalid replay count. Please use a number between 1 and 10');
           return;
         }
@@ -352,22 +440,67 @@ function AppHome() {
           // Create a function to speak messages sequentially
           const speakMessages = (index = 0) => {
             if (index < assistantMessages.length) {
-              const utterance = new SpeechSynthesisUtterance(assistantMessages[index].content);
-              const voice = voices.find(v => v.name === selectedVoice);
-              if (voice) {
-                utterance.voice = voice;
-                // When this message ends, speak the next one
-                utterance.onend = () => speakMessages(index + 1);
-                window.speechSynthesis.speak(utterance);
+              const message = assistantMessages[index];
+              // Only speak assistant messages
+              if (message.role === 'assistant') {
+                const utterance = new SpeechSynthesisUtterance(message.content);
+                const voice = voices.find(v => v.name === selectedVoice);
+                if (voice) {
+                  utterance.voice = voice;
+                  // When this message ends, speak the next one
+                  utterance.onend = () => speakMessages(index + 1);
+                  utterance.onerror = (event) => {
+                    console.log('Speech error:', event);
+                    // On error, try the next message
+                    speakMessages(index + 1);
+                  };
+                  window.speechSynthesis.speak(utterance);
+                } else {
+                  // If voice not found, try next message
+                  speakMessages(index + 1);
+                }
+              } else {
+                // If not assistant message, skip to next
+                speakMessages(index + 1);
               }
+            } else {
+              setIsSpeaking(false);
+              setIsPaused(false);
             }
           };
-
-          // Start speaking messages
           speakMessages();
         }
         break;
-      // Add more commands here in the future
+
+      case 'setting':
+      case 'settings':
+      case 'update':
+        if (args.length < 2) {
+          console.log('Usage: command setting <setting name> <value>');
+          return;
+        }
+
+        // If the command was "update setting", remove the "setting" word
+        if (command.toLowerCase() === 'update' && args[0].toLowerCase() === 'setting') {
+          args.shift();
+        }
+
+        // The last word is the value, everything else is the setting name
+        const value = args[args.length - 1];
+        const settingName = args.slice(0, -1).join(' ');
+
+        if (updateSetting(settingName, value)) {
+          console.log(`Updated ${settingName} to ${value}`);
+        }
+        break;
+
+      case 'list':
+        if (args[0]?.toLowerCase() === 'commands') {
+          console.log(AVAILABLE_COMMANDS);
+          speakText(AVAILABLE_COMMANDS.replace(/\d\./g, ''));
+        }
+        break;
+
       default:
         console.log('Unknown command:', command);
     }
