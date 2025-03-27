@@ -1,33 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './JsonList.css';
+import JsonListMenu from './JsonListMenu';
+import JsonListSettings from './JsonListSettings';
+import JsonListNotes from './JsonListNotes';
 
-const initialData = {
+const emptyData = {
   0: {
-    content: "Books",
-    nested: {
-      0: {
-        content: "Comedy",
-        nested: {
-          0: {
-            content: "Hitchhiker's Guide",
-            nested: {}
-          },
-          1: {
-            content: "Good Omens",
-            nested: {}
-          }
-        }
-      },
-      1: {
-        content: "Mystery",
-        nested: {
-          0: {
-            content: "Sherlock Holmes",
-            nested: {}
-          }
-        }
-      }
-    }
+    content: 'New Item',
+    nested: {}
   }
 };
 
@@ -210,139 +190,250 @@ function NoteListItem({ item, index, depth = 0, path = [], onUpdate, onDelete, o
 }
 
 function NoteList() {
-  const [data, setData] = useState(initialData);
+  const [data, setData] = useState(emptyData);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
+  const [currentListId, setCurrentListId] = useState(null);
+  const [currentTitle, setCurrentTitle] = useState('');
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [metadata, setMetadata] = useState({});
+
+  // Load current list from localStorage on mount
+  useEffect(() => {
+    const savedListId = localStorage.getItem('currentJsonListId');
+    if (savedListId) {
+      const listData = localStorage.getItem('jsonList_' + savedListId);
+      if (listData) {
+        setCurrentListId(savedListId);
+        setData(JSON.parse(listData));
+        
+        // Load title from metadata
+        const lists = JSON.parse(localStorage.getItem('jsonListsMetadata') || '{}');
+        setMetadata(lists);
+        if (lists[savedListId]) {
+          setCurrentTitle(lists[savedListId].title || 'Untitled List');
+        }
+      }
+    }
+  }, []);
+
+  const handleLoadNote = (noteData, title) => {
+    setData(noteData);
+    setCurrentTitle(title || 'Untitled List');
+  };
+
+  const handleTitleChange = (newTitle) => {
+    const title = newTitle.trim() || 'Untitled List';
+    setCurrentTitle(title);
+    setIsEditingTitle(false);
+
+    if (currentListId) {
+      // Update metadata
+      const lists = JSON.parse(localStorage.getItem('jsonListsMetadata') || '{}');
+      if (lists[currentListId]) {
+        lists[currentListId].title = title;
+        lists[currentListId].timestamp = Date.now();
+        localStorage.setItem('jsonListsMetadata', JSON.stringify(lists));
+        setMetadata(lists); // Update local metadata state
+      }
+    }
+  };
+
+  const handleTitleSubmit = (e) => {
+    e.preventDefault();
+    handleTitleChange(currentTitle);
+  };
+
+  const handleTitleBlur = () => {
+    handleTitleChange(currentTitle);
+  };
+
+  const handleMetadataChange = (newMetadata) => {
+    setMetadata(newMetadata);
+    // Update current title if this is the current list
+    if (currentListId && newMetadata[currentListId]) {
+      setCurrentTitle(newMetadata[currentListId].title || 'Untitled List');
+    }
+  };
+
+  // Save changes to localStorage
+  const saveCurrentList = (newData) => {
+    if (currentListId) {
+      // Save the actual list data
+      localStorage.setItem('jsonList_' + currentListId, JSON.stringify(newData));
+      
+      // Update timestamp in metadata
+      const lists = JSON.parse(localStorage.getItem('jsonListsMetadata') || '{}');
+      if (lists[currentListId]) {
+        lists[currentListId].timestamp = Date.now();
+        localStorage.setItem('jsonListsMetadata', JSON.stringify(lists));
+      }
+    }
+  };
 
   const handleUpdate = (path, newValue) => {
     const newData = JSON.parse(JSON.stringify(data));
     let current = newData;
     
+    // Navigate to the parent of the target property
     for (let i = 0; i < path.length - 1; i++) {
       current = current[path[i]];
     }
     
+    // Update the target property
     current[path[path.length - 1]] = newValue;
     setData(newData);
+    saveCurrentList(newData);
   };
 
   const handleDelete = (path) => {
     const newData = JSON.parse(JSON.stringify(data));
     let current = newData;
     
+    // Navigate to the parent of the target property
     for (let i = 0; i < path.length - 1; i++) {
       current = current[path[i]];
     }
     
+    // Delete the target property
     delete current[path[path.length - 1]];
-    
-    // Reorder remaining items
-    const items = Object.entries(current)
-      .sort(([a], [b]) => parseInt(a) - parseInt(b));
-    
-    // Reset indices
-    items.forEach(([, value], index) => {
-      current[index] = value;
-      if (parseInt(index) < items.length - 1) {
-        delete current[items[index + 1][0]];
-      }
-    });
-    
     setData(newData);
+    saveCurrentList(newData);
   };
 
   const handleDuplicate = (path) => {
     const newData = JSON.parse(JSON.stringify(data));
     let current = newData;
     
+    // Navigate to the parent of the target property
     for (let i = 0; i < path.length - 1; i++) {
       current = current[path[i]];
     }
     
-    const items = Object.keys(current).length;
-    const originalValue = current[path[path.length - 1]];
+    // Find the next available index
+    const keys = Object.keys(current).map(Number);
+    const nextIndex = keys.length > 0 ? Math.max(...keys) + 1 : 0;
     
-    // Shift items up
-    for (let i = items; i > parseInt(path[path.length - 1]) + 1; i--) {
-      current[i] = current[i - 1];
-    }
-    
-    // Insert copy
-    current[parseInt(path[path.length - 1]) + 1] = JSON.parse(JSON.stringify(originalValue));
-    
+    // Copy the item
+    current[nextIndex] = JSON.parse(JSON.stringify(current[path[path.length - 1]]));
     setData(newData);
-  };
-
-  const handleAdd = (path) => {
-    const newData = JSON.parse(JSON.stringify(data));
-    let current = newData;
-    
-    for (let i = 0; i < path.length - 1; i++) {
-      current = current[path[i]];
-    }
-    
-    const items = Object.keys(current).length;
-    
-    // Shift items up
-    for (let i = items; i > parseInt(path[path.length - 1]) + 1; i--) {
-      current[i] = current[i - 1];
-    }
-    
-    // Insert new item
-    current[parseInt(path[path.length - 1]) + 1] = {
-      content: 'New Item',
-      nested: {}
-    };
-    
-    setData(newData);
-  };
-
-  const handleAddNested = (path) => {
-    const newData = JSON.parse(JSON.stringify(data));
-    let current = newData;
-    
-    for (let i = 0; i < path.length - 1; i++) {
-      current = current[path[i]];
-    }
-    
-    const target = current[path[path.length - 1]];
-    if (!target.nested) target.nested = {};
-    
-    const nestedItems = Object.keys(target.nested).length;
-    
-    target.nested[nestedItems] = {
-      content: 'New Item',
-      nested: {}
-    };
-    
-    setData(newData);
+    saveCurrentList(newData);
   };
 
   const handleMove = (path, direction) => {
     const newData = JSON.parse(JSON.stringify(data));
     let current = newData;
     
+    // Navigate to the parent of the target property
     for (let i = 0; i < path.length - 1; i++) {
       current = current[path[i]];
     }
     
-    const index = parseInt(path[path.length - 1]);
-    const items = Object.keys(current).length;
+    const index = path[path.length - 1];
+    const keys = Object.keys(current).map(Number).sort((a, b) => a - b);
+    const currentIndex = keys.indexOf(Number(index));
     
-    if (direction === 'up' && index > 0) {
-      const temp = current[index];
-      current[index] = current[index - 1];
-      current[index - 1] = temp;
-    } else if (direction === 'down' && index < items - 1) {
-      const temp = current[index];
-      current[index] = current[index + 1];
-      current[index + 1] = temp;
+    if (direction === 'up' && currentIndex > 0) {
+      const prevKey = keys[currentIndex - 1];
+      const temp = current[prevKey];
+      current[prevKey] = current[index];
+      current[index] = temp;
+    } else if (direction === 'down' && currentIndex < keys.length - 1) {
+      const nextKey = keys[currentIndex + 1];
+      const temp = current[nextKey];
+      current[nextKey] = current[index];
+      current[index] = temp;
     }
     
     setData(newData);
+    saveCurrentList(newData);
+  };
+
+  const handleAdd = (path) => {
+    const newData = JSON.parse(JSON.stringify(data));
+    let current = newData;
+    
+    // Navigate to the parent of the target property
+    for (let i = 0; i < path.length - 1; i++) {
+      current = current[path[i]];
+    }
+    
+    // Find the next available index after the current item
+    const keys = Object.keys(current).map(Number);
+    const currentIndex = Number(path[path.length - 1]);
+    const keysAfter = keys.filter(k => k > currentIndex);
+    const nextIndex = keysAfter.length > 0 ? Math.min(...keysAfter) : currentIndex + 1;
+    
+    // Shift all items after the insertion point
+    for (let i = keys.length - 1; i >= 0; i--) {
+      const key = keys[i];
+      if (key >= nextIndex) {
+        current[key + 1] = current[key];
+        delete current[key];
+      }
+    }
+    
+    // Add the new item
+    current[nextIndex] = {
+      content: 'New Item',
+      nested: {}
+    };
+    
+    setData(newData);
+    saveCurrentList(newData);
+  };
+
+  const handleAddNested = (path) => {
+    const newData = JSON.parse(JSON.stringify(data));
+    let current = newData;
+    
+    // Navigate to the target property
+    for (const key of path) {
+      current = current[key];
+    }
+    
+    // Add a new item to the nested object
+    const keys = Object.keys(current.nested).map(Number);
+    const nextIndex = keys.length > 0 ? Math.max(...keys) + 1 : 0;
+    
+    current.nested[nextIndex] = {
+      content: 'New Item',
+      nested: {}
+    };
+    
+    setData(newData);
+    saveCurrentList(newData);
   };
 
   return (
     <div className="note-list-container">
-      <h2>Notes</h2>
+      <div className="header">
+        <h2>
+          {isEditingTitle ? (
+            <form onSubmit={handleTitleSubmit}>
+              <input
+                type="text"
+                value={currentTitle}
+                onChange={(e) => setCurrentTitle(e.target.value)}
+                onBlur={handleTitleBlur}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setIsEditingTitle(false);
+                  }
+                }}
+                autoFocus
+                className="title-input"
+              />
+            </form>
+          ) : (
+            <span onClick={() => setIsEditingTitle(true)}>
+              {currentTitle || 'Untitled List'}
+            </span>
+          )}
+        </h2>
+        <button className="menu-toggle" onClick={() => setMenuOpen(true)}>☰</button>
+      </div>
       <div className="note-list">
         {Object.entries(data)
           .sort(([a], [b]) => parseInt(a) - parseInt(b))
@@ -361,6 +452,26 @@ function NoteList() {
           ))}
         <div style={{ height: '200px' }} />
       </div>
+
+      <JsonListMenu
+        isOpen={menuOpen}
+        setIsOpen={setMenuOpen}
+        setShowSettings={setShowSettings}
+        setShowNotes={setShowNotes}
+      />
+
+      <JsonListSettings
+        isOpen={showSettings}
+        setIsOpen={setShowSettings}
+      />
+
+      <JsonListNotes
+        isOpen={showNotes}
+        setIsOpen={setShowNotes}
+        onLoadNote={handleLoadNote}
+        setCurrentListId={setCurrentListId}
+        onMetadataChange={handleMetadataChange}
+      />
     </div>
   );
 }
