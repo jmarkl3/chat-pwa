@@ -956,6 +956,28 @@ function AppHome() {
     }
   };
 
+  const handleImportChat = (chatData) => {
+    const chatId = Date.now().toString();
+    const newChat = {
+      ...chatData,
+      timestamp: Date.now()
+    };
+    
+    const updatedChats = {
+      ...chats,
+      [chatId]: newChat
+    };
+    
+    setChats(updatedChats);
+    if (saveHistoryEnabled) {
+      localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updatedChats));
+    }
+    
+    // Switch to the imported chat
+    chatIdRef.current = chatId;
+    setMessages(chatData.messages || []);
+  };
+
   return (
     <div className="app-container">
       <button className="hamburger-button" onClick={() => setShowMenu(!showMenu)}>
@@ -1060,11 +1082,12 @@ function AppHome() {
         isOpen={showHistory}
         setIsOpen={setShowHistory}
         chats={chats}
-        onSelectChat={loadChat}
         currentChatId={chatIdRef.current}
+        onSelectChat={loadChat}
         onNewChat={handleNewChat}
         onUpdateChat={handleUpdateChat}
         onDeleteChat={handleDeleteChat}
+        onImportChat={handleImportChat}
       />
       {showLongTermMemory && (
         <div className="overlay">

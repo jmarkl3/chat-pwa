@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import SlidePanel from './SlidePanel';
 import ConfirmationBox from './ConfirmationBox';
+import ImportChat, { encryptChatData } from './ImportChat';
 import './ChatHistory.css';
 
-function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, onNewChat, onUpdateChat, onDeleteChat }) {
+function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, onNewChat, onUpdateChat, onDeleteChat, onImportChat }) {
   const [editingChatId, setEditingChatId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [chatToDelete, setChatToDelete] = useState(null);
+  const [showImport, setShowImport] = useState(false);
 
   const handleNewChat = () => {
     onNewChat();
@@ -50,12 +52,30 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
     }
   };
 
+  const handleExport = async (e, chatId) => {
+    e.stopPropagation();
+    setMenuOpenChatId(null);
+    
+    try {
+      const chatData = chats[chatId];
+      const encryptedData = await encryptChatData(chatData);
+      await navigator.clipboard.writeText(encryptedData);
+      alert('Chat exported and copied to clipboard!');
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export chat');
+    }
+  };
+
   return (
     <>
       <SlidePanel title="Chat History" isOpen={isOpen} setIsOpen={setIsOpen}>
         <div className="chat-history">
           <button className="new-chat-button" onClick={handleNewChat}>
             + New Chat
+          </button>
+          <button className="import-chat-button" onClick={() => setShowImport(true)}>
+            Import Chat
           </button>
           <div className="chat-list">
             {Object.entries(chats)
@@ -104,6 +124,9 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
                             <button onClick={(e) => startEditing(e, chatId, chat.title || firstMessage)}>
                               Rename
                             </button>
+                            <button onClick={(e) => handleExport(e, chatId)}>
+                              Export
+                            </button>
                             <button onClick={(e) => confirmDelete(e, chatId)}>
                               Delete
                             </button>
@@ -134,6 +157,12 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
           }}
         />
       )}
+
+      <ImportChat
+        isOpen={showImport}
+        setIsOpen={setShowImport}
+        onImport={onImportChat}
+      />
     </>
   );
 }
