@@ -4,6 +4,9 @@
   "private": true,
   "homepage": "https://jmarkl3.github.io/chat-pwa",
   "dependencies": {
+    "@aws-sdk/client-cognito-identity": "^3.775.0",
+    "@aws-sdk/client-transcribe-streaming": "^3.775.0",
+    "@aws-sdk/credential-provider-cognito-identity": "^3.775.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
