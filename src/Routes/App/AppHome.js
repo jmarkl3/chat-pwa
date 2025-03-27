@@ -658,6 +658,10 @@ function AppHome() {
 
   async function fetchDeepSeek(userMessage) {
     try {
+      const now = new Date();
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const timeInfo = `Current time: ${now.toLocaleTimeString()}, ${days[now.getDay()]}, ${now.toLocaleDateString()}`;
+
       const url = 'https://api.deepseek.com/chat/completions';
       const headers = {
         'Content-Type': 'application/json',
@@ -668,6 +672,7 @@ function AppHome() {
         messages: [
           { role: 'system', content: FORMAT_PREFACE + "\n\n" + settingsPromptPreface},
           { role: 'system', content: "Memory from previous: " + longTermMemory},
+          { role: 'system', content: timeInfo},
           ...messages.slice(-previousMessagesCount),
           userMessage,
           { role: 'system', content: FORMAT_PREFACE }
@@ -766,7 +771,7 @@ function AppHome() {
         };
         inactivityCountRef.current += 1;
         fetchDeepSeek(inactivityUserMessage);
-      }, 30 * 1000); 
+      }, 5 * 60 * 1000); 
     }
   };
 
