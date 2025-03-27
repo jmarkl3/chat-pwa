@@ -20,6 +20,7 @@ function Menu({
   setSettingsObject,
   setLongTermMemory,
   longTermMemory,
+  voices
 }) {
   // Installation prompt
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -171,10 +172,14 @@ function Menu({
 
       {/* Settings */}
       <Settings
-        isOpen={showSettingsMenu}
-        setIsOpen={setShowSettingsMenu}
         settingsObject={settingsObject}
         setSettingsObject={setSettingsObject}
+        voices={voices || []}
+        isOpen={showSettingsMenu}
+        setIsOpen={setShowSettingsMenu}
+        setShowPromptPreface={()=>{setShowPromptPreface(true); setIsOpen(false);}}
+        setShowLongTermMemory={()=>{setShowLongTermMemory(true); setIsOpen(false);}}
+        setShowNote={()=>{setShowNote(true); setIsOpen(false);}}
       />
 
       {isOpen && (

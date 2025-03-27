@@ -432,7 +432,6 @@ function NoteList() {
             </span>
           )}
         </h2>
-        <button className="menu-toggle" onClick={() => setMenuOpen(true)}>☰</button>
       </div>
       <div className="note-list">
         {Object.entries(data)

@@ -212,128 +212,6 @@ function AppHome() {
     return true; // Send to API
   };
 
-  // Does an action based on the command
-  const handleCommand = (command, args) => {
-    switch (command.toLowerCase()) {
-      case 'replay':
-      case 'repeat':
-      case 'say':
-        // Get number of messages to replay (default to 1 if not specified)
-        const count = findNumberInArgs(args);
-        
-        // Validate count is within reasonable range
-        if (count < 1 || count > 10) {
-          console.log('Invalid replay count. Please use a number between 1 and 10');
-          return;
-        }
-
-        // Get the last N assistant messages in chronological order
-        const assistantMessages = [...messages]
-          .reverse() // Reverse to get newest first
-          .filter(msg => msg.role === 'assistant')
-          .slice(0, count) // Get the N most recent messages
-          .reverse(); // Reverse again to get oldest first
-
-        if (assistantMessages.length > 0) {
-          // Cancel any ongoing speech
-          window.speechSynthesis.cancel();
-          
-          // Create a function to speak messages sequentially
-          speakMessages(0);
-        }
-        break;
-
-      case 'setting':
-      case 'settings':
-      case 'update':
-        if (args.length < 2) {
-          console.log('Usage: command setting <setting name> <value>');
-          return;
-        }
-
-        // If the command was "update setting", remove the "setting" word
-        if (command.toLowerCase() === 'update' && args[0].toLowerCase() === 'setting') {
-          args.shift();
-        }
-
-        // The last word is the value, everything else is the setting name
-        const value = args[args.length - 1];
-        const settingName = args.slice(0, -1).join(' ');
-
-        if (updateSetting(settingName, value)) {
-          console.log(`Updated ${settingName} to ${value}`);
-        }
-        break;
-
-      case 'list':
-        if (args[0]?.toLowerCase() === 'commands') {
-          console.log(AVAILABLE_COMMANDS);
-          // Create a more speech-friendly version of the commands list
-          const speechCommands = AVAILABLE_COMMANDS
-            .split('\n')
-            .map(line => line.replace(/^\d+\.\s*/, ''))  // Remove numbering
-            .join('. ');  // Add pauses between commands
-          speakText(speechCommands);
-        }
-        break;
-
-      default:
-        console.log('Unknown command:', command);
-    }
-  };
-
-  // Used by the handleCommand funciton
-  const updateSetting = (settingName, value) => {
-    // Convert setting name to lowercase 
-    const setting = settingName.toLowerCase();
-    
-    // Update the settings object with the new value
-    setSettingsObject(prevSettings => {
-      const newSettings = { ...prevSettings };
-      
-      switch (setting) {
-        case 'ttsenabled':
-          newSettings.ttsEnabled = value;
-          break;
-        case 'selectedvoice':
-          newSettings.selectedVoice = value;
-          break;
-        case 'autosendenabled':
-          newSettings.autoSendEnabled = value;
-          break;
-        case 'autosendtimeout':
-          newSettings.autoSendTimeout = value;
-          break;
-        case 'previousmessagescount':
-          newSettings.previousMessagesCount = value;
-          break;
-        case 'savehistoryenabled':
-          newSettings.saveHistoryEnabled = value;
-          break;
-        case 'inactivitytimerenabled':
-          newSettings.inactivityTimerEnabled = value;
-          break;
-        case 'showsettings':
-          newSettings.showSettings = value;
-          break;
-        case 'showpromptpreface':
-          newSettings.showPromptPreface = value;
-          break;
-        case 'showlongtermmemory':
-          newSettings.showLongTermMemory = value;
-          break;
-        default:
-          console.warn(`Unknown setting: ${settingName}`);
-          return prevSettings;
-      }
-
-      // Save to localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-      return newSettings;
-    });
-    return true;
-  };
-
   // Adds message to messages and calls function to fetch api
   const handleSendMessage = async (message) => {
     if (!message.trim()) return;
@@ -503,6 +381,86 @@ function AppHome() {
     }
   }
 
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  };
+
+
+  // #endregion sending and recieving
+
+  // #region commands (from user and system)
+
+  const handleCommand = (command, args) => {
+    switch (command.toLowerCase()) {
+      case 'replay':
+      case 'repeat':
+      case 'say':
+        // Get number of messages to replay (default to 1 if not specified)
+        const count = findNumberInArgs(args);
+        
+        // Validate count is within reasonable range
+        if (count < 1 || count > 10) {
+          console.log('Invalid replay count. Please use a number between 1 and 10');
+          return;
+        }
+
+        // Get the last N assistant messages in chronological order
+        const assistantMessages = [...messages]
+          .reverse() // Reverse to get newest first
+          .filter(msg => msg.role === 'assistant')
+          .slice(0, count) // Get the N most recent messages
+          .reverse(); // Reverse again to get oldest first
+
+        if (assistantMessages.length > 0) {
+          // Cancel any ongoing speech
+          window.speechSynthesis.cancel();
+          
+          // Create a function to speak messages sequentially
+          speakMessages(0);
+        }
+        break;
+
+      case 'setting':
+      case 'settings':
+      case 'update':
+        if (args.length < 2) {
+          console.log('Usage: command setting <setting name> <value>');
+          return;
+        }
+
+        // If the command was "update setting", remove the "setting" word
+        if (command.toLowerCase() === 'update' && args[0].toLowerCase() === 'setting') {
+          args.shift();
+        }
+
+        // The last word is the value, everything else is the setting name
+        const value = args[args.length - 1];
+        const settingName = args.slice(0, -1).join(' ');
+
+        if (updateSetting(settingName, value)) {
+          console.log(`Updated ${settingName} to ${value}`);
+        }
+        break;
+
+      case 'list':
+        if (args[0]?.toLowerCase() === 'commands') {
+          console.log(AVAILABLE_COMMANDS);
+          // Create a more speech-friendly version of the commands list
+          const speechCommands = AVAILABLE_COMMANDS
+            .split('\n')
+            .map(line => line.replace(/^\d+\.\s*/, ''))  // Remove numbering
+            .join('. ');  // Add pauses between commands
+          speakText(speechCommands);
+        }
+        break;
+
+      default:
+        console.log('Unknown command:', command);
+    }
+  };
+
   // Processes the response from the API
   const processResponse = (text) => {
     const cleanedText = removeSpecialCharacters(text);
@@ -564,8 +522,64 @@ function AppHome() {
     return cleanedText;
   };
 
-  // #endregion sending and recieving
+  // Command action functions: 
+  
+  const addToShortTermMemory = (message) => {
+    shortTermMemoryRef.current += message + "\n";
+  };
 
+  const updateSetting = (settingName, value) => {
+    // Convert setting name to lowercase 
+    const setting = settingName.toLowerCase();
+    
+    // Update the settings object with the new value
+    setSettingsObject(prevSettings => {
+      const newSettings = { ...prevSettings };
+      
+      switch (setting) {
+        case 'ttsenabled':
+          newSettings.ttsEnabled = value;
+          break;
+        case 'selectedvoice':
+          newSettings.selectedVoice = value;
+          break;
+        case 'autosendenabled':
+          newSettings.autoSendEnabled = value;
+          break;
+        case 'autosendtimeout':
+          newSettings.autoSendTimeout = value;
+          break;
+        case 'previousmessagescount':
+          newSettings.previousMessagesCount = value;
+          break;
+        case 'savehistoryenabled':
+          newSettings.saveHistoryEnabled = value;
+          break;
+        case 'inactivitytimerenabled':
+          newSettings.inactivityTimerEnabled = value;
+          break;
+        case 'showsettings':
+          newSettings.showSettings = value;
+          break;
+        case 'showpromptpreface':
+          newSettings.showPromptPreface = value;
+          break;
+        case 'showlongtermmemory':
+          newSettings.showLongTermMemory = value;
+          break;
+        default:
+          console.warn(`Unknown setting: ${settingName}`);
+          return prevSettings;
+      }
+
+      // Save to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+      return newSettings;
+    });
+    return true;
+  };
+  
+  // #endregion commands (from user and system)
 
   // #region inactivity timer
 
@@ -598,6 +612,7 @@ function AppHome() {
 
   // #endregion inactivity timer
 
+  // #region chat loading and saving
 
   const loadChat = (chatId) => {
     const chat = chats[chatId];
@@ -628,15 +643,7 @@ function AppHome() {
     }
   }, [messages]);
 
-  const addToShortTermMemory = (message) => {
-    shortTermMemoryRef.current += message + "\n";
-  };
-
-  const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
-    }
-  };
+  // #endregion chat loading and saving
 
 
 

@@ -7,19 +7,48 @@ function JsonListMenu({ isOpen, setIsOpen, setShowSettings, setShowNotes }) {
   const navigate = useNavigate();
 
   return (
-    <SlidePanel title="Menu" isOpen={isOpen} setIsOpen={setIsOpen}>
-      <div className="menu-items">
-        <button onClick={() => {
-          setShowNotes(true);
-          setIsOpen(false);
-        }}>Lists</button>
-        <button onClick={() => {
-          setShowSettings(true);
-          setIsOpen(false);
-        }}>Settings</button>
-        <button onClick={() => navigate('/app')}>Chat</button>
+    <>
+
+      {/* Menu button at top right */}
+      <button className="hamburger-button" onClick={() => setIsOpen(true)}>
+      ☰
+      </button>
+
+      {isOpen && (
+        <div className="menu-overlay" onClick={() => setIsOpen(false)} />
+      )}
+
+    <div className={`menu-container ${isOpen ? 'open' : ''}`}>
+      <div className="menu-content">
+        <h3>Menu</h3>
+        <div className="menu-items">
+          <button 
+            className="menu-item"
+            onClick={() => {
+              setShowNotes(true);
+              setIsOpen(false);
+            }}>
+              Lists
+          </button>
+
+          <button 
+            className="menu-item"
+            onClick={() => {
+              setShowSettings(true);
+              setIsOpen(false);
+            }}>
+              Settings
+            </button>
+          <button 
+            className="menu-item"
+            onClick={() => navigate('/app')}>
+              Chat
+            </button>
+          </div>
+        </div>
       </div>
-    </SlidePanel>
+    </>
+  
   );
 }
 
