@@ -2,7 +2,7 @@
   "name": "chat-pwa",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://jmarkl3.github.io/chat-pwa",
+  "homepage": "/",
   "dependencies": {
     "@aws-sdk/client-cognito-identity": "^3.775.0",
     "@aws-sdk/client-transcribe-streaming": "^3.775.0",
