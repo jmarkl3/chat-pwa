@@ -1,22 +1,19 @@
 import React from 'react';
-import { Route, HashRouter, Routes } from 'react-router-dom';
-import DownloadPage from './Routes/Download/DownloadPage';
-import AppHome from './Routes/App/AppHome';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Landing from './Routes/Landing/Landing';
-import AmazonSTT from './Routes/App/AmazonSTT';
+import AppHome from './Routes/App/AppHome';
+import JsonList from './Routes/JsonList/JsonList';
+import './App.css';
 
 function App() {
   return (
-    <HashRouter>
-      <div>
-        <Routes>
-          <Route path="/" element={<AppHome/>} />
-          <Route path="/landing" element={<Landing/>} />
-          <Route path="/amazonSTT" element={<AmazonSTT  />} />
-          <Route path="/download" element={<DownloadPage/>} />
-        </Routes>
-      </div>
-    </HashRouter>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/app" element={<AppHome />} />
+        <Route path="/json-list" element={<JsonList />} />
+      </Routes>
+    </Router>
   );
 }
 

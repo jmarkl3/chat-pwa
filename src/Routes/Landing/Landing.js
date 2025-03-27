@@ -63,7 +63,7 @@ export default function Landing() {
         </button>
         
         <Link 
-          to="/"
+          to="/app"
           style={{
             padding: '10px 20px',
             fontSize: '16px',
