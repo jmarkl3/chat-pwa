@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Menu.css';
 
 function Menu({ isOpen, setIsOpen, setShowSettings, setShowHistory, setShowLongTermMemory, setShowNote }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -65,6 +67,7 @@ function Menu({ isOpen, setIsOpen, setShowSettings, setShowHistory, setShowLongT
             <button className="menu-item" onClick={handleHistoryClick}>History</button>
             <button className="menu-item" onClick={handleLongTermMemoryClick}>Long Term Memory</button>
             <button className="menu-item" onClick={handleNoteClick}>Note</button>
+            <button className="menu-item" onClick={() => navigate('/json-list')}>Lists</button>
             <button className="menu-item" onClick={handleInstallClick}>Install App</button>
           </div>
         </div>
