@@ -14,8 +14,8 @@ function Settings({
   setAutoSendEnabled, 
   autoSendTimeout,
   setAutoSendTimeout,
-  showSettings, 
-  setShowSettings,
+  isOpen, 
+  setIsOpen,
   setShowPromptPreface,
   previousMessagesCount,
   setPreviousMessagesCount,
@@ -162,7 +162,7 @@ function Settings({
   };
 
   return (
-    <SlidePanel title="Settings" isOpen={showSettings} setIsOpen={setShowSettings}>
+    <SlidePanel title="Settings" isOpen={isOpen} setIsOpen={setIsOpen}>
       <div className="settings-content">
         <div className="settings-section">
           <button 
