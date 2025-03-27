@@ -23,7 +23,8 @@ function Settings({
   saveHistoryEnabled,
   setSaveHistoryEnabled,
   inactivityTimerEnabled,
-  setInactivityTimerEnabled
+  setInactivityTimerEnabled,
+  setShowNote
 }) {
   const [testText, setTestText] = useState("This is a test of the voice");
   const [generalOpen, setGeneralOpen] = useState(false);
@@ -316,6 +317,14 @@ function Settings({
                   onClick={() => setShowLongTermMemory(true)}
                 >
                   Edit Long Term Memory
+                </button>
+              </div>
+              <div className="setting-item">
+                <button 
+                  className="settings-action-button"
+                  onClick={() => setShowNote(true)}
+                >
+                  Open Note
                 </button>
               </div>
             </div>

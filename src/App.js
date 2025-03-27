@@ -10,8 +10,8 @@ function App() {
     <HashRouter>
       <div>
         <Routes>
-          <Route path="/" element={<Landing/>} />
-          <Route path="/app" element={<AppHome/>} />
+          <Route path="/" element={<AppHome/>} />
+          <Route path="/landing" element={<Landing/>} />
           <Route path="/amazonSTT" element={<AmazonSTT  />} />
           <Route path="/download" element={<DownloadPage/>} />
         </Routes>

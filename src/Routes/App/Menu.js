@@ -1,7 +1,21 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import './Menu.css';
 
-function Menu({ isOpen, setIsOpen, setShowSettings, setShowHistory, setShowLongTermMemory }) {
+function Menu({ isOpen, setIsOpen, setShowSettings, setShowHistory, setShowLongTermMemory, setShowNote }) {
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
   const handleSettingsClick = () => {
     setIsOpen(false);
     setShowSettings(true);
@@ -17,6 +31,27 @@ function Menu({ isOpen, setIsOpen, setShowSettings, setShowHistory, setShowLongT
     setShowLongTermMemory(true);
   };
 
+  const handleNoteClick = () => {
+    setIsOpen(false);
+    setShowNote(true);
+  };
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      console.log('No installation prompt available');
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to install prompt: ${outcome}`);
+    
+    if (outcome === 'accepted') {
+      localStorage.setItem('pwaInstalled', 'true');
+    }
+    setDeferredPrompt(null);
+  };
+
   return (
     <>
       {isOpen && (
@@ -29,6 +64,8 @@ function Menu({ isOpen, setIsOpen, setShowSettings, setShowHistory, setShowLongT
             <button className="menu-item" onClick={handleSettingsClick}>Settings</button>
             <button className="menu-item" onClick={handleHistoryClick}>History</button>
             <button className="menu-item" onClick={handleLongTermMemoryClick}>Long Term Memory</button>
+            <button className="menu-item" onClick={handleNoteClick}>Note</button>
+            <button className="menu-item" onClick={handleInstallClick}>Install App</button>
           </div>
         </div>
       </div>

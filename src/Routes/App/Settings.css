@@ -54,45 +54,26 @@
 }
 
 .section-header {
-    width: 100%;
-    padding: 12px;
-    background: #f5f5f5;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 16px;
-    font-weight: 500;
-    transition: background-color 0.2s;
+  width: 100%;
+  padding: 12px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 16px;
+  position: relative;
 }
 
-.section-header:hover {
-    background: #e8e8e8;
+.section-header .arrow {
+  position: absolute;
+  right: 12px;
 }
 
 .section-content {
-    padding: 16px;
-    background: white;
-    border-radius: 0 0 4px 4px;
-    animation: slideDown 0.2s ease-out;
-}
-
-.arrow {
-    font-size: 12px;
-    transition: transform 0.2s;
-}
-
-@keyframes slideDown {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+  padding: 16px;
 }
 
 .settings-action-button {
@@ -133,6 +114,18 @@
 
 .setting-item input[type="number"].auto-send-timeout {
   width: 60px;
-  margin-left: 10px;
   padding: 4px;
+  margin: 0 8px;
+  text-align: center;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }

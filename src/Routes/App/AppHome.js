@@ -10,17 +10,20 @@ import ChatHistory from './ChatHistory';
 
 const STORAGE_KEY = 'chat-app-settings';
 const CHATS_STORAGE_KEY = 'chat-app-chats';
+const NOTE_STORAGE_KEY = 'chat-app-note';
 const INACTIVITY_MESSAGE = 'User has been inactive for 5 minutes, attempt to reengage them';
 const AVAILABLE_COMMANDS = `Available commands:
-1. command replay <number> - Replays the last few messages. For example: "command replay 3"
-2. command repeat <number> - Same as replay
-3. command say <number> - Same as replay
-4. command setting auto send <true/false> - Enables or disables auto send
-5. command setting timeout <seconds> - Sets the auto send timeout
-6. command setting previous messages <number> - Sets how many previous messages to include
-7. command setting text to speech <true/false> - Enables or disables text to speech
-8. command setting save history <true/false> - Enables or disables chat history saving
-9. command setting inactivity timer <true/false> - Enables or disables the inactivity timer`;
+1. command replay (number) - Replays the last few messages. For example: "command replay 3".
+2. command repeat (number) - Same as replay.
+3. command say (number) - Same as replay.
+4. command setting auto send (true/false) - Enables or disables auto send.
+5. command setting timeout (seconds) - Sets the auto send timeout.
+6. command setting previous messages (number) - Sets how many previous messages to include.
+7. command setting text to speech (true/false) - Enables or disables text to speech.
+8. command setting save history (true/false) - Enables or disables chat history saving.
+9. command setting inactivity timer (true/false) - Enables or disables the inactivity timer.
+10. command note (text) - Adds text to the note stored in local storage.
+`;
 const FORMAT_PREFACE = `
     Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
     {
@@ -113,6 +116,7 @@ function AppHome() {
   const [showLongTermMemory, setShowLongTermMemory] = useState(false);
   const [showPromptPreface, setShowPromptPreface] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showNote, setShowNote] = useState(false);
   const [longTermMemory, setLongTermMemory] = useState('');
   const [isPaused, setIsPaused] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -128,6 +132,10 @@ function AppHome() {
   const [voices, setVoices] = useState([]);
   const [isListening, setIsListening] = useState(false);
   const [inactivityTimerEnabled, setInactivityTimerEnabled] = useState(true);
+  const [note, setNote] = useState(() => {
+    const savedNote = localStorage.getItem(NOTE_STORAGE_KEY);
+    return savedNote || '';
+  });
 
   const chatIdRef = useRef(null);
   const lastSpokenTextRef = useRef('');
@@ -486,7 +494,25 @@ function AppHome() {
       case 'list':
         if (args[0]?.toLowerCase() === 'commands') {
           console.log(AVAILABLE_COMMANDS);
-          speakText(AVAILABLE_COMMANDS.replace(/\d\./g, ''));
+          // Create a more speech-friendly version of the commands list
+          const speechCommands = AVAILABLE_COMMANDS
+            .split('\n')
+            .map(line => line.replace(/^\d+\.\s*/, ''))  // Remove numbering
+            .join('. ');  // Add pauses between commands
+          speakText(speechCommands);
+        }
+        break;
+
+      case 'note':
+        if (args.length > 0) {
+          const newText = args.join(' ');
+          const updatedNote = note ? `${note}\n\n${newText}` : newText;
+          setNote(updatedNote);
+          localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
+          console.log('Added to note:', newText);
+          speakText('note updated');
+        } else {
+          console.log('Usage: command note <text>');
         }
         break;
 
@@ -852,6 +878,12 @@ function AppHome() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   };
 
+  const handleNoteChange = (e) => {
+    const newNote = e.target.value;
+    setNote(newNote);
+    localStorage.setItem(NOTE_STORAGE_KEY, newNote);
+  };
+
   const loadChat = (chatId) => {
     const chat = chats[chatId];
     if (chat) {
@@ -894,6 +926,36 @@ function AppHome() {
     }
   }, [chatIdRef.current]);
 
+  const handleUpdateChat = (chatId, updates) => {
+    if (chats[chatId]) {
+      const updatedChat = {
+        ...chats[chatId],
+        ...updates,
+        timestamp: Date.now()  // Update timestamp when chat is modified
+      };
+      const updatedChats = {
+        ...chats,
+        [chatId]: updatedChat
+      };
+      setChats(updatedChats);
+      if (saveHistoryEnabled) {
+        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updatedChats));
+      }
+    }
+  };
+
+  const handleDeleteChat = (chatId) => {
+    const { [chatId]: deletedChat, ...remainingChats } = chats;
+    setChats(remainingChats);
+    if (saveHistoryEnabled) {
+      localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(remainingChats));
+    }
+    // If the deleted chat was the current chat, create a new chat
+    if (chatId === chatIdRef.current) {
+      handleNewChat();
+    }
+  };
+
   return (
     <div className="app-container">
       <button className="hamburger-button" onClick={() => setShowMenu(!showMenu)}>
@@ -907,6 +969,7 @@ function AppHome() {
         setShowSettings={setShowSettings}
         setShowHistory={setShowHistory}
         setShowLongTermMemory={setShowLongTermMemory}
+        setShowNote={setShowNote}
       />
       <div className="messages-container" ref={messagesEndRef}>
         {messages.length === 0 && (
@@ -979,6 +1042,8 @@ function AppHome() {
         setSelectedVoice={setSelectedVoice}
         autoSendEnabled={autoSendEnabled}
         setAutoSendEnabled={setAutoSendEnabled}
+        autoSendTimeout={autoSendTimeout}
+        setAutoSendTimeout={setAutoSendTimeout}
         showSettings={showSettings}
         setShowSettings={setShowSettings}
         setShowPromptPreface={setShowPromptPreface}
@@ -987,10 +1052,9 @@ function AppHome() {
         setShowLongTermMemory={setShowLongTermMemory}
         saveHistoryEnabled={saveHistoryEnabled}
         setSaveHistoryEnabled={setSaveHistoryEnabled}
-        autoSendTimeout={autoSendTimeout}
-        setAutoSendTimeout={setAutoSendTimeout}
         inactivityTimerEnabled={inactivityTimerEnabled}
         setInactivityTimerEnabled={setInactivityTimerEnabled}
+        setShowNote={setShowNote}
       />
       <ChatHistory
         isOpen={showHistory}
@@ -999,6 +1063,8 @@ function AppHome() {
         onSelectChat={loadChat}
         currentChatId={chatIdRef.current}
         onNewChat={handleNewChat}
+        onUpdateChat={handleUpdateChat}
+        onDeleteChat={handleDeleteChat}
       />
       {showLongTermMemory && (
         <div className="overlay">
@@ -1017,6 +1083,14 @@ function AppHome() {
           </div>
         </div>
       )}
+      <SlidePanel title="Note" isOpen={showNote} setIsOpen={setShowNote}>
+        <textarea
+          value={note}
+          onChange={handleNoteChange}
+          style={{ width: '100%', height: '400px', padding: '8px' }}
+          placeholder="Enter your notes here..."
+        />
+      </SlidePanel>
       <TextInput
         title="Prompt Preface"
         isOpen={showPromptPreface}
