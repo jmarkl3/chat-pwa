@@ -21,7 +21,9 @@ function Settings({
   setPreviousMessagesCount,
   setShowLongTermMemory,
   saveHistoryEnabled,
-  setSaveHistoryEnabled
+  setSaveHistoryEnabled,
+  inactivityTimerEnabled,
+  setInactivityTimerEnabled
 }) {
   const [testText, setTestText] = useState("This is a test of the voice");
   const [generalOpen, setGeneralOpen] = useState(false);
@@ -37,7 +39,8 @@ function Settings({
       autoSendEnabled: autoSendEnabled,
       autoSendTimeout: autoSendTimeout,
       previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: saveHistoryEnabled
+      saveHistoryEnabled: saveHistoryEnabled,
+      inactivityTimerEnabled: inactivityTimerEnabled
     }));
     console.log('Saving TTS enabled:', newValue);
   };
@@ -51,7 +54,8 @@ function Settings({
       autoSendEnabled: autoSendEnabled,
       autoSendTimeout: autoSendTimeout,
       previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: saveHistoryEnabled
+      saveHistoryEnabled: saveHistoryEnabled,
+      inactivityTimerEnabled: inactivityTimerEnabled
     }));
   };
 
@@ -64,7 +68,8 @@ function Settings({
       autoSendEnabled: newValue,
       autoSendTimeout: autoSendTimeout,
       previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: saveHistoryEnabled
+      saveHistoryEnabled: saveHistoryEnabled,
+      inactivityTimerEnabled: inactivityTimerEnabled
     }));
   };
 
@@ -78,7 +83,8 @@ function Settings({
       autoSendEnabled: autoSendEnabled,
       autoSendTimeout: valueToSave,
       previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: saveHistoryEnabled
+      saveHistoryEnabled: saveHistoryEnabled,
+      inactivityTimerEnabled: inactivityTimerEnabled
     }));
   };
 
@@ -91,7 +97,22 @@ function Settings({
       autoSendEnabled: autoSendEnabled,
       autoSendTimeout: autoSendTimeout,
       previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: newValue
+      saveHistoryEnabled: newValue,
+      inactivityTimerEnabled: inactivityTimerEnabled
+    }));
+  };
+
+  const handleInactivityTimerChange = (e) => {
+    const newValue = e.target.checked;
+    setInactivityTimerEnabled(newValue);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
+      ttsEnabled: ttsEnabled, 
+      selectedVoice: selectedVoice,
+      autoSendEnabled: autoSendEnabled,
+      autoSendTimeout: autoSendTimeout,
+      previousMessagesCount: previousMessagesCount,
+      saveHistoryEnabled: saveHistoryEnabled,
+      inactivityTimerEnabled: newValue
     }));
   };
 
@@ -105,7 +126,8 @@ function Settings({
       autoSendEnabled: autoSendEnabled,
       autoSendTimeout: autoSendTimeout,
       previousMessagesCount: valueToSave,
-      saveHistoryEnabled: saveHistoryEnabled
+      saveHistoryEnabled: saveHistoryEnabled,
+      inactivityTimerEnabled: inactivityTimerEnabled
     }));
   };
 
@@ -185,6 +207,16 @@ function Settings({
                     onChange={handleSaveHistoryChange}
                   />
                   Save chat history
+                </label>
+              </div>
+              <div className="setting-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={inactivityTimerEnabled}
+                    onChange={handleInactivityTimerChange}
+                  />
+                  Enable Inactivity Timer
                 </label>
               </div>
             </div>

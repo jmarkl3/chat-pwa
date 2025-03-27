@@ -19,7 +19,26 @@ const AVAILABLE_COMMANDS = `Available commands:
 5. command setting timeout <seconds> - Sets the auto send timeout
 6. command setting previous messages <number> - Sets how many previous messages to include
 7. command setting text to speech <true/false> - Enables or disables text to speech
-8. command setting save history <true/false> - Enables or disables chat history saving`;
+8. command setting save history <true/false> - Enables or disables chat history saving
+9. command setting inactivity timer <true/false> - Enables or disables the inactivity timer`;
+const FORMAT_PREFACE = `
+    Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
+    {
+      message: <your message here>,
+      commands: [
+        {
+          command: <command name>,
+          variables: [<variable values>]
+        },
+        ...
+      ]
+    }
+
+    Available commands:
+    1. "add to long term memory" - adds first variable to long term memory
+    2. "overwrite long term memory" - replaces entire long term memory with first variable
+    3. "clear long term memory" - clears all long term memory (no variables needed)
+  `;
 const PROMPT_PREFACE = `
     This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
   
@@ -86,7 +105,6 @@ const PROMPT_PREFACE = `
     also ask them riddles and logic word puzzles
   `;
 
-  //test
 function AppHome() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -109,6 +127,7 @@ function AppHome() {
   const [previousMessagesCount, setPreviousMessagesCount] = useState(10);
   const [voices, setVoices] = useState([]);
   const [isListening, setIsListening] = useState(false);
+  const [inactivityTimerEnabled, setInactivityTimerEnabled] = useState(true);
 
   const chatIdRef = useRef(null);
   const lastSpokenTextRef = useRef('');
@@ -119,6 +138,7 @@ function AppHome() {
   const inactivityTimerRef = useRef(null);
   const inactivityCountRef = useRef(0);
   const hasFirstMessageRef = useRef(false);
+  const textQueue = useRef([]);
 
   const {
     transcript,
@@ -174,7 +194,8 @@ function AppHome() {
           promptPreface: settings.promptPreface ?? PROMPT_PREFACE,
           longTermMemory: settings.longTermMemory ?? '',
           previousMessagesCount: settings.previousMessagesCount ?? 10,
-          saveHistoryEnabled: settings.saveHistoryEnabled ?? true
+          saveHistoryEnabled: settings.saveHistoryEnabled ?? true,
+          inactivityTimerEnabled: settings.inactivityTimerEnabled ?? true
         };
       }
     } catch (error) {
@@ -187,7 +208,8 @@ function AppHome() {
       promptPreface: PROMPT_PREFACE,
       longTermMemory: '',
       previousMessagesCount: 10,
-      saveHistoryEnabled: true
+      saveHistoryEnabled: true,
+      inactivityTimerEnabled: true
     };
   };
 
@@ -201,6 +223,7 @@ function AppHome() {
     setLongTermMemory(settings.longTermMemory || '');
     setPreviousMessagesCount(settings.previousMessagesCount);
     setSaveHistoryEnabled(settings.saveHistoryEnabled);
+    setInactivityTimerEnabled(settings.inactivityTimerEnabled);
 
     // Load chats from localStorage
     try {
@@ -232,92 +255,67 @@ function AppHome() {
     setIsListening(listening);
   }, [listening]);
 
-  const speakText = (text) => {
-    if (ttsEnabled && selectedVoice) {
-      // Cancel any ongoing speech
-      window.speechSynthesis.cancel();
-      setIsSpeaking(true);
-      setIsPaused(false);
-      lastSpokenTextRef.current = text;
+  const speakText = async (text, index = 0) => {
+    if (!ttsEnabled) return;
 
-      const utterance = new SpeechSynthesisUtterance(text);
-      const voice = voices.find(v => v.name === selectedVoice);
-      if (voice) {
-        utterance.voice = voice;
-        
-        utterance.onend = () => {
-          console.log('Speech ended');
-          setIsSpeaking(false);
-          setIsPaused(false);
-          lastSpokenTextRef.current = '';
-        };
-
-        utterance.onerror = (event) => {
-          console.log('Speech error:', event);
-          setIsSpeaking(false);
-          setIsPaused(false);
-          // Clear the last spoken text so it can be retried
-          lastSpokenTextRef.current = '';
-        };
-
-        utterance.onpause = () => {
-          console.log('Speech paused');
-          setIsPaused(true);
-        };
-
-        utterance.onresume = () => {
-          console.log('Speech resumed');
-          setIsPaused(false);
-        };
-
-        window.speechSynthesis.speak(utterance);
-      }
+    // If already speaking, add to queue
+    if (isSpeaking) {
+      textQueue.current.push({ text, index });
+      return;
     }
+
+    setIsSpeaking(true);
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voice = voices.find(v => v.name === selectedVoice);
+    if (voice) {
+      utterance.voice = voice;
+    }
+    
+    utterance.onend = () => {
+      // If there are messages in the queue, speak the next one
+      if (textQueue.current.length > 0) {
+        const nextItem = textQueue.current.shift();
+        speakText(nextItem.text, nextItem.index);
+      } else {
+        setIsSpeaking(false);
+      }
+    };
+
+    utterance.onerror = (event) => {
+      console.log('Speech error:', event);
+      setIsSpeaking(false);
+    };
+
+    window.speechSynthesis.speak(utterance);
   };
 
-  const speakFromMessage = (startIndex) => {
-    if (ttsEnabled && selectedVoice) {
-      // If there's no valid startIndex or we don't know where we left off, start from beginning
-      if (startIndex === undefined || startIndex < 0 || startIndex >= messages.length) {
-        startIndex = 0;
-      }
+  const speakMessages = (startIndex = 0) => {
+    if (!ttsEnabled) return;
+    
+    // Clear any existing speech
+    window.speechSynthesis.cancel();
+    textQueue.current = [];
+    setIsSpeaking(false);
+    setIsPaused(false);
 
-      window.speechSynthesis.cancel();
-      setIsSpeaking(true);
-      setIsPaused(false);
-
-      const messagesToSpeak = messages.slice(startIndex);
-      const speakNext = (index) => {
-        if (index < messagesToSpeak.length) {
-          const message = messagesToSpeak[index];
-          // Only speak assistant messages
-          if (message.role === 'assistant') {
-            const utterance = new SpeechSynthesisUtterance(message.content);
-            const voice = voices.find(v => v.name === selectedVoice);
-            if (voice) {
-              utterance.voice = voice;
-              utterance.onend = () => speakNext(index + 1);
-              utterance.onerror = (event) => {
-                console.log('Speech error:', event);
-                // On error, try the next message
-                speakNext(index + 1);
-              };
-              window.speechSynthesis.speak(utterance);
-            } else {
-              // If voice not found, try next message
-              speakNext(index + 1);
-            }
-          } else {
-            // If not assistant message, skip to next
-            speakNext(index + 1);
-          }
+    const messagesToSpeak = messages.slice(startIndex);
+    
+    const speakNext = (index) => {
+      if (index < messagesToSpeak.length) {
+        const message = messagesToSpeak[index];
+        // Only speak assistant messages
+        if (message.role === 'assistant') {
+          speakText(message.content, index);
         } else {
-          setIsSpeaking(false);
-          setIsPaused(false);
+          // If not assistant message, skip to next
+          speakNext(index + 1);
         }
-      };
-      speakNext(0);
-    }
+      } else {
+        setIsSpeaking(false);
+      }
+    };
+
+    speakNext(0);
   };
 
   const addToShortTermMemory = (message) => {
@@ -407,9 +405,13 @@ function AppHome() {
       setSaveHistoryEnabled(parsedValue);
       settingDisplayName = 'save history';
     }
+    else if (setting.includes('inactivity timer')) {
+      setInactivityTimerEnabled(parsedValue);
+      settingDisplayName = 'inactivity timer';
+    }
     else {
       console.log('Unknown setting:', settingName);
-      console.log('Available settings: auto send, timeout, previous messages, text to speech (tts), save history');
+      console.log('Available settings: auto send, timeout, previous messages, text to speech (tts), save history, inactivity timer');
       return false;
     }
 
@@ -420,7 +422,8 @@ function AppHome() {
       autoSendEnabled,
       autoSendTimeout,
       previousMessagesCount,
-      saveHistoryEnabled
+      saveHistoryEnabled,
+      inactivityTimerEnabled
     }));
 
     // Announce the update via TTS
@@ -454,37 +457,7 @@ function AppHome() {
           window.speechSynthesis.cancel();
           
           // Create a function to speak messages sequentially
-          const speakMessages = (index = 0) => {
-            if (index < assistantMessages.length) {
-              const message = assistantMessages[index];
-              // Only speak assistant messages
-              if (message.role === 'assistant') {
-                const utterance = new SpeechSynthesisUtterance(message.content);
-                const voice = voices.find(v => v.name === selectedVoice);
-                if (voice) {
-                  utterance.voice = voice;
-                  // When this message ends, speak the next one
-                  utterance.onend = () => speakMessages(index + 1);
-                  utterance.onerror = (event) => {
-                    console.log('Speech error:', event);
-                    // On error, try the next message
-                    speakMessages(index + 1);
-                  };
-                  window.speechSynthesis.speak(utterance);
-                } else {
-                  // If voice not found, try next message
-                  speakMessages(index + 1);
-                }
-              } else {
-                // If not assistant message, skip to next
-                speakMessages(index + 1);
-              }
-            } else {
-              setIsSpeaking(false);
-              setIsPaused(false);
-            }
-          };
-          speakMessages();
+          speakMessages(0);
         }
         break;
 
@@ -623,6 +596,66 @@ function AppHome() {
     return text.replace(/[\*\-\/]/g, '');
   };
 
+  const processResponse = (text) => {
+    const cleanedText = removeSpecialCharacters(text);
+    try {
+      // Remove any leading/trailing whitespace and any text before/after the JSON
+      const jsonMatch = cleanedText.match(/\{[^]*\}/);
+      if (jsonMatch) {
+        const jsonStr = jsonMatch[0];
+        const parsed = JSON.parse(jsonStr);
+        
+        // Process commands if they exist
+        if (parsed.commands && Array.isArray(parsed.commands)) {
+          parsed.commands.forEach(cmd => {
+            if (cmd.command === "add to long term memory" && cmd.variables && cmd.variables.length > 0) {
+              const newMemory = cmd.variables[0];
+              // Append to existing memory with a newline
+              const currentMemory = localStorage.getItem(STORAGE_KEY) ? 
+                JSON.parse(localStorage.getItem(STORAGE_KEY)).longTermMemory || '' : '';
+              const updatedMemory = currentMemory ? `${currentMemory}\n${newMemory}` : newMemory;
+              
+              // Update localStorage
+              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+              settings.longTermMemory = updatedMemory;
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+              
+              // Update state
+              setLongTermMemory(updatedMemory);
+            }
+            else if (cmd.command === "overwrite long term memory" && cmd.variables && cmd.variables.length > 0) {
+              const newMemory = cmd.variables[0];
+              
+              // Update localStorage
+              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+              settings.longTermMemory = newMemory;
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+              
+              // Update state
+              setLongTermMemory(newMemory);
+            }
+            else if (cmd.command === "clear long term memory") {
+              // Update localStorage
+              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+              settings.longTermMemory = '';
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+              
+              // Update state
+              setLongTermMemory('');
+            }
+          });
+        }
+
+        if (parsed && parsed.message) {
+          return parsed.message;
+        }
+      }
+    } catch (e) {
+      console.log('Response was not valid JSON, using as plain text:', e);
+    }
+    return cleanedText;
+  };
+
   async function fetchDeepSeek(userMessage) {
     try {
       const url = 'https://api.deepseek.com/chat/completions';
@@ -633,10 +666,11 @@ function AppHome() {
       const body = JSON.stringify({
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: settingsPromptPreface},
+          { role: 'system', content: FORMAT_PREFACE + "\n\n" + settingsPromptPreface},
           { role: 'system', content: "Memory from previous: " + longTermMemory},
           ...messages.slice(-previousMessagesCount),
-          userMessage
+          userMessage,
+          { role: 'system', content: FORMAT_PREFACE }
         ],
         stream: false,
       });
@@ -652,10 +686,10 @@ function AppHome() {
       }
 
       const data = await response.json();
-      const cleanedContent = removeSpecialCharacters(data.choices[0].message.content);
+      const processedContent = processResponse(data.choices[0].message.content);
       const assistantMessage = {
         role: 'assistant',
-        content: cleanedContent,
+        content: processedContent,
         timestamp: new Date().toISOString()
       };
 
@@ -719,10 +753,7 @@ function AppHome() {
   }
 
   const resetInactivityTimer = () => {
-    // Only start timer if first message has been sent
-    if (!hasFirstMessageRef.current) return;
-
-    console.log('Resetting inactivity timer, count:', inactivityCountRef.current);
+    if (!hasFirstMessageRef.current || !inactivityTimerEnabled) return;
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current);
     }
@@ -733,7 +764,6 @@ function AppHome() {
           role: 'user',
           content: INACTIVITY_MESSAGE
         };
-        console.log('Sending from inactivity timer');
         inactivityCountRef.current += 1;
         fetchDeepSeek(inactivityUserMessage);
       }, 30 * 1000); 
@@ -811,7 +841,8 @@ function AppHome() {
       promptPreface: settingsPromptPreface,
       longTermMemory: newValue,
       previousMessagesCount,
-      saveHistoryEnabled
+      saveHistoryEnabled,
+      inactivityTimerEnabled
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   };
@@ -891,7 +922,7 @@ function AppHome() {
             type={message.role}
             selectedVoice={selectedVoice}
             voices={voices}
-            onSpeakFromHere={() => speakFromMessage(index)}
+            onSpeakFromHere={() => speakMessages(index)}
             onAddToShortTermMemory={addToShortTermMemory}
           />
         ))}
@@ -953,6 +984,8 @@ function AppHome() {
         setSaveHistoryEnabled={setSaveHistoryEnabled}
         autoSendTimeout={autoSendTimeout}
         setAutoSendTimeout={setAutoSendTimeout}
+        inactivityTimerEnabled={inactivityTimerEnabled}
+        setInactivityTimerEnabled={setInactivityTimerEnabled}
       />
       <ChatHistory
         isOpen={showHistory}
@@ -991,7 +1024,8 @@ function AppHome() {
             selectedVoice,
             autoSendEnabled,
             promptPreface: value,
-            longTermMemory: initialLongTermMemory
+            longTermMemory: initialLongTermMemory,
+            inactivityTimerEnabled
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }}
@@ -1003,7 +1037,8 @@ function AppHome() {
             selectedVoice,
             autoSendEnabled,
             promptPreface: PROMPT_PREFACE,
-            longTermMemory: initialLongTermMemory
+            longTermMemory: initialLongTermMemory,
+            inactivityTimerEnabled
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }}
