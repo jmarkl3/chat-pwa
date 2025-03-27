@@ -52,6 +52,7 @@ function AppHome() {
     // Get available voices
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
+      console.log('Available voices:', availableVoices);
       setVoices(availableVoices);
     };
 
@@ -383,7 +384,13 @@ function AppHome() {
 
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
-      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+      setTimeout(() => {
+        const container = messagesEndRef.current.parentElement;
+        container.scrollTo({
+          top: container.scrollHeight,
+          behavior: 'smooth'
+        });
+      }, 100);
     }
   };
 
@@ -464,6 +471,7 @@ function AppHome() {
   // Processes the response from the API
   const processResponse = (text) => {
     const cleanedText = removeSpecialCharacters(text);
+    console.log("cleanedText: ", cleanedText)
     try {
       // Remove any leading/trailing whitespace and any text before/after the JSON
       const jsonMatch = cleanedText.match(/\{[^]*\}/);
@@ -483,6 +491,8 @@ function AppHome() {
               // Update localStorage
               localStorage.setItem(LONG_TERM_MEMORY_KEY, updatedMemory);
               
+              console.log('Updated long term memory:', updatedMemory);
+
               // Update state
               setLongTermMemory(updatedMemory);
             }
@@ -719,6 +729,7 @@ function AppHome() {
         setLongTermMemory={setLongTermMemory}
         settingsObject={settingsObject}
         setSettingsObject={setSettingsObject}
+        voices={voices}
       />
       <div className="messages-container" ref={messagesEndRef}>
         {messages.length === 0 && (

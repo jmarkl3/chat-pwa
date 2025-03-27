@@ -106,7 +106,7 @@ function Settings({
                     checked={settingsObject.autoSendEnabled}
                     onChange={handleAutoSendChange}
                   />
-                  Auto-send when voice input ends
+                  Auto send messages
                 </label>
                 {settingsObject.autoSendEnabled && (
                   <div className="setting-item" style={{ marginLeft: '20px', marginTop: '8px' }}>
