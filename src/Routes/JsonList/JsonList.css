@@ -1,0 +1,220 @@
+.json-list-container {
+  padding: 20px;
+  font-family: 'Courier New', Courier, monospace;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.json-list {
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  padding: 10px;
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-width: 0;
+}
+
+.json-list-item {
+  margin: 2px 0;
+  position: relative;
+}
+
+.json-item-header, .json-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  position: relative;
+}
+
+.json-item-header:hover {
+  background-color: #e0e0e0;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.arrow {
+  display: inline-block;
+  margin-right: 8px;
+  transition: transform 0.2s;
+  font-size: 12px;
+}
+
+.arrow.open {
+  transform: rotate(90deg);
+}
+
+.json-children {
+  margin-left: 20px;
+}
+
+.json-value-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.json-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.json-label {
+  cursor: text;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.json-label:hover {
+  background-color: #e0e0e0;
+}
+
+.label-input {
+  font-family: inherit;
+  font-size: inherit;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  padding: 1px 3px;
+  margin: -2px 0;
+  outline: none;
+  min-width: 50px;
+}
+
+.label-input:focus {
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.json-textarea {
+  font-family: inherit;
+  font-size: inherit;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px;
+  resize: none;
+  background-color: white;
+  min-height: 24px;
+}
+
+.json-textarea:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+}
+
+.menu-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 16px;
+  color: #666;
+  border-radius: 4px;
+}
+
+.menu-button:hover {
+  background-color: #e0e0e0;
+}
+
+.json-menu {
+  position: fixed;  /* Change to fixed to avoid container clipping */
+  background-color: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  min-width: 120px;
+  margin-top: 4px;  /* Add small gap */
+}
+
+.json-menu button {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.json-menu button:hover {
+  background-color: #f0f0f0;
+}
+
+.json-menu button:not(:last-child) {
+  border-bottom: 1px solid #eee;
+}
+
+.confirmation-box {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1001;
+  text-align: center;
+}
+
+.confirmation-box p {
+  margin-bottom: 20px;
+}
+
+.confirmation-box button {
+  margin: 0 10px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.confirmation-box button.confirm {
+  background-color: #dc3545;
+  color: white;
+}
+
+.confirmation-box button.cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+@media (max-width: 600px) {
+  .json-list-container {
+    padding: 10px;
+  }
+  
+  .json-list {
+    padding: 5px;
+  }
+  
+  .json-value-container {
+    padding: 5px;
+  }
+  
+  .json-textarea {
+    font-size: 13px;
+    padding: 6px;
+  }
+  
+  .menu-button {
+    padding: 4px 6px;
+  }
+  
+  .json-menu {
+    min-width: 100px;
+  }
+}
