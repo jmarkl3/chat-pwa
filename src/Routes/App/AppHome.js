@@ -2,42 +2,51 @@ import React, { useState, useRef, useEffect } from 'react'
 import './AppHome.css'
 import Menu from './Menu'
 import Message from './Message'
-import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE } from './Data'
+import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, DEFAULT_SETTINGS } from './Data'
+import { findNumberInArgs, removeSpecialCharacters } from './functions'
+import ChatInputArea from './ChatInputArea'
 
 function AppHome() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  // Shows the Menu
   const [showMenu, setShowMenu] = useState(false);
+  // This should be loaded from local storage, reloaded on change, and sent to the system
   const [longTermMemory, setLongTermMemory] = useState('');
+  // For the tts
   const [isPaused, setIsPaused] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  // The chats for the history, this should be in the history component
   const [chats, setChats] = useState({});
-  const [settingsObject, setSettingsObject] = useState({
-    ttsEnabled: false,
-    selectedVoice: '',
-    autoSendEnabled: false,
-    autoSendTimeout: 5,
-    previousMessagesCount: 10,
-    saveHistoryEnabled: true,
-    inactivityTimerEnabled: true,
-    showSettings: false,
-    showPromptPreface: false,
-    showLongTermMemory: false
-  });
+  // Should be loaded form local storage and updated on change with a callback 
+  const [settingsObject, setSettingsObject] = useState({...DEFAULT_SETTINGS});
+  // Used in the tts
   const [voices, setVoices] = useState([]);
 
+  // For savin the chat or loading new ones
   const chatIdRef = useRef(null);
+  // For replay (maybe not needed naymore)
   const lastSpokenTextRef = useRef('');
+  // Not in use yet but will be
   const shortTermMemoryRef = useRef('');
+  // For the input area so it can be cleared
   const inputRef = useRef(null);
+  // For the messages so they can be scrolled to the bottom
   const messagesEndRef = useRef(null);
+  // For the inactivity timer so user can be reminded
   const inactivityTimerRef = useRef(null);
+  // For the inactivity count so it only reminds twice
   const inactivityCountRef = useRef(0);
+  // A flag variable
   const hasFirstMessageRef = useRef(false);
+
+  // #region loading
 
   // Loading settings chats and voices
   useEffect(() => {
+    // Load the settings from local storage
     loadSettings()
+    // Load the chats from local storage
     loadChats()
 
     // Get available voices
@@ -84,11 +93,9 @@ function AppHome() {
     }
   };
 
-  // Load settings from localStorage
-  useEffect(() => {
+  // #endregion loading
 
-  }, []);
-
+  // #region tts
   const speakText = async (text, index = 0) => {
     if (!settingsObject.ttsEnabled) return;
 
@@ -144,96 +151,68 @@ function AppHome() {
     speakNext(0);
   };
 
-  const addToShortTermMemory = (message) => {
-    shortTermMemoryRef.current += message + "\n";
-  };
+  
+  const togglePause = () => {
+    const currentState = { speaking: isSpeaking, paused: isPaused };
+    console.log('Current state:', currentState);
 
-  const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
-    }
-  };
-
-  const handleInputChange = () => {
-    if (settingsObject.autoSendEnabled && inputRef.current.value.trim()) {
-      handleSubmit();
-    }
-  };
-
-  const wordToNumber = (word) => {
-    const numberWords = {
-      'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-      'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
-      'to': 2, 'too': 2, // Common TTS interpretations
-      '1': 1, '2': 2, '3': 3, '4': 4, '5': 5,
-      '6': 6, '7': 7, '8': 8, '9': 9, '10': 10
-    };
-    return numberWords[word.toLowerCase()] || null;
-  };
-
-  const findNumberInArgs = (args) => {
-    // Look through all args to find a number
-    for (const arg of args) {
-      const num = wordToNumber(arg);
-      if (num !== null) {
-        return num;
+    if (isSpeaking) {
+      if (isPaused) {
+        // Currently paused, should resume
+        console.log('Action: Resume speech');
+        window.speechSynthesis.resume();
+        setIsPaused(false);
+      } else {
+        // Currently speaking, should pause
+        console.log('Action: Pause speech');
+        window.speechSynthesis.pause();
+        setIsPaused(true);
       }
+    } else if (lastSpokenTextRef.current) {
+      // Not speaking, should start new speech
+      console.log('Action: Replay last speech');
+      speakText(lastSpokenTextRef.current);
     }
-    return 1; // Default to 1 if no number found
+
+    // Log state after change
+    // setTimeout(() => {
+    //   const newState = { speaking: isSpeaking, paused: isPaused };
+    //   console.log('New state:', newState);
+    // }, 100);
   };
 
-  const updateSetting = (settingName, value) => {
-    // Convert setting name to lowercase 
-    const setting = settingName.toLowerCase();
-    
-    // Convert string "true"/"false" to boolean
-    const boolValue = value.toLowerCase();
-    const isBool = boolValue === 'true' || boolValue === 'false';
-    const parsedValue = isBool ? boolValue === 'true' : value;
+  // #endregion tts
 
-    let settingDisplayName = '';
+  // #region sending and recieving
 
-    // Handle different settings - using includes() for more flexible matching
-    if (setting.includes('auto send') || setting === 'autosend') {
-      setSettingsObject(prevSettings => ({ ...prevSettings, autoSendEnabled: parsedValue }));
-      settingDisplayName = 'auto send';
-    }
-    else if (setting.includes('timeout') || setting.includes('auto send timeout')) {
-      const timeoutValue = parseInt(value) || 5;
-      setSettingsObject(prevSettings => ({ ...prevSettings, autoSendTimeout: timeoutValue }));
-      settingDisplayName = 'auto send timeout';
-    }
-    else if (setting.includes('previous message') || setting.includes('messages')) {
-      const messageCount = parseInt(value) || 10;
-      setSettingsObject(prevSettings => ({ ...prevSettings, previousMessagesCount: messageCount }));
-      settingDisplayName = 'previous messages';
-    }
-    else if (setting.includes('text to speech') || setting === 'tts') {
-      setSettingsObject(prevSettings => ({ ...prevSettings, ttsEnabled: parsedValue }));
-      settingDisplayName = 'text to speech';
-    }
-    else if (setting.includes('save history') || setting === 'history') {
-      setSettingsObject(prevSettings => ({ ...prevSettings, saveHistoryEnabled: parsedValue }));
-      settingDisplayName = 'save history';
-    }
-    else if (setting.includes('inactivity timer')) {
-      setSettingsObject(prevSettings => ({ ...prevSettings, inactivityTimerEnabled: parsedValue }));
-      settingDisplayName = 'inactivity timer';
-    }
-    else {
-      console.log('Unknown setting:', settingName);
-      console.log('Available settings: auto send, timeout, previous messages, text to speech (tts), save history, inactivity timer');
-      return false;
-    }
+  // When text is being sent
+  const handleSubmit = async () => {
+    const userInput = inputRef.current.value.trim();
+    if (!userInput) return;
 
-    // Save to localStorage
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsObject));
+    // Clear input immediately
+    inputRef.current.value = '';
 
-    // Announce the update via TTS
-    speakText(`${settingDisplayName} updated to ${value}`);
-    return true;
+    // Process input and only send to API if it's not a command
+    if (processInput(userInput)) {
+      await handleSendMessage(userInput);
+    }
   };
 
+  // Checks to see if its a command, if so calls handleCommand
+  const processInput = (input) => {
+    const words = input.trim().split(/\s+/);
+    let firstWord = words[0].toLowerCase()
+    if (words.length >= 2 && (firstWord === 'command' || firstWord === 'commands')) {
+      const command = words[1];
+      const args = words.slice(2);
+      handleCommand(command, args);
+      return false; // Don't send to API
+    }
+    return true; // Send to API
+  };
+
+  // Does an action based on the command
   const handleCommand = (command, args) => {
     switch (command.toLowerCase()) {
       case 'replay':
@@ -303,31 +282,59 @@ function AppHome() {
     }
   };
 
-  const processInput = (input) => {
-    const words = input.trim().split(/\s+/);
-    let firstWord = words[0].toLowerCase()
-    if (words.length >= 2 && (firstWord === 'command' || firstWord === 'commands')) {
-      const command = words[1];
-      const args = words.slice(2);
-      handleCommand(command, args);
-      return false; // Don't send to API
-    }
-    return true; // Send to API
+  // Used by the handleCommand funciton
+  const updateSetting = (settingName, value) => {
+    // Convert setting name to lowercase 
+    const setting = settingName.toLowerCase();
+    
+    // Update the settings object with the new value
+    setSettingsObject(prevSettings => {
+      const newSettings = { ...prevSettings };
+      
+      switch (setting) {
+        case 'ttsenabled':
+          newSettings.ttsEnabled = value;
+          break;
+        case 'selectedvoice':
+          newSettings.selectedVoice = value;
+          break;
+        case 'autosendenabled':
+          newSettings.autoSendEnabled = value;
+          break;
+        case 'autosendtimeout':
+          newSettings.autoSendTimeout = value;
+          break;
+        case 'previousmessagescount':
+          newSettings.previousMessagesCount = value;
+          break;
+        case 'savehistoryenabled':
+          newSettings.saveHistoryEnabled = value;
+          break;
+        case 'inactivitytimerenabled':
+          newSettings.inactivityTimerEnabled = value;
+          break;
+        case 'showsettings':
+          newSettings.showSettings = value;
+          break;
+        case 'showpromptpreface':
+          newSettings.showPromptPreface = value;
+          break;
+        case 'showlongtermmemory':
+          newSettings.showLongTermMemory = value;
+          break;
+        default:
+          console.warn(`Unknown setting: ${settingName}`);
+          return prevSettings;
+      }
+
+      // Save to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+      return newSettings;
+    });
+    return true;
   };
 
-  const handleSubmit = async () => {
-    const userInput = inputRef.current.value.trim();
-    if (!userInput) return;
-
-    // Clear input immediately
-    inputRef.current.value = '';
-
-    // Process input and only send to API if it's not a command
-    if (processInput(userInput)) {
-      await handleSendMessage(userInput);
-    }
-  };
-
+  // Adds message to messages and calls function to fetch api
   const handleSendMessage = async (message) => {
     if (!message.trim()) return;
 
@@ -394,70 +401,7 @@ function AppHome() {
     await fetchDeepSeek(userMessage);
   }
 
-  const removeSpecialCharacters = (text) => {
-    return text.replace(/[\*\-\/]/g, '');
-  };
-
-  const processResponse = (text) => {
-    const cleanedText = removeSpecialCharacters(text);
-    try {
-      // Remove any leading/trailing whitespace and any text before/after the JSON
-      const jsonMatch = cleanedText.match(/\{[^]*\}/);
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[0];
-        const parsed = JSON.parse(jsonStr);
-        
-        // Process commands if they exist
-        if (parsed.commands && Array.isArray(parsed.commands)) {
-          parsed.commands.forEach(cmd => {
-            if (cmd.command === "add to long term memory" && cmd.variables && cmd.variables.length > 0) {
-              const newMemory = cmd.variables[0];
-              // Append to existing memory with a newline
-              const currentMemory = localStorage.getItem(STORAGE_KEY) ? 
-                JSON.parse(localStorage.getItem(STORAGE_KEY)).longTermMemory || '' : '';
-              const updatedMemory = currentMemory ? `${currentMemory}\n${newMemory}` : newMemory;
-              
-              // Update localStorage
-              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-              settings.longTermMemory = updatedMemory;
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-              
-              // Update state
-              setLongTermMemory(updatedMemory);
-            }
-            else if (cmd.command === "overwrite long term memory" && cmd.variables && cmd.variables.length > 0) {
-              const newMemory = cmd.variables[0];
-              
-              // Update localStorage
-              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-              settings.longTermMemory = newMemory;
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-              
-              // Update state
-              setLongTermMemory(newMemory);
-            }
-            else if (cmd.command === "clear long term memory") {
-              // Update localStorage
-              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-              settings.longTermMemory = '';
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-              
-              // Update state
-              setLongTermMemory('');
-            }
-          });
-        }
-
-        if (parsed && parsed.message) {
-          return parsed.message;
-        }
-      }
-    } catch (e) {
-      console.log('Response was not valid JSON, using as plain text:', e);
-    }
-    return cleanedText;
-  };
-
+  // Sends a message to the API and waits for a response
   async function fetchDeepSeek(userMessage) {
     try {
       const now = new Date();
@@ -559,6 +503,81 @@ function AppHome() {
     }
   }
 
+  // Processes the response from the API
+  const processResponse = (text) => {
+    const cleanedText = removeSpecialCharacters(text);
+    try {
+      // Remove any leading/trailing whitespace and any text before/after the JSON
+      const jsonMatch = cleanedText.match(/\{[^]*\}/);
+      if (jsonMatch) {
+        const jsonStr = jsonMatch[0];
+        const parsed = JSON.parse(jsonStr);
+        
+        // Process commands if they exist
+        if (parsed.commands && Array.isArray(parsed.commands)) {
+          parsed.commands.forEach(cmd => {
+            if (cmd.command === "add to long term memory" && cmd.variables && cmd.variables.length > 0) {
+              const newMemory = cmd.variables[0];
+              // Append to existing memory with a newline
+              const currentMemory = localStorage.getItem(STORAGE_KEY) ? 
+                JSON.parse(localStorage.getItem(STORAGE_KEY)).longTermMemory || '' : '';
+              const updatedMemory = currentMemory ? `${currentMemory}\n${newMemory}` : newMemory;
+              
+              // Update localStorage
+              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+              settings.longTermMemory = updatedMemory;
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+              
+              // Update state
+              setLongTermMemory(updatedMemory);
+            }
+            else if (cmd.command === "overwrite long term memory" && cmd.variables && cmd.variables.length > 0) {
+              const newMemory = cmd.variables[0];
+              
+              // Update localStorage
+              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+              settings.longTermMemory = newMemory;
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+              
+              // Update state
+              setLongTermMemory(newMemory);
+            }
+            else if (cmd.command === "clear long term memory") {
+              // Update localStorage
+              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+              settings.longTermMemory = '';
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+              
+              // Update state
+              setLongTermMemory('');
+            }
+          });
+        }
+
+        if (parsed && parsed.message) {
+          return parsed.message;
+        }
+      }
+    } catch (e) {
+      console.log('Response was not valid JSON, using as plain text:', e);
+    }
+    return cleanedText;
+  };
+
+  // #endregion sending and recieving
+
+
+  // #region inactivity timer
+
+  // Reset inactivity timer when chat ID changes
+  useEffect(() => {
+    if (chatIdRef.current) {
+      console.log('Chat ID changed, resetting inactivity timer');
+      resetInactivityTimer();
+    }
+  }, [chatIdRef.current]);
+
+  // Resets the inactivity timer so it sends a messages after 5 minutes
   const resetInactivityTimer = () => {
     if (!hasFirstMessageRef.current || !settingsObject.inactivityTimerEnabled) return;
     if (inactivityTimerRef.current) {
@@ -577,61 +596,8 @@ function AppHome() {
     }
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
+  // #endregion inactivity timer
 
-  const toggleSettings = () => {
-    setSettingsObject(prevSettings => ({ ...prevSettings, showSettings: !prevSettings.showSettings }));
-  };
-
-  const togglePause = () => {
-    const currentState = { speaking: isSpeaking, paused: isPaused };
-    console.log('Current state:', currentState);
-
-    if (isSpeaking) {
-      if (isPaused) {
-        // Currently paused, should resume
-        console.log('Action: Resume speech');
-        window.speechSynthesis.resume();
-        setIsPaused(false);
-      } else {
-        // Currently speaking, should pause
-        console.log('Action: Pause speech');
-        window.speechSynthesis.pause();
-        setIsPaused(true);
-      }
-    } else if (lastSpokenTextRef.current) {
-      // Not speaking, should start new speech
-      console.log('Action: Replay last speech');
-      speakText(lastSpokenTextRef.current);
-    }
-
-    // Log state after change
-    // setTimeout(() => {
-    //   const newState = { speaking: isSpeaking, paused: isPaused };
-    //   console.log('New state:', newState);
-    // }, 100);
-  };
-
-  const handleLongTermMemoryChange = (e) => {
-    const newValue = e.target.value;
-    setLongTermMemory(newValue);
-    const settings = {
-      ttsEnabled: settingsObject.ttsEnabled,
-      selectedVoice: settingsObject.selectedVoice,
-      autoSendEnabled: settingsObject.autoSendEnabled,
-      promptPreface: PROMPT_PREFACE,
-      longTermMemory: newValue,
-      previousMessagesCount: settingsObject.previousMessagesCount,
-      saveHistoryEnabled: settingsObject.saveHistoryEnabled,
-      inactivityTimerEnabled: settingsObject.inactivityTimerEnabled
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-  };
 
   const loadChat = (chatId) => {
     const chat = chats[chatId];
@@ -655,26 +621,41 @@ function AppHome() {
     localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updatedChats));
   };
 
+  // Save current chat when messages change
   useEffect(() => {
     if (chatIdRef.current) {
       saveCurrentChat();
     }
   }, [messages]);
 
+  const addToShortTermMemory = (message) => {
+    shortTermMemoryRef.current += message + "\n";
+  };
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  };
+
+
+
+
+
+
+
+
+
+
+
+  // This should all be in the history component
+
   const handleNewChat = () => {
     setMessages([]);
     chatIdRef.current = null;
     setShowMenu(false);
   };
-
-  // Reset inactivity timer when chat ID changes
-  useEffect(() => {
-    if (chatIdRef.current) {
-      console.log('Chat ID changed, resetting inactivity timer');
-      resetInactivityTimer();
-    }
-  }, [chatIdRef.current]);
-
+  
   const handleUpdateChat = (chatId, updates) => {
     if (chats[chatId]) {
       const updatedChat = {
@@ -742,7 +723,8 @@ function AppHome() {
         menuOnUpdateChat={handleUpdateChat}
         menuOnDeleteChat={handleDeleteChat}
         menuOnImportChat={handleImportChat}
-
+        longTermMemory={longTermMemory}
+        setLongTermMemory={setLongTermMemory}
         settingsObject={settingsObject}
         setSettingsObject={setSettingsObject}
       />
@@ -779,48 +761,16 @@ function AppHome() {
           </div>
         )}
       </div>
-      <div className="input-container">
-        <textarea
-          ref={inputRef}
-          placeholder="Type your message..."
-          onKeyDown={handleKeyPress}
-          onChange={handleInputChange}
-        />
-        <div className="button-container">
-          <div className="left-buttons">
-            <button
-              className={`pause-button ${isSpeaking ? (isPaused ? 'paused' : 'speaking') : ''}`}
-              onClick={togglePause}
-              disabled={!lastSpokenTextRef.current && !isSpeaking}
-              title={isSpeaking ? (isPaused ? 'Resume speech' : 'Pause speech') : 'Replay last speech'}
-            >
-              {isSpeaking ? (isPaused ? '▶️' : '⏸️') : '▶️'}
-            </button>
-          </div>
-          <button className="submit-button" onClick={handleSubmit}>
-            Send
-          </button>
-        </div>
-      </div>
+      <ChatInputArea
+        inputRef={inputRef}
+        lastSpokenTextRef={lastSpokenTextRef}
+        isSpeaking={isSpeaking}
+        isPaused={isPaused}
+        togglePause={togglePause}
+        handleSubmit={handleSubmit}
+        settingsObject={settingsObject}
+      />
       
-
-      {settingsObject.showLongTermMemory && (
-        <div className="overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h2>Long Term Memory</h2>
-              <button onClick={() => setSettingsObject(prevSettings => ({ ...prevSettings, showLongTermMemory: false }))}>&times;</button>
-            </div>
-            <div className="prompt-editor">
-              <textarea
-                value={longTermMemory}
-                onChange={handleLongTermMemoryChange}
-                rows="20"
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

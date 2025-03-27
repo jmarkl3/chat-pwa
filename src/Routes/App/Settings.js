@@ -5,25 +5,13 @@ import './Settings.css';
 const STORAGE_KEY = 'chat-app-settings';
 
 function Settings({ 
-  ttsEnabled, 
-  setTtsEnabled, 
-  voices, 
-  selectedVoice, 
-  setSelectedVoice, 
-  autoSendEnabled, 
-  setAutoSendEnabled, 
-  autoSendTimeout,
-  setAutoSendTimeout,
-  isOpen, 
+  settingsObject,
+  setSettingsObject,
+  voices,
+  isOpen,
   setIsOpen,
   setShowPromptPreface,
-  previousMessagesCount,
-  setPreviousMessagesCount,
   setShowLongTermMemory,
-  saveHistoryEnabled,
-  setSaveHistoryEnabled,
-  inactivityTimerEnabled,
-  setInactivityTimerEnabled,
   setShowNote
 }) {
   const [testText, setTestText] = useState("This is a test of the voice");
@@ -31,111 +19,48 @@ function Settings({
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
 
+  const updateSetting = (settingName, value) => {
+    setSettingsObject(prevSettings => {
+      const newSettings = { ...prevSettings, [settingName]: value };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+      return newSettings;
+    });
+  };
+
   const handleTtsChange = (e) => {
-    const newValue = e.target.checked;
-    setTtsEnabled(newValue);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      ttsEnabled: newValue,
-      selectedVoice: selectedVoice,
-      autoSendEnabled: autoSendEnabled,
-      autoSendTimeout: autoSendTimeout,
-      previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: saveHistoryEnabled,
-      inactivityTimerEnabled: inactivityTimerEnabled
-    }));
-    console.log('Saving TTS enabled:', newValue);
+    updateSetting('ttsEnabled', e.target.checked);
   };
 
   const handleVoiceChange = (e) => {
-    const newVoice = e.target.value;
-    setSelectedVoice(newVoice);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      ttsEnabled: ttsEnabled,
-      selectedVoice: newVoice,
-      autoSendEnabled: autoSendEnabled,
-      autoSendTimeout: autoSendTimeout,
-      previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: saveHistoryEnabled,
-      inactivityTimerEnabled: inactivityTimerEnabled
-    }));
+    updateSetting('selectedVoice', e.target.value);
   };
 
   const handleAutoSendChange = (e) => {
-    const newValue = e.target.checked;
-    setAutoSendEnabled(newValue);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      ttsEnabled: ttsEnabled, 
-      selectedVoice: selectedVoice,
-      autoSendEnabled: newValue,
-      autoSendTimeout: autoSendTimeout,
-      previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: saveHistoryEnabled,
-      inactivityTimerEnabled: inactivityTimerEnabled
-    }));
+    updateSetting('autoSendEnabled', e.target.checked);
   };
 
   const handleAutoSendTimeoutChange = (e) => {
-    const newValue = e.target.value === '' ? '' : parseInt(e.target.value);
-    setAutoSendTimeout(newValue);
-    const valueToSave = newValue === '' ? 5 : newValue;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      ttsEnabled: ttsEnabled, 
-      selectedVoice: selectedVoice,
-      autoSendEnabled: autoSendEnabled,
-      autoSendTimeout: valueToSave,
-      previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: saveHistoryEnabled,
-      inactivityTimerEnabled: inactivityTimerEnabled
-    }));
-  };
-
-  const handleSaveHistoryChange = (e) => {
-    const newValue = e.target.checked;
-    setSaveHistoryEnabled(newValue);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      ttsEnabled: ttsEnabled, 
-      selectedVoice: selectedVoice,
-      autoSendEnabled: autoSendEnabled,
-      autoSendTimeout: autoSendTimeout,
-      previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: newValue,
-      inactivityTimerEnabled: inactivityTimerEnabled
-    }));
-  };
-
-  const handleInactivityTimerChange = (e) => {
-    const newValue = e.target.checked;
-    setInactivityTimerEnabled(newValue);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      ttsEnabled: ttsEnabled, 
-      selectedVoice: selectedVoice,
-      autoSendEnabled: autoSendEnabled,
-      autoSendTimeout: autoSendTimeout,
-      previousMessagesCount: previousMessagesCount,
-      saveHistoryEnabled: saveHistoryEnabled,
-      inactivityTimerEnabled: newValue
-    }));
+    const newValue = e.target.value === '' ? 5 : parseInt(e.target.value);
+    updateSetting('autoSendTimeout', newValue);
   };
 
   const handlePreviousMessagesCountChange = (e) => {
-    const newValue = e.target.value === '' ? '' : parseInt(e.target.value);
-    setPreviousMessagesCount(newValue);
-    const valueToSave = newValue === '' ? 10 : newValue;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      ttsEnabled: ttsEnabled, 
-      selectedVoice: selectedVoice,
-      autoSendEnabled: autoSendEnabled,
-      autoSendTimeout: autoSendTimeout,
-      previousMessagesCount: valueToSave,
-      saveHistoryEnabled: saveHistoryEnabled,
-      inactivityTimerEnabled: inactivityTimerEnabled
-    }));
+    const newValue = e.target.value === '' ? 10 : parseInt(e.target.value);
+    updateSetting('previousMessagesCount', newValue);
+  };
+
+  const handleSaveHistoryChange = (e) => {
+    updateSetting('saveHistoryEnabled', e.target.checked);
+  };
+
+  const handleInactivityTimerChange = (e) => {
+    updateSetting('inactivityTimerEnabled', e.target.checked);
   };
 
   const testVoice = () => {
-    if (ttsEnabled && selectedVoice) {
+    if (settingsObject.ttsEnabled && settingsObject.selectedVoice) {
       const utterance = new SpeechSynthesisUtterance(testText);
-      const voice = voices.find(v => v.name === selectedVoice);
+      const voice = voices.find(v => v.name === settingsObject.selectedVoice);
       if (voice) {
         utterance.voice = voice;
         window.speechSynthesis.speak(utterance);
@@ -178,12 +103,12 @@ function Settings({
                 <label>
                   <input
                     type="checkbox"
-                    checked={autoSendEnabled}
+                    checked={settingsObject.autoSendEnabled}
                     onChange={handleAutoSendChange}
                   />
                   Auto-send when voice input ends
                 </label>
-                {autoSendEnabled && (
+                {settingsObject.autoSendEnabled && (
                   <div className="setting-item" style={{ marginLeft: '20px', marginTop: '8px' }}>
                     <label style={{ display: 'flex', alignItems: 'center' }}>
                       <span>Auto-send timeout:</span>
@@ -191,7 +116,7 @@ function Settings({
                         type="number"
                         min="1"
                         max="30"
-                        value={autoSendTimeout}
+                        value={settingsObject.autoSendTimeout}
                         onChange={handleAutoSendTimeoutChange}
                         className="auto-send-timeout"
                       />
@@ -204,20 +129,20 @@ function Settings({
                 <label>
                   <input
                     type="checkbox"
-                    checked={saveHistoryEnabled}
-                    onChange={handleSaveHistoryChange}
+                    checked={settingsObject.inactivityTimerEnabled}
+                    onChange={handleInactivityTimerChange}
                   />
-                  Save chat history
+                  Enable inactivity timer
                 </label>
               </div>
               <div className="setting-item">
                 <label>
                   <input
                     type="checkbox"
-                    checked={inactivityTimerEnabled}
-                    onChange={handleInactivityTimerChange}
+                    checked={settingsObject.saveHistoryEnabled}
+                    onChange={handleSaveHistoryChange}
                   />
-                  Enable Inactivity Timer
+                  Save chat history
                 </label>
               </div>
             </div>
@@ -238,45 +163,47 @@ function Settings({
                 <label>
                   <input
                     type="checkbox"
-                    checked={ttsEnabled}
+                    checked={settingsObject.ttsEnabled}
                     onChange={handleTtsChange}
                   />
-                  Enable Text-to-Speech
+                  Enable text-to-speech
                 </label>
               </div>
-              {ttsEnabled && (
-                <div className="setting-item">
-                  <label>
-                    Voice:
-                    <select
-                      value={selectedVoice}
-                      onChange={handleVoiceChange}
-                    >
-                      {voices.map((voice) => (
-                        <option key={voice.name} value={voice.name}>
-                          {voice.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
+              {settingsObject.ttsEnabled && (
+                <>
+                  <div className="setting-item">
+                    <label>
+                      Voice:
+                      <select 
+                        value={settingsObject.selectedVoice} 
+                        onChange={handleVoiceChange}
+                        className="voice-select"
+                      >
+                        <option value="">Select a voice</option>
+                        {voices.map(voice => (
+                          <option key={voice.name} value={voice.name}>
+                            {voice.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                  <div className="setting-item">
+                    <label>
+                      Test text:
+                      <input
+                        type="text"
+                        value={testText}
+                        onChange={(e) => setTestText(e.target.value)}
+                        className="test-text-input"
+                      />
+                    </label>
+                    <button onClick={testVoice} className="test-voice-button">
+                      Test Voice
+                    </button>
+                  </div>
+                </>
               )}
-              <div className="setting-item">
-                <label>Test Voice:</label>
-                <textarea
-                  value={testText}
-                  onChange={(e) => setTestText(e.target.value)}
-                  className="test-voice-input"
-                  rows="2"
-                />
-                <button 
-                  onClick={testVoice}
-                  className="test-voice-button"
-                  disabled={!ttsEnabled}
-                >
-                  Test Voice
-                </button>
-              </div>
             </div>
           )}
         </div>
@@ -292,14 +219,15 @@ function Settings({
           {memoryOpen && (
             <div className="section-content">
               <div className="setting-item">
-                <label>
-                  <span>Number of previous messages to include (increases token usage)</span>
+                <label style={{ display: 'flex', alignItems: 'center' }}>
+                  <span>Previous messages to include:</span>
                   <input
                     type="number"
                     min="1"
                     max="50"
-                    value={previousMessagesCount}
+                    value={settingsObject.previousMessagesCount}
                     onChange={handlePreviousMessagesCountChange}
+                    className="previous-messages-count"
                   />
                 </label>
               </div>

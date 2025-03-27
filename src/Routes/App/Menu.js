@@ -2,15 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Menu.css';
 import ChatHistory from './ChatHistory';
-import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY } from './Data';
+import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY, LONG_TERM_MEMORY_KEY } from './Data';
 import TextInput from './TextInput';
 import Settings from './Settings';
 
 function Menu({ 
   isOpen, 
   setIsOpen, 
-  setShowSettings, 
-  setShowLongTermMemory, 
   menuChats,
   menuCurrentChatId,
   menuOnSelectChat,
@@ -20,6 +18,8 @@ function Menu({
   menuOnImportChat, 
   settingsObject, 
   setSettingsObject,
+  setLongTermMemory,
+  longTermMemory,
 }) {
   // Installation prompt
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -27,12 +27,22 @@ function Menu({
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [showPromptPreface, setShowPromptPreface] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showLongTermMemory, setShowLongTermMemory] = useState(false);
   const [showNote, setShowNote] = useState(false);
-  const [note, setNote] = useState(() => {
+  const [note, setNote] = useState('');
+
+  // Load long term memory and note from localStorage
+  useEffect(() => {
+    const savedMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY);
+    if (savedMemory) {
+      setLongTermMemory(savedMemory);
+    }
     const savedNote = localStorage.getItem(NOTE_STORAGE_KEY);
-    return savedNote || '';
-  });
-  const [localNote, setLocalNote] = useState(note);
+    if (savedNote) {
+      setNote(savedNote);
+    }
+  }, [setLongTermMemory, setNote]);
+
   // Routing
   const navigate = useNavigate();
 
@@ -141,13 +151,21 @@ function Menu({
         title="Note"
         isOpen={showNote}
         setIsOpen={setShowNote}
-        defaultValue={localNote}
+        defaultValue={note}
         onChange={(value) => {
-          setLocalNote(value);
+          setNote(value);
+          localStorage.setItem(NOTE_STORAGE_KEY, value);
         }}
-        onBlur={() => {
-          localStorage.setItem(NOTE_STORAGE_KEY, localNote);
-          setNote(localNote);
+      />
+      {/* Long Term Memory */}
+      <TextInput
+        title="Long Term Memory"
+        isOpen={showLongTermMemory}
+        setIsOpen={setShowLongTermMemory}
+        defaultValue={longTermMemory}
+        onChange={(value) => {
+          setLongTermMemory(value);
+          localStorage.setItem(LONG_TERM_MEMORY_KEY, value);
         }}
       />
 
