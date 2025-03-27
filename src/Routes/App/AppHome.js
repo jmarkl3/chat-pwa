@@ -6,7 +6,7 @@ import TextInput from './TextInput'
 import Message from './Message'
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import SlidePanel from './SlidePanel';
-import ChatHistory from './ChatHistory';
+
 
 const STORAGE_KEY = 'chat-app-settings';
 const CHATS_STORAGE_KEY = 'chat-app-chats';
@@ -111,27 +111,27 @@ const PROMPT_PREFACE = `
 function AppHome() {
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [showLongTermMemory, setShowLongTermMemory] = useState(false);
-  const [showPromptPreface, setShowPromptPreface] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showNote, setShowNote] = useState(false);
   const [longTermMemory, setLongTermMemory] = useState('');
   const [isPaused, setIsPaused] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [chats, setChats] = useState({});
-  const [saveHistoryEnabled, setSaveHistoryEnabled] = useState(true);
-  const [ttsEnabled, setTtsEnabled] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState('');
-  const [autoSendEnabled, setAutoSendEnabled] = useState(false);
-  const [autoSendTimeout, setAutoSendTimeout] = useState(5);
-  const [settingsPromptPreface, setSettingsPromptPreface] = useState(PROMPT_PREFACE);
-  const [initialLongTermMemory, setInitialLongTermMemory] = useState('');
-  const [previousMessagesCount, setPreviousMessagesCount] = useState(10);
+  const [settingsObject, setSettingsObject] = useState({
+    ttsEnabled: false,
+    selectedVoice: '',
+    autoSendEnabled: false,
+    autoSendTimeout: 5,
+    previousMessagesCount: 10,
+    saveHistoryEnabled: true,
+    inactivityTimerEnabled: true,
+    showSettings: false,
+    showPromptPreface: false,
+    showLongTermMemory: false
+  });
   const [voices, setVoices] = useState([]);
   const [isListening, setIsListening] = useState(false);
-  const [inactivityTimerEnabled, setInactivityTimerEnabled] = useState(true);
   const [note, setNote] = useState(() => {
     const savedNote = localStorage.getItem(NOTE_STORAGE_KEY);
     return savedNote || '';
@@ -167,14 +167,14 @@ function AppHome() {
         const settings = JSON.parse(savedSettings);
         // Only set the voice if it exists in available voices
         if (settings.selectedVoice && availableVoices.some(v => v.name === settings.selectedVoice)) {
-          setSelectedVoice(settings.selectedVoice);
+          setSettingsObject(prevSettings => ({ ...prevSettings, selectedVoice: settings.selectedVoice }));
         } else if (availableVoices.length > 0) {
           // If saved voice not found, use first available voice
-          setSelectedVoice(availableVoices[0].name);
+          setSettingsObject(prevSettings => ({ ...prevSettings, selectedVoice: availableVoices[0].name }));
         }
-      } else if (availableVoices.length > 0 && !selectedVoice) {
+      } else if (availableVoices.length > 0 && !settingsObject.selectedVoice) {
         // If no saved settings, use first available voice
-        setSelectedVoice(availableVoices[0].name);
+        setSettingsObject(prevSettings => ({ ...prevSettings, selectedVoice: availableVoices[0].name }));
       }
     };
 
@@ -195,43 +195,25 @@ function AppHome() {
       const savedSettings = localStorage.getItem(STORAGE_KEY);
       if (savedSettings) {
         const settings = JSON.parse(savedSettings);
-        return {
+        setSettingsObject(prevSettings => ({
+          ...prevSettings,
           ttsEnabled: settings.ttsEnabled ?? false,
+          selectedVoice: settings.selectedVoice ?? '',
           autoSendEnabled: settings.autoSendEnabled ?? false,
           autoSendTimeout: settings.autoSendTimeout ?? 5,
-          promptPreface: settings.promptPreface ?? PROMPT_PREFACE,
-          longTermMemory: settings.longTermMemory ?? '',
           previousMessagesCount: settings.previousMessagesCount ?? 10,
           saveHistoryEnabled: settings.saveHistoryEnabled ?? true,
           inactivityTimerEnabled: settings.inactivityTimerEnabled ?? true
-        };
+        }));
       }
     } catch (error) {
       console.error('Error loading settings:', error);
     }
-    return { 
-      ttsEnabled: false, 
-      autoSendEnabled: false,
-      autoSendTimeout: 5,
-      promptPreface: PROMPT_PREFACE,
-      longTermMemory: '',
-      previousMessagesCount: 10,
-      saveHistoryEnabled: true,
-      inactivityTimerEnabled: true
-    };
   };
 
   // Load settings from localStorage
   useEffect(() => {
-    const settings = loadInitialSettings();
-    setTtsEnabled(settings.ttsEnabled);
-    setAutoSendEnabled(settings.autoSendEnabled);
-    setAutoSendTimeout(settings.autoSendTimeout);
-    setSettingsPromptPreface(settings.promptPreface);
-    setLongTermMemory(settings.longTermMemory || '');
-    setPreviousMessagesCount(settings.previousMessagesCount);
-    setSaveHistoryEnabled(settings.saveHistoryEnabled);
-    setInactivityTimerEnabled(settings.inactivityTimerEnabled);
+    loadInitialSettings();
 
     // Load chats from localStorage
     try {
@@ -264,7 +246,7 @@ function AppHome() {
   }, [listening]);
 
   const speakText = async (text, index = 0) => {
-    if (!ttsEnabled) return;
+    if (!settingsObject.ttsEnabled) return;
 
     // If already speaking, add to queue
     if (isSpeaking) {
@@ -274,7 +256,7 @@ function AppHome() {
 
     setIsSpeaking(true);
     const utterance = new SpeechSynthesisUtterance(text);
-    const voice = voices.find(v => v.name === selectedVoice);
+    const voice = voices.find(v => v.name === settingsObject.selectedVoice);
     if (voice) {
       utterance.voice = voice;
     }
@@ -298,7 +280,7 @@ function AppHome() {
   };
 
   const speakMessages = (startIndex = 0) => {
-    if (!ttsEnabled) return;
+    if (!settingsObject.ttsEnabled) return;
     
     // Clear any existing speech
     window.speechSynthesis.cancel();
@@ -341,14 +323,14 @@ function AppHome() {
   }, [messages]);
 
   const handleInputChange = () => {
-    if (autoSendEnabled && inputRef.current.value.trim()) {
+    if (settingsObject.autoSendEnabled && inputRef.current.value.trim()) {
       // Clear any existing timer
       if (autoSendTimerRef.current) {
         clearTimeout(autoSendTimerRef.current);
       }
       
       // Set new timer - use default of 5 seconds if autoSendTimeout is empty
-      const timeoutSeconds = autoSendTimeout === '' ? 5 : autoSendTimeout;
+      const timeoutSeconds = settingsObject.autoSendTimeout === '' ? 5 : settingsObject.autoSendTimeout;
       autoSendTimerRef.current = setTimeout(() => {
         if (inputRef.current.value.trim()) {
           handleSubmit();
@@ -392,29 +374,29 @@ function AppHome() {
 
     // Handle different settings - using includes() for more flexible matching
     if (setting.includes('auto send') || setting === 'autosend') {
-      setAutoSendEnabled(parsedValue);
+      setSettingsObject(prevSettings => ({ ...prevSettings, autoSendEnabled: parsedValue }));
       settingDisplayName = 'auto send';
     }
     else if (setting.includes('timeout') || setting.includes('auto send timeout')) {
       const timeoutValue = parseInt(value) || 5;
-      setAutoSendTimeout(timeoutValue);
+      setSettingsObject(prevSettings => ({ ...prevSettings, autoSendTimeout: timeoutValue }));
       settingDisplayName = 'auto send timeout';
     }
     else if (setting.includes('previous message') || setting.includes('messages')) {
       const messageCount = parseInt(value) || 10;
-      setPreviousMessagesCount(messageCount);
+      setSettingsObject(prevSettings => ({ ...prevSettings, previousMessagesCount: messageCount }));
       settingDisplayName = 'previous messages';
     }
     else if (setting.includes('text to speech') || setting === 'tts') {
-      setTtsEnabled(parsedValue);
+      setSettingsObject(prevSettings => ({ ...prevSettings, ttsEnabled: parsedValue }));
       settingDisplayName = 'text to speech';
     }
     else if (setting.includes('save history') || setting === 'history') {
-      setSaveHistoryEnabled(parsedValue);
+      setSettingsObject(prevSettings => ({ ...prevSettings, saveHistoryEnabled: parsedValue }));
       settingDisplayName = 'save history';
     }
     else if (setting.includes('inactivity timer')) {
-      setInactivityTimerEnabled(parsedValue);
+      setSettingsObject(prevSettings => ({ ...prevSettings, inactivityTimerEnabled: parsedValue }));
       settingDisplayName = 'inactivity timer';
     }
     else {
@@ -424,15 +406,7 @@ function AppHome() {
     }
 
     // Save to localStorage
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      ttsEnabled,
-      selectedVoice,
-      autoSendEnabled,
-      autoSendTimeout,
-      previousMessagesCount,
-      saveHistoryEnabled,
-      inactivityTimerEnabled
-    }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(settingsObject));
 
     // Announce the update via TTS
     speakText(`${settingDisplayName} updated to ${value}`);
@@ -696,10 +670,10 @@ function AppHome() {
       const body = JSON.stringify({
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: FORMAT_PREFACE + "\n\n" + settingsPromptPreface},
+          { role: 'system', content: FORMAT_PREFACE + "\n\n" + PROMPT_PREFACE},
           { role: 'system', content: "Memory from previous: " + longTermMemory},
           { role: 'system', content: timeInfo},
-          ...messages.slice(-previousMessagesCount),
+          ...messages.slice(-settingsObject.previousMessagesCount),
           userMessage,
           { role: 'system', content: FORMAT_PREFACE }
         ],
@@ -784,7 +758,7 @@ function AppHome() {
   }
 
   const resetInactivityTimer = () => {
-    if (!hasFirstMessageRef.current || !inactivityTimerEnabled) return;
+    if (!hasFirstMessageRef.current || !settingsObject.inactivityTimerEnabled) return;
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current);
     }
@@ -809,7 +783,7 @@ function AppHome() {
   };
 
   const toggleSettings = () => {
-    setShowSettings(!showSettings);
+    setSettingsObject(prevSettings => ({ ...prevSettings, showSettings: !prevSettings.showSettings }));
   };
 
   const toggleVoiceInput = async () => {
@@ -866,14 +840,14 @@ function AppHome() {
     const newValue = e.target.value;
     setLongTermMemory(newValue);
     const settings = {
-      ttsEnabled,
-      selectedVoice,
-      autoSendEnabled,
-      promptPreface: settingsPromptPreface,
+      ttsEnabled: settingsObject.ttsEnabled,
+      selectedVoice: settingsObject.selectedVoice,
+      autoSendEnabled: settingsObject.autoSendEnabled,
+      promptPreface: PROMPT_PREFACE,
       longTermMemory: newValue,
-      previousMessagesCount,
-      saveHistoryEnabled,
-      inactivityTimerEnabled
+      previousMessagesCount: settingsObject.previousMessagesCount,
+      saveHistoryEnabled: settingsObject.saveHistoryEnabled,
+      inactivityTimerEnabled: settingsObject.inactivityTimerEnabled
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   };
@@ -893,7 +867,7 @@ function AppHome() {
   };
 
   const saveCurrentChat = () => {
-    if (!chatIdRef.current || messages.length === 0 || !saveHistoryEnabled) return;
+    if (!chatIdRef.current || messages.length === 0 || !settingsObject.saveHistoryEnabled) return;
     
     const updatedChats = {
       ...chats,
@@ -915,7 +889,7 @@ function AppHome() {
   const handleNewChat = () => {
     setMessages([]);
     chatIdRef.current = null;
-    setShowMenu(false);
+    setSettingsObject(prevSettings => ({ ...prevSettings, showMenu: false }));
   };
 
   // Reset inactivity timer when chat ID changes
@@ -938,7 +912,7 @@ function AppHome() {
         [chatId]: updatedChat
       };
       setChats(updatedChats);
-      if (saveHistoryEnabled) {
+      if (settingsObject.saveHistoryEnabled) {
         localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updatedChats));
       }
     }
@@ -947,7 +921,7 @@ function AppHome() {
   const handleDeleteChat = (chatId) => {
     const { [chatId]: deletedChat, ...remainingChats } = chats;
     setChats(remainingChats);
-    if (saveHistoryEnabled) {
+    if (settingsObject.saveHistoryEnabled) {
       localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(remainingChats));
     }
     // If the deleted chat was the current chat, create a new chat
@@ -969,7 +943,7 @@ function AppHome() {
     };
     
     setChats(updatedChats);
-    if (saveHistoryEnabled) {
+    if (settingsObject.saveHistoryEnabled) {
       localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updatedChats));
     }
     
@@ -980,18 +954,24 @@ function AppHome() {
 
   return (
     <div className="app-container">
-      <button className="hamburger-button" onClick={() => setShowMenu(!showMenu)}>
+      <button className="hamburger-button" onClick={() => setSettingsObject(prevSettings => ({ ...prevSettings, showMenu: !prevSettings.showMenu }))}>
         <span className="hamburger-line"></span>
         <span className="hamburger-line"></span>
         <span className="hamburger-line"></span>
       </button>
       <Menu 
-        isOpen={showMenu} 
-        setIsOpen={setShowMenu}
-        setShowSettings={setShowSettings}
-        setShowHistory={setShowHistory}
-        setShowLongTermMemory={setShowLongTermMemory}
-        setShowNote={setShowNote}
+        isOpen={settingsObject.showMenu} 
+        setIsOpen={(isOpen) => setSettingsObject(prevSettings => ({ ...prevSettings, showMenu: isOpen }))}
+        setShowSettings={(showSettings) => setSettingsObject(prevSettings => ({ ...prevSettings, showSettings }))}
+        setShowLongTermMemory={(showLongTermMemory) => setSettingsObject(prevSettings => ({ ...prevSettings, showLongTermMemory }))}
+        setShowNote={(showNote) => setSettingsObject(prevSettings => ({ ...prevSettings, showNote }))}
+        menuChats={chats}
+        menuCurrentChatId={chatIdRef.current}
+        menuOnSelectChat={loadChat}
+        menuOnNewChat={handleNewChat}
+        menuOnUpdateChat={handleUpdateChat}
+        menuOnDeleteChat={handleDeleteChat}
+        menuOnImportChat={handleImportChat}
       />
       <div className="messages-container" ref={messagesEndRef}>
         {messages.length === 0 && (
@@ -1010,7 +990,7 @@ function AppHome() {
             key={index}
             message={message.content}
             type={message.role}
-            selectedVoice={selectedVoice}
+            selectedVoice={settingsObject.selectedVoice}
             voices={voices}
             onSpeakFromHere={() => speakMessages(index)}
             onAddToShortTermMemory={addToShortTermMemory}
@@ -1057,44 +1037,34 @@ function AppHome() {
         </div>
       </div>
       <Settings
-        ttsEnabled={ttsEnabled}
-        setTtsEnabled={setTtsEnabled}
+        ttsEnabled={settingsObject.ttsEnabled}
+        setTtsEnabled={(ttsEnabled) => setSettingsObject(prevSettings => ({ ...prevSettings, ttsEnabled }))}
         voices={voices}
-        selectedVoice={selectedVoice}
-        setSelectedVoice={setSelectedVoice}
-        autoSendEnabled={autoSendEnabled}
-        setAutoSendEnabled={setAutoSendEnabled}
-        autoSendTimeout={autoSendTimeout}
-        setAutoSendTimeout={setAutoSendTimeout}
-        showSettings={showSettings}
-        setShowSettings={setShowSettings}
-        setShowPromptPreface={setShowPromptPreface}
-        previousMessagesCount={previousMessagesCount}
-        setPreviousMessagesCount={setPreviousMessagesCount}
-        setShowLongTermMemory={setShowLongTermMemory}
-        saveHistoryEnabled={saveHistoryEnabled}
-        setSaveHistoryEnabled={setSaveHistoryEnabled}
-        inactivityTimerEnabled={inactivityTimerEnabled}
-        setInactivityTimerEnabled={setInactivityTimerEnabled}
-        setShowNote={setShowNote}
+        selectedVoice={settingsObject.selectedVoice}
+        setSelectedVoice={(selectedVoice) => setSettingsObject(prevSettings => ({ ...prevSettings, selectedVoice }))}
+        autoSendEnabled={settingsObject.autoSendEnabled}
+        setAutoSendEnabled={(autoSendEnabled) => setSettingsObject(prevSettings => ({ ...prevSettings, autoSendEnabled }))}
+        autoSendTimeout={settingsObject.autoSendTimeout}
+        setAutoSendTimeout={(autoSendTimeout) => setSettingsObject(prevSettings => ({ ...prevSettings, autoSendTimeout }))}
+        showSettings={settingsObject.showSettings}
+        setShowSettings={(showSettings) => setSettingsObject(prevSettings => ({ ...prevSettings, showSettings }))}
+        setShowPromptPreface={(showPromptPreface) => setSettingsObject(prevSettings => ({ ...prevSettings, showPromptPreface }))}
+        previousMessagesCount={settingsObject.previousMessagesCount}
+        setPreviousMessagesCount={(previousMessagesCount) => setSettingsObject(prevSettings => ({ ...prevSettings, previousMessagesCount }))}
+        setShowLongTermMemory={(showLongTermMemory) => setSettingsObject(prevSettings => ({ ...prevSettings, showLongTermMemory }))}
+        saveHistoryEnabled={settingsObject.saveHistoryEnabled}
+        setSaveHistoryEnabled={(saveHistoryEnabled) => setSettingsObject(prevSettings => ({ ...prevSettings, saveHistoryEnabled }))}
+        inactivityTimerEnabled={settingsObject.inactivityTimerEnabled}
+        setInactivityTimerEnabled={(inactivityTimerEnabled) => setSettingsObject(prevSettings => ({ ...prevSettings, inactivityTimerEnabled }))}
+        setShowNote={(showNote) => setSettingsObject(prevSettings => ({ ...prevSettings, showNote }))}
       />
-      <ChatHistory
-        isOpen={showHistory}
-        setIsOpen={setShowHistory}
-        chats={chats}
-        currentChatId={chatIdRef.current}
-        onSelectChat={loadChat}
-        onNewChat={handleNewChat}
-        onUpdateChat={handleUpdateChat}
-        onDeleteChat={handleDeleteChat}
-        onImportChat={handleImportChat}
-      />
-      {showLongTermMemory && (
+
+      {settingsObject.showLongTermMemory && (
         <div className="overlay">
           <div className="modal">
             <div className="modal-header">
               <h2>Long Term Memory</h2>
-              <button onClick={() => setShowLongTermMemory(false)}>&times;</button>
+              <button onClick={() => setSettingsObject(prevSettings => ({ ...prevSettings, showLongTermMemory: false }))}>&times;</button>
             </div>
             <div className="prompt-editor">
               <textarea
@@ -1106,7 +1076,7 @@ function AppHome() {
           </div>
         </div>
       )}
-      <SlidePanel title="Note" isOpen={showNote} setIsOpen={setShowNote}>
+      <SlidePanel title="Note" isOpen={settingsObject.showNote} setIsOpen={(isOpen) => setSettingsObject(prevSettings => ({ ...prevSettings, showNote: isOpen }))}>
         <textarea
           value={note}
           onChange={handleNoteChange}
@@ -1116,31 +1086,29 @@ function AppHome() {
       </SlidePanel>
       <TextInput
         title="Prompt Preface"
-        isOpen={showPromptPreface}
-        setIsOpen={setShowPromptPreface}
-        defaultValue={settingsPromptPreface}
+        isOpen={settingsObject.showPromptPreface}
+        setIsOpen={(isOpen) => setSettingsObject(prevSettings => ({ ...prevSettings, showPromptPreface: isOpen }))}
+        defaultValue={PROMPT_PREFACE}
         onChange={(value) => {
-          setSettingsPromptPreface(value);
           const settings = {
-            ttsEnabled,
-            selectedVoice,
-            autoSendEnabled,
+            ttsEnabled: settingsObject.ttsEnabled,
+            selectedVoice: settingsObject.selectedVoice,
+            autoSendEnabled: settingsObject.autoSendEnabled,
             promptPreface: value,
-            longTermMemory: initialLongTermMemory,
-            inactivityTimerEnabled
+            longTermMemory: longTermMemory,
+            inactivityTimerEnabled: settingsObject.inactivityTimerEnabled
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }}
         showRestoreDefault={true}
         onRestoreDefault={() => {
-          setSettingsPromptPreface(PROMPT_PREFACE);
           const settings = {
-            ttsEnabled,
-            selectedVoice,
-            autoSendEnabled,
+            ttsEnabled: settingsObject.ttsEnabled,
+            selectedVoice: settingsObject.selectedVoice,
+            autoSendEnabled: settingsObject.autoSendEnabled,
             promptPreface: PROMPT_PREFACE,
-            longTermMemory: initialLongTermMemory,
-            inactivityTimerEnabled
+            longTermMemory: longTermMemory,
+            inactivityTimerEnabled: settingsObject.inactivityTimerEnabled
           };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
         }}

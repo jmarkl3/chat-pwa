@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Menu.css';
+import ChatHistory from './ChatHistory';
 
-function Menu({ isOpen, setIsOpen, setShowSettings, setShowHistory, setShowLongTermMemory, setShowNote }) {
+function Menu({ 
+  isOpen, 
+  setIsOpen, 
+  setShowSettings, 
+  setShowLongTermMemory, 
+  setShowNote,
+  menuChats,
+  menuCurrentChatId,
+  menuOnSelectChat,
+  menuOnNewChat,
+  menuOnUpdateChat,
+  menuOnDeleteChat,
+  menuOnImportChat
+}) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -44,18 +59,30 @@ function Menu({ isOpen, setIsOpen, setShowSettings, setShowHistory, setShowLongT
       return;
     }
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    console.log(`User response to install prompt: ${outcome}`);
-    
-    if (outcome === 'accepted') {
-      localStorage.setItem('pwaInstalled', 'true');
+    try {
+      const result = await deferredPrompt.prompt();
+      console.log('Install prompt result:', result);
+    } catch (error) {
+      console.error('Error showing install prompt:', error);
     }
+
     setDeferredPrompt(null);
   };
 
   return (
     <>
+      <ChatHistory
+        isOpen={showHistory}
+        setIsOpen={setShowHistory}
+        chats={menuChats}
+        currentChatId={menuCurrentChatId}
+        onSelectChat={menuOnSelectChat}
+        onNewChat={menuOnNewChat}
+        onUpdateChat={menuOnUpdateChat}
+        onDeleteChat={menuOnDeleteChat}
+        onImportChat={menuOnImportChat}
+      />
+
       {isOpen && (
         <div className="menu-overlay" onClick={() => setIsOpen(false)} />
       )}
