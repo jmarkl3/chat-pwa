@@ -369,3 +369,51 @@ html, body {
   border-radius: 4px;
   resize: vertical;
 }
+
+.welcome-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 20px auto 2rem auto;
+  padding: 1.5rem;
+  max-width: 400px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-box p {
+  margin-bottom: 1.5rem;
+  font-size: 1.4rem;
+  color: #000;
+  font-weight: 500;
+  text-shadow: 0 1px 1px rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.say-hi-button {
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  color: #fff;
+  background: #2c2c2c;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 500;
+}
+
+.say-hi-button:hover {
+  background: #3c3c3c;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.say-hi-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}

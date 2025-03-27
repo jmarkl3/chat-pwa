@@ -10,6 +10,7 @@ import ChatHistory from './ChatHistory';
 
 const STORAGE_KEY = 'chat-app-settings';
 const CHATS_STORAGE_KEY = 'chat-app-chats';
+const INACTIVITY_MESSAGE = 'User has been inactive for 5 minutes, attempt to reengage them';
 const AVAILABLE_COMMANDS = `Available commands:
 1. command replay <number> - Replays the last few messages. For example: "command replay 3"
 2. command repeat <number> - Same as replay
@@ -115,6 +116,9 @@ function AppHome() {
   const inputRef = useRef(null);
   const autoSendTimerRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const inactivityTimerRef = useRef(null);
+  const inactivityCountRef = useRef(0);
+  const hasFirstMessageRef = useRef(false);
 
   const {
     transcript,
@@ -199,9 +203,20 @@ function AppHome() {
     setSaveHistoryEnabled(settings.saveHistoryEnabled);
 
     // Load chats from localStorage
-    const savedChats = localStorage.getItem(CHATS_STORAGE_KEY);
-    if (savedChats) {
-      setChats(JSON.parse(savedChats));
+    try {
+      const savedChats = localStorage.getItem(CHATS_STORAGE_KEY);
+      if (savedChats) {
+        const parsedChats = JSON.parse(savedChats);
+        setChats(parsedChats);
+        
+        // Find the most recent chat and set it as current
+        const sortedChats = Object.entries(parsedChats).sort((a, b) => b[1].timestamp - a[1].timestamp);
+        if (sortedChats.length > 0) {
+          chatIdRef.current = sortedChats[0][0];
+        }
+      }
+    } catch (error) {
+      console.error('Error loading chats:', error);
     }
   }, []);
 
@@ -541,28 +556,74 @@ function AppHome() {
   const handleSendMessage = async (message) => {
     if (!message.trim()) return;
 
-    if (!chatIdRef.current && saveHistoryEnabled) {
-      chatIdRef.current = Math.floor(Math.random() * 1000000).toString();
-      const newChat = {
-        messages: [],
-        timestamp: Date.now()
-      };
-      setChats(prev => ({
-        ...prev,
-        [chatIdRef.current]: newChat
-      }));
-    }
+    // Mark that first message has been sent
+    hasFirstMessageRef.current = true;
+
+    // Reset inactivity timer and count when user sends a message
+    inactivityCountRef.current = 0;
+    resetInactivityTimer();
 
     const userMessage = {
       role: 'user',
-      content: message
+      content: message,
+      timestamp: new Date().toISOString()
     };
 
-    // Add user message and scroll
+    // Add user message to messages state
     setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     scrollToBottom();
 
+    // Create a new chat if we don't have one
+    if (!chatIdRef.current) {
+      const newChatId = Math.floor(Math.random() * 1000000).toString();
+      chatIdRef.current = newChatId;
+      console.log('Creating new chat with ID:', newChatId);
+      
+      setChats(prev => {
+        const newChat = {
+          messages: [userMessage],
+          timestamp: Date.now()
+        };
+        const updated = {
+          ...prev,
+          [newChatId]: newChat
+        };
+        console.log('New chats state:', updated);
+        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    } else {
+      // Add to existing chat
+      console.log('Adding to existing chat:', chatIdRef.current);
+      setChats(prev => {
+        const currentChat = prev[chatIdRef.current];
+        if (!currentChat) {
+          console.error('Chat not found:', chatIdRef.current);
+          return prev;
+        }
+        const updatedChat = {
+          messages: [...currentChat.messages, userMessage],
+          timestamp: Date.now()
+        };
+        const updated = {
+          ...prev,
+          [chatIdRef.current]: updatedChat
+        };
+        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    }
+
+    // Now fetch the response
+    await fetchDeepSeek(userMessage);
+  }
+
+  const removeSpecialCharacters = (text) => {
+    return text.replace(/[\*\-\/]/g, '');
+  };
+
+  async function fetchDeepSeek(userMessage) {
     try {
       const url = 'https://api.deepseek.com/chat/completions';
       const headers = {
@@ -591,44 +652,91 @@ function AppHome() {
       }
 
       const data = await response.json();
+      const cleanedContent = removeSpecialCharacters(data.choices[0].message.content);
       const assistantMessage = {
         role: 'assistant',
-        content: data.choices[0].message.content
+        content: cleanedContent,
+        timestamp: new Date().toISOString()
       };
 
-      // Add assistant message and scroll
+      // Add assistant message to messages state
       setMessages(prev => [...prev, assistantMessage]);
       scrollToBottom();
 
       // Speak the response if TTS is enabled
       speakText(assistantMessage.content);
 
-      // Update chat history if enabled
-      if (saveHistoryEnabled && chatIdRef.current) {
+      // Add assistant message to chat history
+      console.log('Adding assistant message to chat:', chatIdRef.current);
+      setChats(prev => {
+        const currentChat = prev[chatIdRef.current];
+        if (!currentChat) {
+          console.error('Chat not found:', chatIdRef.current);
+          return prev;
+        }
         const updatedChat = {
-          messages: [...messages, userMessage, assistantMessage],
+          messages: [...currentChat.messages, assistantMessage],
           timestamp: Date.now()
         };
-        
-        setChats(prev => {
-          const updated = {
-            ...prev,
-            [chatIdRef.current]: updatedChat
-          };
-          localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
-          return updated;
-        });
-      }
+        const updated = {
+          ...prev,
+          [chatIdRef.current]: updatedChat
+        };
+        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
+
+      // Reset inactivity timer after model responds
+      resetInactivityTimer();
     } catch (error) {
       console.error('Error:', error);
       const errorMessage = {
         role: 'assistant',
-        content: 'Sorry, there was an error processing your request.'
+        content: 'Sorry, there was an error processing your request.',
+        timestamp: new Date().toISOString()
       };
       setMessages(prev => [...prev, errorMessage]);
       speakText(errorMessage.content);
+      
+      // Add error message to chat history
+      setChats(prev => {
+        const currentChat = prev[chatIdRef.current];
+        if (!currentChat) return prev;
+        const updatedChat = {
+          messages: [...currentChat.messages, errorMessage],
+          timestamp: Date.now()
+        };
+        const updated = {
+          ...prev,
+          [chatIdRef.current]: updatedChat
+        };
+        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  const resetInactivityTimer = () => {
+    // Only start timer if first message has been sent
+    if (!hasFirstMessageRef.current) return;
+
+    console.log('Resetting inactivity timer, count:', inactivityCountRef.current);
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+    }
+    // Only set new timer if we haven't hit the limit
+    if (inactivityCountRef.current < 2) {
+      inactivityTimerRef.current = setTimeout(() => {
+        const inactivityUserMessage = {
+          role: 'user',
+          content: INACTIVITY_MESSAGE
+        };
+        console.log('Sending from inactivity timer');
+        inactivityCountRef.current += 1;
+        fetchDeepSeek(inactivityUserMessage);
+      }, 30 * 1000); 
     }
   };
 
@@ -742,6 +850,14 @@ function AppHome() {
     setShowMenu(false);
   };
 
+  // Reset inactivity timer when chat ID changes
+  useEffect(() => {
+    if (chatIdRef.current) {
+      console.log('Chat ID changed, resetting inactivity timer');
+      resetInactivityTimer();
+    }
+  }, [chatIdRef.current]);
+
   return (
     <div className="app-container">
       <button className="hamburger-button" onClick={() => setShowMenu(!showMenu)}>
@@ -757,6 +873,17 @@ function AppHome() {
         setShowLongTermMemory={setShowLongTermMemory}
       />
       <div className="messages-container" ref={messagesEndRef}>
+        {messages.length === 0 && (
+          <div className="welcome-box">
+            <p>Send a message or just say hi</p>
+            <button 
+              className="say-hi-button"
+              onClick={() => handleSendMessage("hi")}
+            >
+              Say hi
+            </button>
+          </div>
+        )}
         {messages.map((message, index) => (
           <Message
             key={index}
