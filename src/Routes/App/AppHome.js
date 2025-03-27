@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import './AppHome.css'
 import Menu from './Menu'
 import Message from './Message'
-import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, DEFAULT_SETTINGS } from './Data'
+import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, DEFAULT_SETTINGS, LONG_TERM_MEMORY_KEY } from './Data'
 import { findNumberInArgs, removeSpecialCharacters } from './functions'
 import ChatInputArea from './ChatInputArea'
 
@@ -477,14 +477,11 @@ function AppHome() {
             if (cmd.command === "add to long term memory" && cmd.variables && cmd.variables.length > 0) {
               const newMemory = cmd.variables[0];
               // Append to existing memory with a newline
-              const currentMemory = localStorage.getItem(STORAGE_KEY) ? 
-                JSON.parse(localStorage.getItem(STORAGE_KEY)).longTermMemory || '' : '';
+              const currentMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY) || '';
               const updatedMemory = currentMemory ? `${currentMemory}\n${newMemory}` : newMemory;
               
               // Update localStorage
-              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-              settings.longTermMemory = updatedMemory;
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+              localStorage.setItem(LONG_TERM_MEMORY_KEY, updatedMemory);
               
               // Update state
               setLongTermMemory(updatedMemory);
@@ -493,18 +490,14 @@ function AppHome() {
               const newMemory = cmd.variables[0];
               
               // Update localStorage
-              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-              settings.longTermMemory = newMemory;
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+              localStorage.setItem(LONG_TERM_MEMORY_KEY, newMemory);
               
               // Update state
               setLongTermMemory(newMemory);
             }
             else if (cmd.command === "clear long term memory") {
               // Update localStorage
-              const settings = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-              settings.longTermMemory = '';
-              localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+              localStorage.setItem(LONG_TERM_MEMORY_KEY, '');
               
               // Update state
               setLongTermMemory('');
@@ -645,17 +638,7 @@ function AppHome() {
 
   // #endregion chat loading and saving
 
-
-
-
-
-
-
-
-
-
-
-  // This should all be in the history component
+  // #region chat changes
 
   const handleNewChat = () => {
     setMessages([]);
@@ -714,6 +697,8 @@ function AppHome() {
     chatIdRef.current = chatId;
     setMessages(chatData.messages || []);
   };
+
+  // #endregion chat changes
 
   return (
     <div className="app-container">
