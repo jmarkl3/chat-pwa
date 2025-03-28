@@ -3,7 +3,7 @@ import './NestedList.css';
 import { ellipsis } from '../App/functions';
 
 // Recursive component for rendering individual items
-export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItem, setAsRoot, toggleOpen }) {
+export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItem, setAsRoot, toggleOpen, insertInto }) {
   // State for UI interactions
   const [menuOpen, setMenuOpen] = useState(false);
   const textareaRef = useRef(null);
@@ -95,6 +95,11 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
                   <button onClick={(e) => {
                     e.stopPropagation();
                     setMenuOpen(false);
+                    insertInto(path);
+                  }}>Insert Into</button>
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
                     deleteItem(path);
                   }}>Delete</button>
                   <button onClick={(e) => {
@@ -127,6 +132,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
               deleteItem={deleteItem}
               setAsRoot={setAsRoot}
               toggleOpen={toggleOpen}
+              insertInto={insertInto}
             />
           ))}
         </div>

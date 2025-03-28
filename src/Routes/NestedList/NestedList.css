@@ -40,6 +40,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 .path-button {
   padding: 4px 8px;
@@ -47,6 +48,8 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   cursor: pointer;
+  margin: 2px 0;
+  border: 1px solid black;
 }
 .path-button:hover {
   background: #f0f0f0;

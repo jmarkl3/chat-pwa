@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import './NestedList.css';
 import NestedListItem from './NestedListItem';
 import { ellipsis } from '../App/functions';
+import NestedListMenu from './NestedListMenu';
 
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -278,6 +279,39 @@ function NestedList() {
     setData(newData);
   };
 
+  // Function to insert a new item inside a node's nested list
+  const insertInto = (path) => {
+    console.log('Inserting new item into path:', path);
+    
+    // Create a deep copy of the current data
+    const newData = JSON.parse(JSON.stringify(data));
+    
+    // Navigate to the target node
+    let current = newData;
+    for (let i = 0; i < path.length; i++) {
+      current = current.nested[path[i]];
+    }
+    
+    // Create empty node with same structure
+    const emptyNode = {
+      id: generateId(),
+      content: "New Item",
+      isOpen: false,
+      nested: []
+    };
+    
+    // Add the new item to the nested array
+    current.nested.push(emptyNode);
+    console.log('Added new item to nested array');
+    
+    // Make sure the parent is open to show the new item
+    current.isOpen = true;
+    console.log('Opened parent node');
+    
+    // Update the state with the new data
+    setData(newData);
+  };
+
   // Helper to get node at a specific path
   const getNodeAtPath = (path) => {
     let current = data;
@@ -331,7 +365,9 @@ function NestedList() {
           deleteItem={deleteItem}
           setAsRoot={setAsRoot}
           toggleOpen={toggleOpen}
+          insertInto={insertInto}
         />
+        <NestedListMenu/>
     </div>
   );
 }
