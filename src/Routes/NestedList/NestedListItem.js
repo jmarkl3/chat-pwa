@@ -3,7 +3,7 @@ import './NestedList.css';
 import { ellipsis } from '../App/functions';
 
 // Recursive component for rendering individual items
-export default function NestedListItem({ item, index, depth = 0, path = [], updateContent }) {
+export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem }) {
   // State for UI interactions
   const [isOpen, setIsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -78,9 +78,17 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
                   className={"note-list-item-menu-inner "+ (menuOpen ? "note-list-item-menu-inner-open" : "")}
                 > 
                 
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    moveItem(path, 'up');
+                  }}>Move Up</button>
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    moveItem(path, 'down');
+                  }}>Move Down</button>
                   <button onClick={toggleMenu}>Set As Root</button>
-                  <button onClick={toggleMenu}>Move Up</button>
-                  <button onClick={toggleMenu}>Move Down</button>
                   <button onClick={toggleMenu}>Duplicate</button>
                   <button onClick={toggleMenu}>Add After</button>
                   <button onClick={toggleMenu}>Delete</button>
@@ -103,6 +111,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
               depth={depth + 1}
               path={[...path, nestedIndex]}
               updateContent={updateContent}
+              moveItem={moveItem}
             />
           ))}
         </div>

@@ -72,6 +72,50 @@ function NestedList() {
     setData(newData);
   };
 
+  // Function to move an item up or down in its current level
+  const moveItem = (path, direction) => {
+    console.log(`Moving item with path [${path.join(',')}] ${direction}`);
+    
+    // Create a deep copy of the current data
+    const newData = JSON.parse(JSON.stringify(data));
+    
+    // If path is empty, we can't move the root
+    if (path.length === 0) {
+      console.log('Cannot move root item');
+      return;
+    }
+    
+    // Navigate to the parent that contains the item to move
+    let parent = newData;
+    for (let i = 0; i < path.length - 1; i++) {
+      parent = parent.nested[path[i]];
+    }
+    console.log('Found parent:', parent.content);
+    
+    // Get the array of items at this level
+    const items = parent.nested;
+    const currentIndex = path[path.length - 1];
+    const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    
+    // Check if move is possible
+    if (newIndex < 0 || newIndex >= items.length) {
+      console.log(`Cannot move ${direction}: index would be out of bounds`);
+      return;
+    }
+    
+    console.log(`Moving item from index ${currentIndex} to ${newIndex}`);
+    console.log('Item being moved:', items[currentIndex].content);
+    console.log('Swapping with:', items[newIndex].content);
+    
+    // Swap the items
+    const temp = items[currentIndex];
+    items[currentIndex] = items[newIndex];
+    items[newIndex] = temp;
+    console.log(newData)
+    // Update the state with the new data
+    setData(newData);
+  };
+
   return (
     <div className="nested-list-container">
         <NestedListItem
@@ -80,6 +124,7 @@ function NestedList() {
           index={0}
           path={[]}
           updateContent={updateNestedListData}
+          moveItem={moveItem}
         />
     </div>
   );
