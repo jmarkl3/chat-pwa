@@ -32,6 +32,12 @@ function Menu({
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState('');
 
+  useEffect(()=>{
+    loadSavedNote()
+  },[showNote])
+  useEffect(()=>{
+    loadSavedMemory()
+  },[showLongTermMemory])
   // Functions to load data from localStorage
   const loadSavedMemory = () => {
     const savedMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY);

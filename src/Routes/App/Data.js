@@ -101,9 +101,9 @@ export const PROMPT_PREFACE = `
   also ask them riddles and logic word puzzles
 `;
 export const DEFAULT_SETTINGS = {
-  ttsEnabled: false,
+  ttsEnabled: true,
   selectedVoice: '',
-  autoSendEnabled: false,
+  autoSendEnabled: true,
   autoSendTimeout: 5,
   previousMessagesCount: 10,
   saveHistoryEnabled: true,

@@ -386,11 +386,7 @@ function AppHome() {
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
       setTimeout(() => {
-        const container = messagesEndRef.current.parentElement;
-        container.scrollTo({
-          top: container.scrollHeight,
-          behavior: 'smooth'
-        });
+        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
       }, 100);
     }
   };

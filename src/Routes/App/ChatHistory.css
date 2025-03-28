@@ -31,6 +31,8 @@
 .chat-list {
   flex-grow: 1;
   overflow-y: auto;
+  padding-top: 20px;
+  padding-bottom: 20px;
 }
 
 .chat-item {
@@ -138,10 +140,6 @@
 @media (max-width: 600px) {
   .chat-history {
     padding: 8px;
-  }
-
-  .chat-list {
-    gap: 4px;
   }
 
   .new-chat-button {
