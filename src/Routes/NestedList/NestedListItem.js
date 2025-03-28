@@ -3,9 +3,8 @@ import './NestedList.css';
 import { ellipsis } from '../App/functions';
 
 // Recursive component for rendering individual items
-export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItem, setAsRoot }) {
+export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItem, setAsRoot, toggleOpen }) {
   // State for UI interactions
-  const [isOpen, setIsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const textareaRef = useRef(null);
   
@@ -17,11 +16,6 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
     ? item.content.slice(0, 60) + '...' 
     : item.content;
   
-  // Toggle expansion of nested items
-  const toggleOpen = () => {
-    setIsOpen(!isOpen);
-  };
-
   // Toggle the action menu
   const toggleMenu = (e) => {
     e.stopPropagation();
@@ -30,22 +24,22 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
 
   // Auto-resize textarea when content changes or when it becomes visible
   useEffect(() => {
-    if (isOpen && textareaRef.current) {
+    if (item.isOpen && textareaRef.current) {
       // Reset height to auto to get the correct scrollHeight
       textareaRef.current.style.height = 'auto';
       // Set the height to match the content
       textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
     }
-  }, [isOpen, item?.content]);
+  }, [item.isOpen, item?.content]);
 
   return (
     <div className="nested-list-item" style={{ paddingLeft: `${depth * 20}px` }}>
-      <div className="nested-item-header" onClick={toggleOpen}>
+      <div className="nested-item-header" onClick={() => toggleOpen(path)}>
         <div className="header-content">
-          <span className={`arrow ${isOpen ? 'open' : ''}`}>▶</span>
+          <span className={`arrow ${item.isOpen ? 'open' : ''}`}>▶</span>
           <div className="nested-title">
             <div className="content-text">
-              {isOpen ? 
+              {item.isOpen ? 
                 <textarea 
                   ref={textareaRef}
                   defaultValue={item?.content} 
@@ -117,7 +111,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
       </div>
       
       {/* Render nested items when expanded */}
-      {isOpen && hasNested && (
+      {item.isOpen && hasNested && (
         <div className="nested-children">
           {item.nested.map((nestedItem, nestedIndex) => (
             <NestedListItem
@@ -132,6 +126,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
               addAfter={addAfter}
               deleteItem={deleteItem}
               setAsRoot={setAsRoot}
+              toggleOpen={toggleOpen}
             />
           ))}
         </div>

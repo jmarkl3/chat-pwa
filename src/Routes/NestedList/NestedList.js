@@ -18,38 +18,44 @@ const addIds = (node) => {
 // Sample test data with 3 layers of nesting and 12 total items
 const testData = addIds({
   content: "Root List",
+  isOpen: true,
   nested: [
     {
       content: "First Level Item 1",
+      isOpen: false,
       nested: [
         {
           content: "Second Level Item 1.1",
+          isOpen: false,
           nested: [
-            { content: "Third Level Item 1.1.1", nested: [] },
-            { content: "Third Level Item 1.1.2", nested: [] }
+            { content: "Third Level Item 1.1.1", isOpen: false, nested: [] },
+            { content: "Third Level Item 1.1.2", isOpen: false, nested: [] }
           ]
         },
-        { content: "Second Level Item 1.2", nested: [] }
+        { content: "Second Level Item 1.2", isOpen: false, nested: [] }
       ]
     },
     {
       content: "First Level Item 2",
+      isOpen: false,
       nested: [
-        { content: "Second Level Item 2.1", nested: [] },
+        { content: "Second Level Item 2.1", isOpen: false, nested: [] },
         { 
           content: "Second Level Item 2.2", 
+          isOpen: false, 
           nested: [
-            { content: "Third Level Item 2.2.1", nested: [] }
+            { content: "Third Level Item 2.2.1", isOpen: false, nested: [] }
           ] 
         }
       ]
     },
     {
       content: "First Level Item 3",
+      isOpen: false,
       nested: [
-        { content: "Second Level Item 3.1", nested: [] },
-        { content: "Second Level Item 3.2", nested: [] },
-        { content: "Second Level Item 3.3", nested: [] }
+        { content: "Second Level Item 3.1", isOpen: false, nested: [] },
+        { content: "Second Level Item 3.2", isOpen: false, nested: [] },
+        { content: "Second Level Item 3.3", isOpen: false, nested: [] }
       ]
     }
   ]
@@ -197,6 +203,7 @@ function NestedList() {
     const emptyNode = {
       id: generateId(),
       content: "New Item",
+      isOpen: false,
       nested: []
     };
     console.log('Adding empty node after index:', currentIndex);
@@ -248,6 +255,27 @@ function NestedList() {
   const setAsRoot = (path) => {
     console.log('Setting new root path:', path);
     setRootPath([...path]);
+  };
+
+  // Function to toggle open/closed state
+  const toggleOpen = (path) => {
+    console.log('Toggling open state at path:', path);
+    
+    // Create a deep copy of the current data
+    const newData = JSON.parse(JSON.stringify(data));
+    
+    // Navigate to the target node
+    let current = newData;
+    for (let i = 0; i < path.length; i++) {
+      current = current.nested[path[i]];
+    }
+    
+    // Toggle the isOpen state
+    current.isOpen = !current.isOpen;
+    console.log('New isOpen state:', current.isOpen);
+    
+    // Update the state with the new data
+    setData(newData);
   };
 
   // Helper to get node at a specific path
@@ -302,6 +330,7 @@ function NestedList() {
           addAfter={addAfter}
           deleteItem={deleteItem}
           setAsRoot={setAsRoot}
+          toggleOpen={toggleOpen}
         />
     </div>
   );
