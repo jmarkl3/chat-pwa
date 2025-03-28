@@ -3,7 +3,7 @@ import './NestedList.css';
 import { ellipsis } from '../App/functions';
 
 // Recursive component for rendering individual items
-export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem }) {
+export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItem }) {
   // State for UI interactions
   const [isOpen, setIsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -88,10 +88,21 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
                     setMenuOpen(false);
                     moveItem(path, 'down');
                   }}>Move Down</button>
-                  <button onClick={toggleMenu}>Set As Root</button>
-                  <button onClick={toggleMenu}>Duplicate</button>
-                  <button onClick={toggleMenu}>Add After</button>
-                  <button onClick={toggleMenu}>Delete</button>
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    duplicateItem(path);
+                  }}>Duplicate</button>
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    addAfter(path);
+                  }}>Add After</button>
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    deleteItem(path);
+                  }}>Delete</button>
                   <button onClick={toggleMenu}>Cancel</button>
                 </div>
 
@@ -105,13 +116,16 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
         <div className="nested-children">
           {item.nested.map((nestedItem, nestedIndex) => (
             <NestedListItem
-              key={nestedIndex}
+              key={nestedItem.id}
               item={nestedItem}
               index={nestedIndex}
               depth={depth + 1}
               path={[...path, nestedIndex]}
               updateContent={updateContent}
               moveItem={moveItem}
+              duplicateItem={duplicateItem}
+              addAfter={addAfter}
+              deleteItem={deleteItem}
             />
           ))}
         </div>

@@ -2,8 +2,20 @@ import React, { useState } from 'react';
 import './NestedList.css';
 import NestedListItem from './NestedListItem';
 
+// Helper to generate unique IDs
+const generateId = () => Math.random().toString(36).substr(2, 9);
+
+// Add IDs to initial data structure
+const addIds = (node) => {
+  node.id = generateId();
+  if (node.nested) {
+    node.nested.forEach(child => addIds(child));
+  }
+  return node;
+};
+
 // Sample test data with 3 layers of nesting and 12 total items
-const testData = {
+const testData = addIds({
   content: "Root List",
   nested: [
     {
@@ -40,7 +52,7 @@ const testData = {
       ]
     }
   ]
-}; 
+}); 
 
 // Main NestedList component
 function NestedList() {
@@ -116,15 +128,131 @@ function NestedList() {
     setData(newData);
   };
 
+  // Function to duplicate a node and insert it after the original
+  const duplicateItem = (path) => {
+    console.log(`Duplicating item at path [${path.join(',')}]`);
+    
+    // Create a deep copy of the current data
+    const newData = JSON.parse(JSON.stringify(data));
+    
+    // If path is empty, we can't duplicate root
+    if (path.length === 0) {
+      console.log('Cannot duplicate root item');
+      return;
+    }
+    
+    // Navigate to the parent that contains the item to duplicate
+    let parent = newData;
+    for (let i = 0; i < path.length - 1; i++) {
+      parent = parent.nested[path[i]];
+    }
+    console.log('Found parent:', parent.content);
+    
+    // Get the array of items and current index
+    const items = parent.nested;
+    const currentIndex = path[path.length - 1];
+    
+    // Create deep copy of the item to duplicate
+    const duplicatedItem = JSON.parse(JSON.stringify(items[currentIndex]));
+    // Give the duplicated item and all its nested items new IDs
+    addIds(duplicatedItem);
+    console.log('Duplicating item:', duplicatedItem.content);
+    
+    // Insert the duplicate after the original
+    items.splice(currentIndex + 1, 0, duplicatedItem);
+    console.log('New array length:', items.length);
+    
+    // Update the state with the new data
+    setData(newData);
+  };
+
+  // Function to add an empty node after the specified path
+  const addAfter = (path) => {
+    console.log(`Adding empty node after path [${path.join(',')}]`);
+    
+    // Create a deep copy of the current data
+    const newData = JSON.parse(JSON.stringify(data));
+    
+    // If path is empty, we can't add after root
+    if (path.length === 0) {
+      console.log('Cannot add after root item');
+      return;
+    }
+    
+    // Navigate to the parent that contains the reference item
+    let parent = newData;
+    for (let i = 0; i < path.length - 1; i++) {
+      parent = parent.nested[path[i]];
+    }
+    console.log('Found parent:', parent.content);
+    
+    // Get the array of items and current index
+    const items = parent.nested;
+    const currentIndex = path[path.length - 1];
+    
+    // Create empty node with same structure
+    const emptyNode = {
+      id: generateId(),
+      content: "New Item",
+      nested: []
+    };
+    console.log('Adding empty node after index:', currentIndex);
+    
+    // Insert the empty node after the current item
+    items.splice(currentIndex + 1, 0, emptyNode);
+    console.log('New array length:', items.length);
+    
+    // Update the state with the new data
+    setData(newData);
+  };
+
+  // Function to delete a node at the specified path
+  const deleteItem = (path) => {
+    console.log(`Deleting item at path [${path.join(',')}]`);
+    
+    // Create a deep copy of the current data
+    const newData = JSON.parse(JSON.stringify(data));
+    
+    // If path is empty, we can't delete root
+    if (path.length === 0) {
+      console.log('Cannot delete root item');
+      return;
+    }
+    
+    // Navigate to the parent that contains the item to delete
+    let parent = newData;
+    for (let i = 0; i < path.length - 1; i++) {
+      parent = parent.nested[path[i]];
+    }
+    console.log('Found parent:', parent.content);
+    
+    // Get the array of items and target index
+    const items = parent.nested;
+    const targetIndex = path[path.length - 1];
+    
+    // Log what we're about to delete
+    console.log('Deleting item:', items[targetIndex].content);
+    
+    // Remove the item
+    items.splice(targetIndex, 1);
+    console.log('New array length:', items.length);
+    
+    // Update the state with the new data
+    setData(newData);
+  };
+
   return (
     <div className="nested-list-container">
         <NestedListItem
-          key={"root"}
+          key={data.id}
           item={data}
           index={0}
           path={[]}
           updateContent={updateNestedListData}
           moveItem={moveItem}
+          duplicateItem={duplicateItem}
+          addAfter={addAfter}
+          deleteItem={deleteItem}
         />
     </div>
   );

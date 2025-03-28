@@ -33,5 +33,9 @@
   padding: 10px;
 }
 .nested-list-container{
-
+  height: 100vh;
+  padding: 10px;
+  padding-bottom: 80px;
+  overflow-y: scroll;
+  box-sizing: border-box;
 }
