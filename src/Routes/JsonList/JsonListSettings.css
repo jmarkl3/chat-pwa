@@ -62,22 +62,7 @@
   gap: 15px;
 }
 
-.setting-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-}
-
 .setting-label {
   color: #333;
   font-size: 0.95rem;
-}
-
-.setting-item input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
-  cursor: pointer;
 }
