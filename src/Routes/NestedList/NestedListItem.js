@@ -3,7 +3,7 @@ import './NestedList.css';
 import { ellipsis } from '../App/functions';
 
 // Recursive component for rendering individual items
-export default function NestedListItem({ item, index, depth = 0, path = [] }) {
+export default function NestedListItem({ item, index, depth = 0, path = [], updateContent }) {
   // State for UI interactions
   const [isOpen, setIsOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -54,6 +54,8 @@ export default function NestedListItem({ item, index, depth = 0, path = [] }) {
                     // Adjust height on content change
                     e.target.style.height = 'auto';
                     e.target.style.height = e.target.scrollHeight + 'px';
+                    // Update content in parent
+                    updateContent(e.target.value, path);
                   }}
                   style={{
                     width: '100%',
@@ -99,7 +101,8 @@ export default function NestedListItem({ item, index, depth = 0, path = [] }) {
               item={nestedItem}
               index={nestedIndex}
               depth={depth + 1}
-              path={[...path, index]}
+              path={[...path, nestedIndex]}
+              updateContent={updateContent}
             />
           ))}
         </div>

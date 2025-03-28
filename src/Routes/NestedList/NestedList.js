@@ -47,22 +47,40 @@ function NestedList() {
   // State to hold the nested list data
   const [data, setData] = useState(testData);
 
+  // Function to update nested list data
+  const updateNestedListData = (newContent, path) => {
+    // Create a deep copy of the current data
+    const newData = JSON.parse(JSON.stringify(data));
+    
+    // If path is empty, update root level
+    if (path.length === 0) {
+      setData({ ...newData, content: newContent });
+      return;
+    }
+
+    // Navigate to the target item using the path
+    let current = newData;
+    for (let i = 0; i < path.length - 1; i++) {
+      current = current.nested[path[i]];
+    }
+
+    // Update the target item's content
+    const targetIndex = path[path.length - 1];
+    current.nested[targetIndex].content = newContent;
+
+    // Update the state with the new data
+    setData(newData);
+  };
+
   return (
     <div className="nested-list-container">
-      <div className="">
-        {data.content}
-      </div>
-      
-      <div className="nested-list">
-        {data.nested.map((item, index) => (
-          <NestedListItem
-            key={index}
-            item={item}
-            index={index}
-            path={[]}
-          />
-        ))}
-      </div>
+        <NestedListItem
+          key={"root"}
+          item={data}
+          index={0}
+          path={[]}
+          updateContent={updateNestedListData}
+        />
     </div>
   );
 }
