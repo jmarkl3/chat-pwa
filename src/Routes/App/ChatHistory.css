@@ -20,7 +20,6 @@
 
 .import-chat-button {
   background-color: #6c757d;
-  margin-bottom: 20px;
 }
 
 .new-chat-button:hover,
@@ -31,6 +30,7 @@
 .chat-list {
   flex-grow: 1;
   overflow-y: auto;
+  padding-top: 20px;
 }
 
 .chat-item {
@@ -138,10 +138,6 @@
 @media (max-width: 600px) {
   .chat-history {
     padding: 8px;
-  }
-
-  .chat-list {
-    gap: 4px;
   }
 
   .new-chat-button {
