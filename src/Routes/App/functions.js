@@ -23,3 +23,12 @@ export const findNumberInArgs = (args) => {
   export const removeSpecialCharacters = (text) => {
     return text.replace(/[\*\-\/]/g, '');
   };
+
+  export function ellipsis(str, n = 20) {
+    // Check if the string is longer than the specified length
+    if (str.length > n) {
+        return str.substring(0, n) + '...';
+    }
+    // If not, return the original string
+    return str;
+}

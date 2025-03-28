@@ -40,7 +40,7 @@ const testData = {
       ]
     }
   ]
-};
+}; 
 
 // Main NestedList component
 function NestedList() {
@@ -49,8 +49,8 @@ function NestedList() {
 
   return (
     <div className="nested-list-container">
-      <div className="header">
-        <h2>{data.content}</h2>
+      <div className="">
+        {data.content}
       </div>
       
       <div className="nested-list">
