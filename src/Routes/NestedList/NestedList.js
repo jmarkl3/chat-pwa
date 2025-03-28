@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import './NestedList.css';
 import NestedListItem from './NestedListItem';
+import { ellipsis } from '../App/functions';
 
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -58,6 +59,8 @@ const testData = addIds({
 function NestedList() {
   // State to hold the nested list data
   const [data, setData] = useState(testData);
+  // State for tracking the current root path
+  const [rootPath, setRootPath] = useState([]);
 
   // Function to update nested list data
   const updateNestedListData = (newContent, path) => {
@@ -241,18 +244,64 @@ function NestedList() {
     setData(newData);
   };
 
+  // Function to set a new root path
+  const setAsRoot = (path) => {
+    console.log('Setting new root path:', path);
+    setRootPath([...path]);
+  };
+
+  // Helper to get node at a specific path
+  const getNodeAtPath = (path) => {
+    let current = data;
+    for (let i = 0; i < path.length; i++) {
+      current = current.nested[path[i]];
+    }
+    return current;
+  };
+
+  // Helper to get path up to a certain index
+  const getPathToIndex = (path, index) => {
+    return path.slice(0, index + 1);
+  };
+
+  // Get the current root node based on rootPath
+  const rootNode = rootPath.length > 0 ? getNodeAtPath(rootPath) : data;
+
   return (
     <div className="nested-list-container">
+        <div className="current-path">
+          <button 
+            onClick={() => setRootPath([])}
+            className="path-button"
+          >
+            Root
+          </button>
+          {rootPath.map((index, i) => {
+            const node = getNodeAtPath(getPathToIndex(rootPath, i));
+            return (
+              <React.Fragment key={i}>
+                <span className="path-separator">&gt;</span>
+                <button 
+                  onClick={() => setRootPath(getPathToIndex(rootPath, i))}
+                  className="path-button"
+                >
+                  {ellipsis(node.content, 10)}
+                </button>
+              </React.Fragment>
+            );
+          })}
+        </div>
         <NestedListItem
-          key={data.id}
-          item={data}
+          key={rootNode.id}
+          item={rootNode}
           index={0}
-          path={[]}
+          path={rootPath}
           updateContent={updateNestedListData}
           moveItem={moveItem}
           duplicateItem={duplicateItem}
           addAfter={addAfter}
           deleteItem={deleteItem}
+          setAsRoot={setAsRoot}
         />
     </div>
   );
