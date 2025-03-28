@@ -32,17 +32,28 @@ function Menu({
   const [showNote, setShowNote] = useState(false);
   const [note, setNote] = useState('');
 
-  // Load long term memory and note from localStorage
-  useEffect(() => {
+  // Functions to load data from localStorage
+  const loadSavedMemory = () => {
     const savedMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY);
     if (savedMemory) {
       setLongTermMemory(savedMemory);
     }
+  };
+
+  const loadSavedNote = () => {
     const savedNote = localStorage.getItem(NOTE_STORAGE_KEY);
     if (savedNote) {
       setNote(savedNote);
     }
+  };
+
+  // Load long term memory and note from localStorage
+  useEffect(() => {
+    loadSavedMemory();
+    loadSavedNote();
   }, [setLongTermMemory, setNote]);
+
+
 
   // Routing
   const navigate = useNavigate();
@@ -95,6 +106,7 @@ function Menu({
     setShowLongTermMemory(true);
   };
 
+  console.log("settingsObject", settingsObject)
   // Handle note click (just hides this menu and shows that one)
   const handleNoteClick = () => {
     setIsOpen(false);
@@ -131,7 +143,7 @@ function Menu({
         isOpen={showPromptPreface}
         setIsOpen={(isOpen) => setShowPromptPreface(isOpen)}
         // The surrent value
-        defaultValue={settingsObject.promptPreface}
+        defaultValue={settingsObject.promptPreface || PROMPT_PREFACE}
         // Update the value in localstorage
         onChange={(value) => {
           const settings = { ...settingsObject, promptPreface: value };
@@ -145,6 +157,7 @@ function Menu({
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
           setSettingsObject(settings)
         }}
+        styles={{ zIndex: 1001 }}
       />
 
       {/* Note */}
@@ -157,6 +170,7 @@ function Menu({
           setNote(value);
           localStorage.setItem(NOTE_STORAGE_KEY, value);
         }}
+        refreshFunction={loadSavedNote}
       />
       {/* Long Term Memory */}
       <TextInput
@@ -168,6 +182,7 @@ function Menu({
           setLongTermMemory(value);
           localStorage.setItem(LONG_TERM_MEMORY_KEY, value);
         }}
+        refreshFunction={loadSavedMemory}
       />
 
       {/* Settings */}
@@ -195,6 +210,7 @@ function Menu({
             <button className="menu-item" onClick={handleNoteClick}>Note</button>
             <button className="menu-item" onClick={() => navigate('/json-list')}>Lists</button>
             <button className="menu-item" onClick={handleInstallClick}>Install App</button>
+            <button className="menu-item" onClick={() => setIsOpen()}>Close</button>
           </div>
         </div>
       </div>

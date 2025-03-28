@@ -189,18 +189,19 @@ function Settings({
                     </label>
                   </div>
                   <div className="setting-item">
-                    <label>
-                      Test text:
-                      <input
-                        type="text"
+                      <div>
+                        Test text:
+                      </div>
+                      <textarea
+                        style={{ width: 'calc(100% - 20px)', height: '40px', padding: '8px' }}
                         value={testText}
                         onChange={(e) => setTestText(e.target.value)}
                         className="test-text-input"
                       />
-                    </label>
-                    <button onClick={testVoice} className="test-voice-button">
-                      Test Voice
-                    </button>
+                      <button onClick={testVoice} className="test-voice-button">
+                        Test Voice
+                      </button>
+                    
                   </div>
                 </>
               )}

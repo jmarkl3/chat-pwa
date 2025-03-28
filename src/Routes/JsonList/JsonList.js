@@ -459,11 +459,6 @@ function NoteList() {
         setShowNotes={setShowNotes}
       />
 
-      <JsonListSettings
-        isOpen={showSettings}
-        setIsOpen={setShowSettings}
-      />
-
       <JsonListNotes
         isOpen={showNotes}
         setIsOpen={setShowNotes}

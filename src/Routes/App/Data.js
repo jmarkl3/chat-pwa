@@ -14,6 +14,7 @@ export const AVAILABLE_COMMANDS = `Available commands:
 8. command setting save history (true/false) - Enables or disables chat history saving.
 9. command setting inactivity timer (true/false) - Enables or disables the inactivity timer.
 10. command note (text) - Adds text to the note stored in local storage.
+11. note (text) - Directly adds text to your notes with double line breaks.
 `;
 export const FORMAT_PREFACE = `
   Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
@@ -32,6 +33,7 @@ export const FORMAT_PREFACE = `
   1. "add to long term memory" - adds first variable to long term memory
   2. "overwrite long term memory" - replaces entire long term memory with first variable
   3. "clear long term memory" - clears all long term memory (no variables needed)
+  4. "add to note" - adds first variable to note in local storage
 `;
 export const PROMPT_PREFACE = `
   This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
@@ -108,5 +110,6 @@ export const DEFAULT_SETTINGS = {
   inactivityTimerEnabled: true,
   showSettings: false,
   showPromptPreface: false,
-  showLongTermMemory: false 
+  showLongTermMemory: false,
+  promptPreface: PROMPT_PREFACE
 }

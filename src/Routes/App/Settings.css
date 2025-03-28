@@ -1,22 +1,10 @@
-.settings-content {
-  padding: 20px;
-}
+
 
 .setting-item {
   margin-bottom: 12px;
+  text-align: center;
 }
 
-.setting-item label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.setting-item label span {
-  display: block;
-  margin-bottom: 4px;
-  margin-right: 8px;
-}
 
 .setting-item select {
   width: 100%;

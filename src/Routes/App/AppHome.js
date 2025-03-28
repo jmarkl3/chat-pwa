@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import './AppHome.css'
 import Menu from './Menu'
 import Message from './Message'
-import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, DEFAULT_SETTINGS, LONG_TERM_MEMORY_KEY } from './Data'
+import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, DEFAULT_SETTINGS, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY } from './Data'
 import { findNumberInArgs, removeSpecialCharacters } from './functions'
 import ChatInputArea from './ChatInputArea'
 
@@ -68,9 +68,10 @@ function AppHome() {
     try {
       const savedSettings = localStorage.getItem(STORAGE_KEY);
       if (savedSettings) {
-        setSettingsObject(JSON.parse(savedSettings));
+        setSettingsObject(JSON.parse(savedSettings) || DEFAULT_SETTINGS);
       }
     } catch (error) {
+      setSettingsObject(DEFAULT_SETTINGS);
       console.error('Error loading settings:', error);
     }
   };
@@ -295,7 +296,7 @@ function AppHome() {
       const body = JSON.stringify({
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: FORMAT_PREFACE + "\n\n" + PROMPT_PREFACE},
+          { role: 'system', content: FORMAT_PREFACE + "\n\n" + settingsObject.promptPreface},
           { role: 'system', content: "Memory from previous: " + longTermMemory},
           { role: 'system', content: timeInfo},
           ...messages.slice(-settingsObject.previousMessagesCount),
@@ -399,6 +400,7 @@ function AppHome() {
 
   // #region commands (from user and system)
 
+  //User Commands:
   const handleCommand = (command, args) => {
     switch (command.toLowerCase()) {
       case 'replay':
@@ -463,8 +465,19 @@ function AppHome() {
         }
         break;
 
+      case 'note':
+        if (args.length > 0) {
+          const noteText = args.join(' ');
+          const currentNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
+          const updatedNote = currentNote ? `${currentNote}\n\n${noteText}` : noteText;
+          localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
+          console.log('Added to note:', noteText);
+        }
+        break;
+
       default:
         console.log('Unknown command:', command);
+        speakText(`Unknown command: ${command}`);
     }
   };
 
@@ -511,6 +524,17 @@ function AppHome() {
               
               // Update state
               setLongTermMemory('');
+            }
+            else if (cmd.command === "add to note" && cmd.variables && cmd.variables.length > 0) {
+              const newNote = cmd.variables[0];
+              // Append to existing note with a newline
+              const currentNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
+              const updatedNote = currentNote ? `${currentNote}\n${newNote}` : newNote;
+              
+              // Update localStorage
+              localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
+              
+              console.log('Updated note:', updatedNote);
             }
           });
         }

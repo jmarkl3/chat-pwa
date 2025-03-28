@@ -1,13 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import SlidePanel from '../App/SlidePanel';
 import './JsonListMenu.css';
+import JsonListSettings from './JsonListSettings';
 
-function JsonListMenu({ isOpen, setIsOpen, setShowSettings, setShowNotes }) {
+function JsonListMenu({ isOpen, setIsOpen, setShowNotes }) {
+  const [showSettings, setShowSettings] = useState(false);
   const navigate = useNavigate();
 
   return (
     <>
+      {/* <JsonListSettings
+        isOpen={showSettings}
+        setIsOpen={setShowSettings}
+      /> */}
 
       {/* Menu button at top right */}
       <button className="hamburger-button" onClick={() => setIsOpen(true)}>
@@ -44,6 +49,7 @@ function JsonListMenu({ isOpen, setIsOpen, setShowSettings, setShowNotes }) {
             onClick={() => navigate('/app')}>
               Chat
             </button>
+          <button className="menu-item" onClick={() => setIsOpen()}>Close</button>
           </div>
         </div>
       </div>

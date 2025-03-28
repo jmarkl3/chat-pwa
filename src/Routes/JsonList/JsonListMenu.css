@@ -21,7 +21,7 @@
 }
 
 .menu-container.open {
-  transform: translateX(-300px);
+  transform: translateX(-280px);
 }
 
 .menu-content {

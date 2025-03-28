@@ -47,18 +47,6 @@
   text-align: center;
 }
 
-.close-button {
-  background: none;
-  border: none;
-  font-size: 24px;
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  cursor: pointer;
-  padding: 0;
-}
-
 .slide-panel-body {
   margin-top: 40px;
   box-sizing: border-box;
