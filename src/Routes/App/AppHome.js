@@ -11,8 +11,10 @@ function AppHome() {
   const [isLoading, setIsLoading] = useState(false);
   // Shows the Menu
   const [showMenu, setShowMenu] = useState(false);
-  // This should be loaded from local storage, reloaded on change, and sent to the system
+  // This should be loaded from local storaapp.ge, reloaded on change, and sent to the system
   const [longTermMemory, setLongTermMemory] = useState('');
+  const [tempMem, setTempMem] = useState(null);
+  const [lists, setLists] = useState([]);
   // For the tts
   const [isPaused, setIsPaused] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -48,6 +50,7 @@ function AppHome() {
     loadSettings()
     // Load the chats from local storage
     loadChats()
+    loadLists();
 
     // Get available voices
     const loadVoices = () => {
@@ -93,6 +96,13 @@ function AppHome() {
     } catch (error) {
       console.error('Error loading chats:', error);
     }
+  };
+
+  const loadLists = () => {
+    const listsStr = localStorage.getItem('note-lists') || '[]';
+    const loadedLists = JSON.parse(listsStr);
+    loadedLists.sort((a, b) => b.lastModified - a.lastModified);
+    setLists(loadedLists);
   };
 
   // #endregion loading
@@ -293,10 +303,16 @@ function AppHome() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${"sk-6e0ec3f3dc5e42e6b259179411dd2f06"}`,
       };
+      const listsContext = lists.length > 0 ? 
+        `\nAvailable lists: ${lists.map(l => `"${l.content}" (id: ${l.id})`).join(', ')}` : 
+        '\nNo lists available yet.';
+      const tempMemContext = tempMem ? 
+        `\nTemp Mem: ${typeof tempMem === 'string' ? tempMem : JSON.stringify(tempMem)}` : 
+        '\nTemp Mem: empty';
       const body = JSON.stringify({
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: FORMAT_PREFACE + "\n\n" + settingsObject.promptPreface},
+          { role: 'system', content: FORMAT_PREFACE + "\n\n" + settingsObject.promptPreface + listsContext + tempMemContext},
           { role: 'system', content: "Memory from previous: " + longTermMemory},
           { role: 'system', content: timeInfo},
           ...messages.slice(-settingsObject.previousMessagesCount),
@@ -396,7 +412,7 @@ function AppHome() {
 
   // #region commands (from user and system)
 
-  //User Commands:
+  // User Commands:
   const handleCommand = (command, args) => {
     switch (command.toLowerCase()) {
       case 'replay':
@@ -490,49 +506,7 @@ function AppHome() {
         
         // Process commands if they exist
         if (parsed.commands && Array.isArray(parsed.commands)) {
-          parsed.commands.forEach(cmd => {
-            if (cmd.command === "add to long term memory" && cmd.variables && cmd.variables.length > 0) {
-              const newMemory = cmd.variables[0];
-              // Append to existing memory with a newline
-              const currentMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY) || '';
-              const updatedMemory = currentMemory ? `${currentMemory}\n${newMemory}` : newMemory;
-              
-              // Update localStorage
-              localStorage.setItem(LONG_TERM_MEMORY_KEY, updatedMemory);
-              
-              console.log('Updated long term memory:', updatedMemory);
-
-              // Update state
-              setLongTermMemory(updatedMemory);
-            }
-            else if (cmd.command === "overwrite long term memory" && cmd.variables && cmd.variables.length > 0) {
-              const newMemory = cmd.variables[0];
-              
-              // Update localStorage
-              localStorage.setItem(LONG_TERM_MEMORY_KEY, newMemory);
-              
-              // Update state
-              setLongTermMemory(newMemory);
-            }
-            else if (cmd.command === "clear long term memory") {
-              // Update localStorage
-              localStorage.setItem(LONG_TERM_MEMORY_KEY, '');
-              
-              // Update state
-              setLongTermMemory('');
-            }
-            else if (cmd.command === "add to note" && cmd.variables && cmd.variables.length > 0) {
-              const newNote = cmd.variables[0];
-              // Append to existing note with a newline
-              const currentNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
-              const updatedNote = currentNote ? `${currentNote}\n${newNote}` : newNote;
-              
-              // Update localStorage
-              localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
-              
-              console.log('Updated note:', updatedNote);
-            }
-          });
+          processAPICommands(parsed.commands)
         }
 
         if (parsed && parsed.message) {
@@ -544,6 +518,133 @@ function AppHome() {
     }
     return cleanedText;
   };
+
+  function processAPICommands(commands){
+    commands.forEach(cmd => {
+      if (cmd.command === "add to long term memory" && cmd.variables && cmd.variables.length > 0) {
+        const newMemory = cmd.variables[0];
+        // Append to existing memory with a newline
+        const currentMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY) || '';
+        const updatedMemory = currentMemory ? `${currentMemory}\n${newMemory}` : newMemory;
+        
+        // Update localStorage
+        localStorage.setItem(LONG_TERM_MEMORY_KEY, updatedMemory);
+        
+        console.log('Updated long term memory:', updatedMemory);
+
+        // Update state
+        setLongTermMemory(updatedMemory);
+      }
+      else if (cmd.command === "overwrite long term memory" && cmd.variables && cmd.variables.length > 0) {
+        const newMemory = cmd.variables[0];
+        
+        // Update localStorage
+        localStorage.setItem(LONG_TERM_MEMORY_KEY, newMemory);
+        
+        // Update state
+        setLongTermMemory(newMemory);
+      }
+      else if (cmd.command === "clear long term memory") {
+        // Update localStorage
+        localStorage.setItem(LONG_TERM_MEMORY_KEY, '');
+        
+        // Update state
+        setLongTermMemory('');
+      }
+      else if (cmd.command === "add to note" && cmd.variables && cmd.variables.length > 0) {
+        const newNote = cmd.variables[0];
+        // Append to existing note with a newline
+        const currentNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
+        const updatedNote = currentNote ? `${currentNote}\n${newNote}` : newNote;
+        
+        // Update localStorage
+        localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
+        
+        console.log('Updated note:', updatedNote);
+      }
+      else if (cmd.command === "create list" && cmd.variables && cmd.variables.length > 0) {
+        const listName = cmd.variables[0];
+        const newList = {
+          id: Math.random().toString(36).substr(2, 9),
+          content: listName,
+          isOpen: true,
+          nested: []
+        };
+        
+        // Save the list
+        localStorage.setItem(`note-list-${newList.id}`, JSON.stringify(newList));
+        
+        // Update lists index
+        const listsStr = localStorage.getItem('note-lists') || '[]';
+        const lists = JSON.parse(listsStr);
+        lists.push({
+          id: newList.id,
+          content: listName,
+          lastModified: Date.now()
+        });
+        localStorage.setItem('note-lists', JSON.stringify(lists));
+        
+        // Reload lists so model has access to new ID
+        loadLists();
+        
+        console.log('Created new list:', newList);
+        return newList.id; // Return ID for potential use in add to list
+      }
+      else if (cmd.command === "add to list" && cmd.variables && cmd.variables.length >= 3) {
+        const [listId, pathArray, ...items] = cmd.variables;
+        
+        // Load the list
+        const listStr = localStorage.getItem(`note-list-${listId}`);
+        if (!listStr) return;
+        
+        const list = JSON.parse(listStr);
+        
+        // Helper to find target node
+        const findNode = (node, path) => {
+          if (path.length === 0) return node;
+          const [index, ...rest] = path;
+          if (!node.nested[index]) return null;
+          return findNode(node.nested[index], rest);
+        };
+        
+        // Find target node and add items
+        const targetNode = findNode(list, pathArray);
+        if (targetNode) {
+          items.forEach(item => {
+            targetNode.nested.push({
+              id: Math.random().toString(36).substr(2, 9),
+              content: item,
+              isOpen: true,
+              nested: []
+            });
+          });
+          
+          // Save updated list
+          localStorage.setItem(`note-list-${listId}`, JSON.stringify(list));
+          
+          // Update last modified
+          const listsStr = localStorage.getItem('note-lists') || '[]';
+          const lists = JSON.parse(listsStr);
+          const listIndex = lists.findIndex(l => l.id === listId);
+          if (listIndex >= 0) {
+            lists[listIndex].lastModified = Date.now();
+            localStorage.setItem('note-lists', JSON.stringify(lists));
+          }
+          
+          console.log('Added items to list:', items);
+        }
+      }
+      else if (cmd.command === "load list" && cmd.variables && cmd.variables.length > 0) {
+        const listId = cmd.variables[0];
+        const listStr = localStorage.getItem(`note-list-${listId}`);
+        if (listStr) {
+          const list = JSON.parse(listStr);
+          setTempMem(list);
+          console.log('Loaded list into tempMem:', list);
+        }
+      }
+    });
+  }
 
   // Command action functions: 
   

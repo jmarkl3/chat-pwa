@@ -34,6 +34,9 @@ export const FORMAT_PREFACE = `
   2. "overwrite long term memory" - replaces entire long term memory with first variable
   3. "clear long term memory" - clears all long term memory (no variables needed)
   4. "add to note" - adds first variable to note in local storage
+  5. "create list" - creates a new list with name from first variable
+  6. "add to list" - adds items to a list. Variables: [listId, path array, items to add...]
+  7. "load list" - loads a list into tempMem. Variables: [listId]
 `;
 export const PROMPT_PREFACE = `
   This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
