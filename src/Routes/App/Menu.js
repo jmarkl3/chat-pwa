@@ -112,7 +112,7 @@ function Menu({
     setShowLongTermMemory(true);
   };
 
-  console.log("settingsObject", settingsObject)
+  // console.log("settingsObject", settingsObject)
   // Handle note click (just hides this menu and shows that one)
   const handleNoteClick = () => {
     setIsOpen(false);

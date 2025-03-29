@@ -55,7 +55,7 @@ function AppHome() {
     // Get available voices
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
-      console.log('Available voices:', availableVoices);
+      // console.log('Available voices:', availableVoices);
       setVoices(availableVoices);
     };
 
@@ -75,7 +75,7 @@ function AppHome() {
       }
     } catch (error) {
       setSettingsObject(DEFAULT_SETTINGS);
-      console.error('Error loading settings:', error);
+      // console .error('Error loading settings:', error);
     }
   };
 
@@ -83,6 +83,7 @@ function AppHome() {
     // Load chats from localStorage
     try {
       const savedChats = localStorage.getItem(CHATS_STORAGE_KEY);
+      // console.log('Loaded chats from localStorage:', savedChats);
       if (savedChats) {
         const parsedChats = JSON.parse(savedChats);
         setChats(parsedChats);
@@ -94,7 +95,7 @@ function AppHome() {
         }
       }
     } catch (error) {
-      console.error('Error loading chats:', error);
+      // console .error('Error loading chats:', error);
     }
   };
 
@@ -128,7 +129,7 @@ function AppHome() {
     };
 
     utterance.onerror = (event) => {
-      console.log('Speech error:', event);
+      // console.log('Speech error:', event);
       setIsSpeaking(false);
     };
 
@@ -166,30 +167,30 @@ function AppHome() {
   
   const togglePause = () => {
     const currentState = { speaking: isSpeaking, paused: isPaused };
-    console.log('Current state:', currentState);
+    // console.log('Current state:', currentState);
 
     if (isSpeaking) {
       if (isPaused) {
         // Currently paused, should resume
-        console.log('Action: Resume speech');
+        // console .log('Action: Resume speech');
         window.speechSynthesis.resume();
         setIsPaused(false);
       } else {
         // Currently speaking, should pause
-        console.log('Action: Pause speech');
+        // console .log('Action: Pause speech');
         window.speechSynthesis.pause();
         setIsPaused(true);
       }
     } else if (lastSpokenTextRef.current) {
       // Not speaking, should start new speech
-      console.log('Action: Replay last speech');
+      // console .log('Action: Replay last speech');
       speakText(lastSpokenTextRef.current);
     }
 
     // Log state after change
     // setTimeout(() => {
     //   const newState = { speaking: isSpeaking, paused: isPaused };
-    //   console.log('New state:', newState);
+    //   // console .log('New state:', newState);
     // }, 100);
   };
 
@@ -250,7 +251,7 @@ function AppHome() {
     if (!chatIdRef.current) {
       const newChatId = Math.floor(Math.random() * 1000000).toString();
       chatIdRef.current = newChatId;
-      console.log('Creating new chat with ID:', newChatId);
+      // console .log('Creating new chat with ID:', newChatId);
       
       setChats(prev => {
         const newChat = {
@@ -261,17 +262,18 @@ function AppHome() {
           ...prev,
           [newChatId]: newChat
         };
-        console.log('New chats state:', updated);
+        // console .log('New chats state:', updated);
         localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
+        // console .log('Saved new chat to localStorage', JSON.stringify(updated));
         return updated;
       });
     } else {
       // Add to existing chat
-      console.log('Adding to existing chat:', chatIdRef.current);
+      // console .log('Adding to existing chat:', chatIdRef.current);
       setChats(prev => {
         const currentChat = prev[chatIdRef.current];
         if (!currentChat) {
-          console.error('Chat not found:', chatIdRef.current);
+          // console .error('Chat not found:', chatIdRef.current);
           return prev;
         }
         const updatedChat = {
@@ -348,11 +350,11 @@ function AppHome() {
       speakText(assistantMessage.content);
 
       // Add assistant message to chat history
-      console.log('Adding assistant message to chat:', chatIdRef.current);
+      // console .log('Adding assistant message to chat:', chatIdRef.current);
       setChats(prev => {
         const currentChat = prev[chatIdRef.current];
         if (!currentChat) {
-          console.error('Chat not found:', chatIdRef.current);
+          // console .error('Chat not found:', chatIdRef.current);
           return prev;
         }
         const updatedChat = {
@@ -370,7 +372,7 @@ function AppHome() {
       // Reset inactivity timer after model responds
       resetInactivityTimer();
     } catch (error) {
-      console.error('Error:', error);
+      // console .error('Error:', error);
       const errorMessage = {
         role: 'assistant',
         content: 'Sorry, there was an error processing your request.',
@@ -423,7 +425,7 @@ function AppHome() {
         
         // Validate count is within reasonable range
         if (count < 1 || count > 10) {
-          console.log('Invalid replay count. Please use a number between 1 and 10');
+          // console .log('Invalid replay count. Please use a number between 1 and 10');
           return;
         }
 
@@ -447,7 +449,7 @@ function AppHome() {
       case 'settings':
       case 'update':
         if (args.length < 2) {
-          console.log('Usage: command setting <setting name> <value>');
+          // console .log('Usage: command setting <setting name> <value>');
           return;
         }
 
@@ -461,13 +463,13 @@ function AppHome() {
         const settingName = args.slice(0, -1).join(' ');
 
         if (updateSetting(settingName, value)) {
-          console.log(`Updated ${settingName} to ${value}`);
+          // console .log(`Updated ${settingName} to ${value}`);
         }
         break;
 
       case 'list':
         if (args[0]?.toLowerCase() === 'commands') {
-          console.log(AVAILABLE_COMMANDS);
+          // console .log(AVAILABLE_COMMANDS);
           // Create a more speech-friendly version of the commands list
           const speechCommands = AVAILABLE_COMMANDS
             .split('\n')
@@ -483,12 +485,12 @@ function AppHome() {
           const currentNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
           const updatedNote = currentNote ? `${currentNote}\n\n${noteText}` : noteText;
           localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
-          console.log('Added to note:', noteText);
+          // console .log('Added to note:', noteText);
         }
         break;
 
       default:
-        console.log('Unknown command:', command);
+        // console .log('Unknown command:', command);
         speakText(`Unknown command: ${command}`);
     }
   };
@@ -496,7 +498,7 @@ function AppHome() {
   // Processes the response from the API
   const processResponse = (text) => {
     const cleanedText = removeSpecialCharacters(text);
-    console.log("cleanedText: ", cleanedText)
+    // console .log("cleanedText: ", cleanedText)
     try {
       // Remove any leading/trailing whitespace and any text before/after the JSON
       const jsonMatch = cleanedText.match(/\{[^]*\}/);
@@ -514,7 +516,7 @@ function AppHome() {
         }
       }
     } catch (e) {
-      console.log('Response was not valid JSON, using as plain text:', e);
+      // console .log('Response was not valid JSON, using as plain text:', e);
     }
     return cleanedText;
   };
@@ -530,7 +532,7 @@ function AppHome() {
         // Update localStorage
         localStorage.setItem(LONG_TERM_MEMORY_KEY, updatedMemory);
         
-        console.log('Updated long term memory:', updatedMemory);
+        // console .log('Updated long term memory:', updatedMemory);
 
         // Update state
         setLongTermMemory(updatedMemory);
@@ -560,7 +562,7 @@ function AppHome() {
         // Update localStorage
         localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
         
-        console.log('Updated note:', updatedNote);
+        // console .log('Updated note:', updatedNote);
       }
       else if (cmd.command === "create list" && cmd.variables && cmd.variables.length > 0) {
         const listName = cmd.variables[0];
@@ -587,7 +589,7 @@ function AppHome() {
         // Reload lists so model has access to new ID
         loadLists();
         
-        console.log('Created new list:', newList);
+        // console .log('Created new list:', newList);
         return newList.id; // Return ID for potential use in add to list
       }
       else if (cmd.command === "add to list" && cmd.variables && cmd.variables.length >= 3) {
@@ -631,7 +633,7 @@ function AppHome() {
             localStorage.setItem('note-lists', JSON.stringify(lists));
           }
           
-          console.log('Added items to list:', items);
+          // console .log('Added items to list:', items);
         }
       }
       else if (cmd.command === "load list" && cmd.variables && cmd.variables.length > 0) {
@@ -640,7 +642,7 @@ function AppHome() {
         if (listStr) {
           const list = JSON.parse(listStr);
           setTempMem(list);
-          console.log('Loaded list into tempMem:', list);
+          // console .log('Loaded list into tempMem:', list);
         }
       }
     });
@@ -692,7 +694,7 @@ function AppHome() {
           newSettings.showLongTermMemory = value;
           break;
         default:
-          console.warn(`Unknown setting: ${settingName}`);
+          // console .warn(`Unknown setting: ${settingName}`);
           return prevSettings;
       }
 
@@ -710,7 +712,7 @@ function AppHome() {
   // Reset inactivity timer when chat ID changes
   useEffect(() => {
     if (chatIdRef.current) {
-      console.log('Chat ID changed, resetting inactivity timer');
+      // console .log('Chat ID changed, resetting inactivity timer');
       resetInactivityTimer();
     }
   }, [chatIdRef.current]);
