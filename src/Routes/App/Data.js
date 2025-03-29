@@ -37,6 +37,16 @@ export const FORMAT_PREFACE = `
   5. "create list" - creates a new list with name from first variable
   6. "add to list" - adds items to a list. Variables: [listId, path array, items to add...]
   7. "load list" - loads a list into tempMem. Variables: [listId]
+
+  Example Workflow: 
+  1) Created list ('create list', ['beverages']). 
+  2) Added initial items ('add to list', [listID, [], 'caffeine','juice','sparkling water']). 
+  3) Loaded list ('load list', [listID]). 
+  4) Added nested items ('add to list', [listID, ['1'], 'orange','pineapple','grape']). JSON rules: 
+  Considerations:
+  JSON syntax: vars must be singleline arrays (no commentsmultiline) (must be compatable with json.parse()). 
+  Retroactive syncronization: Things you add affect the context earlier in the message chain so it looks like  they were already there even when they are new. 
+  Always put output in 'message' attribute.
 `;
 export const PROMPT_PREFACE = `
   This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
