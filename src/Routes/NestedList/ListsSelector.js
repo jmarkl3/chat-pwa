@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react'
 import ConfirmationBox from '../App/ConfirmationBox';
 import './ListsSelector.css';
 
-// The open and set open is for when its in a window
 function ListsSelector({ isOpen, setIsOpen = ()=>{}, onSelectList=() => {}, createNewList=()=>{} }) {
     const [lists, setLists] = useState([]);
     const [listToDelete, setListToDelete] = useState(null);
+    const [listToDuplicate, setListToDuplicate] = useState(null);
     const [menuOpenListId, setMenuOpenListId] = useState(null);
     const [titleEditList, setTitleEditList] = useState(null);
 
@@ -86,6 +86,53 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{}, onSelectList=() => {}, crea
       e.preventDefault();
       console.log('Exiting title edit mode');
       setTitleEditList(null);
+    };
+
+    const handleDuplicateClick = (e, list) => {
+      e.stopPropagation();
+      setListToDuplicate(list);
+      setMenuOpenListId(null);
+    };
+
+    const handleConfirmDuplicate = () => {
+      if (!listToDuplicate) return;
+
+      // Generate new ID
+      const newId = Math.random().toString(36).substr(2, 9);
+
+      // Deep copy the list data
+      const listDataStr = localStorage.getItem(`note-list-${listToDuplicate.id}`);
+      if (listDataStr) {
+        const listData = JSON.parse(listDataStr);
+        const newListData = JSON.parse(JSON.stringify(listData)); // Deep copy
+        newListData.id = newId;
+        newListData.content = `${listData.content} (copy)`;
+        localStorage.setItem(`note-list-${newId}`, JSON.stringify(newListData));
+
+        // Update lists metadata
+        const listsStr = localStorage.getItem('note-lists') || '[]';
+        const currentLists = JSON.parse(listsStr);
+        const timestamp = Date.now();
+
+        const newList = {
+          id: newId,
+          content: newListData.content,
+          lastModified: timestamp
+        };
+
+        currentLists.push(newList);
+        currentLists.sort((a, b) => b.lastModified - a.lastModified);
+        localStorage.setItem('note-lists', JSON.stringify(currentLists));
+
+        // Update UI
+        setLists(currentLists);
+      }
+
+      setListToDuplicate(null);
+    };
+
+    const handleCancelDuplicate = () => {
+      setListToDuplicate(null);
     };
 
     const handleDeleteClick = (e, list) => {
@@ -175,6 +222,9 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{}, onSelectList=() => {}, crea
                         <button onClick={(e) => startEditing(e, list)}>
                           Rename
                         </button>
+                        <button onClick={(e) => handleDuplicateClick(e, list)}>
+                          Duplicate
+                        </button>
                         <button onClick={(e) => handleDeleteClick(e, list)}>
                           Delete
                         </button>
@@ -197,9 +247,16 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{}, onSelectList=() => {}, crea
         </div>
         {listToDelete && (
           <ConfirmationBox
-            message={`delete list ${listToDelete.content}?`}
+            message={`Delete list ${listToDelete.content}?`}
             onConfirm={handleConfirmDelete}
             onCancel={handleCancelDelete}
+          />
+        )}
+        {listToDuplicate && (
+          <ConfirmationBox
+            message={`Duplicate list ${listToDuplicate.content}?`}
+            onConfirm={handleConfirmDuplicate}
+            onCancel={handleCancelDuplicate}
           />
         )}
       </div>
