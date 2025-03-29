@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './NestedList.css';
 import NestedListItem from './NestedListItem';
 import { ellipsis } from '../App/functions';
@@ -7,67 +7,137 @@ import NestedListMenu from './NestedListMenu';
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
-// Add IDs to initial data structure
-const addIds = (node) => {
-  node.id = generateId();
-  if (node.nested) {
-    node.nested.forEach(child => addIds(child));
-  }
-  return node;
-};
-
-// Sample test data with 3 layers of nesting and 12 total items
-const testData = addIds({
-  content: "Root List",
+// Empty list template
+const createEmptyList = () => ({
+  id: generateId(),
+  content: "New List",
   isOpen: true,
-  nested: [
-    {
-      content: "First Level Item 1",
-      isOpen: false,
-      nested: [
-        {
-          content: "Second Level Item 1.1",
-          isOpen: false,
-          nested: [
-            { content: "Third Level Item 1.1.1", isOpen: false, nested: [] },
-            { content: "Third Level Item 1.1.2", isOpen: false, nested: [] }
-          ]
-        },
-        { content: "Second Level Item 1.2", isOpen: false, nested: [] }
-      ]
-    },
-    {
-      content: "First Level Item 2",
-      isOpen: false,
-      nested: [
-        { content: "Second Level Item 2.1", isOpen: false, nested: [] },
-        { 
-          content: "Second Level Item 2.2", 
-          isOpen: false, 
-          nested: [
-            { content: "Third Level Item 2.2.1", isOpen: false, nested: [] }
-          ] 
-        }
-      ]
-    },
-    {
-      content: "First Level Item 3",
-      isOpen: false,
-      nested: [
-        { content: "Second Level Item 3.1", isOpen: false, nested: [] },
-        { content: "Second Level Item 3.2", isOpen: false, nested: [] },
-        { content: "Second Level Item 3.3", isOpen: false, nested: [] }
-      ]
-    }
-  ]
-}); 
+  nested: []
+});
 
-// Main NestedList component
 function NestedList() {
-  // State to hold the nested list data
-  const [data, setData] = useState(testData);
+  
+  const [listId, setListId] = useState();
+  // State for the nested list data
+  const [data, setData] = useState(null);
   // State for tracking the current root path
   const [rootPath, setRootPath] = useState([]);
+
+  // Load list data when listId changes
+  useEffect(() => {
+    if (listId) {
+      const savedData = localStorage.getItem(`note-list-${listId}`);
+      if (savedData) {
+        setData(JSON.parse(savedData));
+      }
+    }
+  }, [listId]);
+
+  // Save data whenever it changes
+  useEffect(() => {
+    if (listId && data) {
+      // Save the full list data
+      localStorage.setItem(`note-list-${listId}`, JSON.stringify(data));
+
+      // Update the lists index
+      const listsStr = localStorage.getItem('note-lists') || '[]';
+      const lists = JSON.parse(listsStr);
+      const timestamp = Date.now();
+
+      const updatedLists = lists.filter(l => l.id !== listId);
+      updatedLists.push({
+        id: listId,
+        content: data.content,
+        lastModified: timestamp
+      });
+
+      // Sort by last modified, most recent first
+      updatedLists.sort((a, b) => b.lastModified - a.lastModified);
+      localStorage.setItem('note-lists', JSON.stringify(updatedLists));
+    }
+  }, [data, listId]);
+
+  // Create a new list
+  const createNewList = () => {
+    const newList = createEmptyList();
+    const newId = newList.id;
+
+    // Save the new list data
+    localStorage.setItem(`note-list-${newId}`, JSON.stringify(newList));
+
+    // Update the lists index
+    const listsStr = localStorage.getItem('note-lists') || '[]';
+    const lists = JSON.parse(listsStr);
+    const timestamp = Date.now();
+
+    lists.push({
+      id: newId,
+      content: newList.content,
+      lastModified: timestamp
+    });
+
+    localStorage.setItem('note-lists', JSON.stringify(lists));
+
+    // Set the new list as active
+    setData(newList);
+    setListId(newId);
+    setRootPath([]);
+  };
+
+  // Add IDs to initial data structure
+  const addIds = (node) => {
+    node.id = generateId();
+    if (node.nested) {
+      node.nested.forEach(child => addIds(child));
+    }
+    return node;
+  };
+
+  // Sample test data with 3 layers of nesting and 12 total items
+  const testData = addIds({
+    content: "Root List",
+    isOpen: true,
+    nested: [
+      {
+        content: "First Level Item 1",
+        isOpen: false,
+        nested: [
+          {
+            content: "Second Level Item 1.1",
+            isOpen: false,
+            nested: [
+              { content: "Third Level Item 1.1.1", isOpen: false, nested: [] },
+              { content: "Third Level Item 1.1.2", isOpen: false, nested: [] }
+            ]
+          },
+          { content: "Second Level Item 1.2", isOpen: false, nested: [] }
+        ]
+      },
+      {
+        content: "First Level Item 2",
+        isOpen: false,
+        nested: [
+          { content: "Second Level Item 2.1", isOpen: false, nested: [] },
+          { 
+            content: "Second Level Item 2.2", 
+            isOpen: false, 
+            nested: [
+              { content: "Third Level Item 2.2.1", isOpen: false, nested: [] }
+            ] 
+          }
+        ]
+      },
+      {
+        content: "First Level Item 3",
+        isOpen: false,
+        nested: [
+          { content: "Second Level Item 3.1", isOpen: false, nested: [] },
+          { content: "Second Level Item 3.2", isOpen: false, nested: [] },
+          { content: "Second Level Item 3.3", isOpen: false, nested: [] }
+        ]
+      }
+    ]
+  }); 
 
   // Function to update nested list data
   const updateNestedListData = (newContent, path) => {
@@ -353,21 +423,29 @@ function NestedList() {
             );
           })}
         </div>
-        <NestedListItem
-          key={rootNode.id}
-          item={rootNode}
-          index={0}
-          path={rootPath}
-          updateContent={updateNestedListData}
-          moveItem={moveItem}
-          duplicateItem={duplicateItem}
-          addAfter={addAfter}
-          deleteItem={deleteItem}
-          setAsRoot={setAsRoot}
-          toggleOpen={toggleOpen}
-          insertInto={insertInto}
-        />
-        <NestedListMenu/>
+        {data ? (
+          <>
+            <NestedListItem
+              key={rootNode.id}
+              item={rootNode}
+              index={0}
+              path={rootPath}
+              updateContent={updateNestedListData}
+              moveItem={moveItem}
+              duplicateItem={duplicateItem}
+              addAfter={addAfter}
+              deleteItem={deleteItem}
+              setAsRoot={setAsRoot}
+              toggleOpen={toggleOpen}
+              insertInto={insertInto}
+            />
+            <NestedListMenu createNewList={createNewList}/>
+          </>
+        ) : (
+          <div className="empty-state">
+            <button onClick={createNewList}>Create New List</button>
+          </div>
+        )}
     </div>
   );
 }
