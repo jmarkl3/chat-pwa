@@ -5,7 +5,8 @@ import ImportChat, { encryptChatData } from './ImportChat';
 import './ChatHistory.css';
 
 function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, onNewChat, onUpdateChat, onDeleteChat, onImportChat }) {
-  const [renamingChat, setRenamingChat] = useState(null);
+  const [editingChatId, setEditingChatId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [chatToDelete, setChatToDelete] = useState(null);
@@ -23,34 +24,16 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
 
   const startEditing = (e, chatId, currentTitle) => {
     e.stopPropagation();
-    setRenamingChat({ id: chatId, title: currentTitle });
+    setEditingChatId(chatId);
+    setEditingTitle(currentTitle);
     setMenuOpenChatId(null);
   };
 
-  const handleTitleChange = (e) => {
-    const newTitle = e.target.value;
-    if (newTitle.trim() && renamingChat) {
-      const chat = chats[renamingChat.id];
-      onUpdateChat(renamingChat.id, { 
-        title: newTitle.trim(),
-        messages: chat.messages || [], 
-        timestamp: Date.now()
-      });
-    }
-  };
-
-  const handleExport = async (e, chatId) => {
-    e.stopPropagation();
-    setMenuOpenChatId(null);
-    
-    try {
-      const chatData = chats[chatId];
-      const encryptedData = await encryptChatData(chatData);
-      await navigator.clipboard.writeText(encryptedData);
-      alert('Chat exported and copied to clipboard!');
-    } catch (error) {
-      console.error('Export error:', error);
-      alert('Failed to export chat');
+  const handleRename = (e, chatId) => {
+    e.preventDefault();
+    if (editingTitle.trim()) {
+      onUpdateChat(chatId, { title: editingTitle.trim() });
+      setEditingChatId(null);
     }
   };
 
@@ -66,6 +49,21 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
       onDeleteChat(chatToDelete);
       setShowConfirmation(false);
       setChatToDelete(null);
+    }
+  };
+
+  const handleExport = async (e, chatId) => {
+    e.stopPropagation();
+    setMenuOpenChatId(null);
+    
+    try {
+      const chatData = chats[chatId];
+      const encryptedData = await encryptChatData(chatData);
+      await navigator.clipboard.writeText(encryptedData);
+      alert('Chat exported and copied to clipboard!');
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export chat');
     }
   };
 
@@ -85,41 +83,30 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
               .map(([chatId, chat]) => {
                 const firstMessage = chat.messages[0]?.content || 'Empty chat';
                 const isActive = chatId === currentChatId;
+                const isEditing = chatId === editingChatId;
 
                 return (
                   <div
                     key={chatId}
                     className={`chat-item ${isActive ? 'active' : ''}`}
                     onClick={() => {
-                      if (renamingChat?.id !== chatId) {
+                      if (!isEditing) {
                         onSelectChat(chatId);
                         setIsOpen(false);
                       }
                     }}
                   >
-                    {renamingChat?.id === chatId ? (
-                      <div className="chat-edit-form">
+                    {isEditing ? (
+                      <form onSubmit={(e) => handleRename(e, chatId)} className="chat-edit-form">
                         <input
                           type="text"
-                          className="rename-input"
-                          value={renamingChat.title}
-                          onChange={(e) => {
-                            setRenamingChat({ ...renamingChat, title: e.target.value });
-                            handleTitleChange(e);
-                          }}
+                          value={editingTitle}
+                          onChange={(e) => setEditingTitle(e.target.value)}
                           onClick={(e) => e.stopPropagation()}
                           autoFocus
+                          onBlur={(e) => handleRename(e, chatId)}
                         />
-                        <button 
-                          className="confirm-button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setRenamingChat(null);
-                          }}
-                        >
-                          ✓
-                        </button>
-                      </div>
+                      </form>
                     ) : (
                       <>
                         <div className="chat-preview">{chat.title || firstMessage}</div>
@@ -159,7 +146,7 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
           </div>
         </div>
       </SlidePanel>
-
+      
       {showConfirmation && (
         <ConfirmationBox
           message={`Delete chat "${chats[chatToDelete]?.title || 'Untitled'}"?`}

@@ -123,32 +123,16 @@
 }
 
 .chat-edit-form {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   width: 100%;
 }
 
-.rename-input {
-  flex: 1;
-  padding: 4px 8px;
-  border: 1px solid #ccc;
+.chat-edit-form input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #007bff;
   border-radius: 4px;
   font-size: 14px;
-}
-
-.confirm-button {
-  padding: 4px 8px;
-  background: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.confirm-button:hover {
-  background: #45a049;
+  outline: none;
 }
 
 /* Mobile optimizations */
