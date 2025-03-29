@@ -29,6 +29,7 @@ function NestedList() {
       const savedData = localStorage.getItem(`note-list-${listId}`);
       if (savedData) {
         setData(JSON.parse(savedData));
+        setRootPath([]); // Reset root path when loading new list
       }
     }
   }, [listId]);
@@ -439,7 +440,10 @@ function NestedList() {
               toggleOpen={toggleOpen}
               insertInto={insertInto}
             />
-            <NestedListMenu createNewList={createNewList}/>
+            <NestedListMenu 
+              createNewList={createNewList}
+              onSelectList={setListId}
+            />
           </>
         ) : (
           <div className="empty-state">

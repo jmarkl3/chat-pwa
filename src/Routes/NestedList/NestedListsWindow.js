@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SlidePanel from '../App/SlidePanel';
 import './NestedListMenu.css';
 
-function NestedListsWindow({isOpen, setIsOpen}) {
+function NestedListsWindow({isOpen, setIsOpen, onSelectList}) {
   const [lists, setLists] = useState([]);
 
   useEffect(() => {
@@ -14,13 +14,22 @@ function NestedListsWindow({isOpen, setIsOpen}) {
     setLists(loadedLists);
   }, [isOpen]); // Reload when window opens
 
+  const handleSelectList = (list) => {
+    onSelectList(list.id);
+    setIsOpen(false); // Close the window after selection
+  };
+
   return (    
     <SlidePanel isOpen={isOpen} setIsOpen={setIsOpen}>
       <div className="lists-window">
         <h2>Your Lists</h2>
         <div className="lists-container">
           {lists.map(list => (
-            <div key={list.id} className="list-item">
+            <div 
+              key={list.id} 
+              className="list-item"
+              onClick={() => handleSelectList(list)}
+            >
               <div className="list-content">
                 <span className="list-title">{list.content}</span>
                 <span className="last-modified">
