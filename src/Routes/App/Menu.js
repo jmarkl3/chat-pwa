@@ -214,7 +214,7 @@ function Menu({
             <button className="menu-item" onClick={handleHistoryClick}>History</button>
             <button className="menu-item" onClick={handleLongTermMemoryClick}>Long Term Memory</button>
             <button className="menu-item" onClick={handleNoteClick}>Note</button>
-            <button className="menu-item" onClick={() => navigate('/json-list')}>Lists</button>
+            <button className="menu-item" onClick={() => navigate('/nested-list')}>Lists</button>
             <button className="menu-item" onClick={handleInstallClick}>Install App</button>
             <button className="menu-item" onClick={() => setIsOpen()}>Close</button>
           </div>

@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import NestedListsWindow from './NestedListsWindow';
 
 function NestedListMenu({ createNewList, onSelectList }) {
  
+    const navigate = useNavigate();
     const [showListsWindow, setShowListsWindow] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+
+    const handleShowLists = () => {
+        setShowListsWindow(true);
+        setIsOpen(false);
+    };
 
     return (
         <>
@@ -23,11 +29,8 @@ function NestedListMenu({ createNewList, onSelectList }) {
                 <div className="menu-content">
                 <h3>Menu</h3>
                 <div className="menu-items">
-                    <button className="menu-item" onClick={() => {
-                        setShowListsWindow(true);
-                        setIsOpen(false);
-                    }}>Lists</button>
-                    <button className="menu-item" onClick={() => Navigate('/app')}>Chat</button>
+                    <button className="menu-item" onClick={handleShowLists}>Lists</button>
+                    <button className="menu-item" onClick={() => navigate('/app')}>Chat</button>
                     <button className="menu-item" onClick={() => setIsOpen(false)}>Close</button>
                 </div>
                 </div>
@@ -37,6 +40,7 @@ function NestedListMenu({ createNewList, onSelectList }) {
                 isOpen={showListsWindow}
                 setIsOpen={setShowListsWindow}
                 onSelectList={onSelectList}
+                createNewList={createNewList}
             >
 
             </NestedListsWindow>

@@ -3,6 +3,7 @@ import './NestedList.css';
 import NestedListItem from './NestedListItem';
 import { ellipsis } from '../App/functions';
 import NestedListMenu from './NestedListMenu';
+import ListsSelector from './ListsSelector';
 
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -440,16 +441,21 @@ function NestedList() {
               toggleOpen={toggleOpen}
               insertInto={insertInto}
             />
-            <NestedListMenu 
-              createNewList={createNewList}
-              onSelectList={setListId}
-            />
           </>
         ) : (
           <div className="empty-state">
-            <button onClick={createNewList}>Create New List</button>
+            <ListsSelector
+              onSelectList={setListId}
+              createNewList={createNewList}
+            />
           </div>
         )}
+
+      <NestedListMenu 
+        createNewList={createNewList}
+        onSelectList={setListId}
+      />
+
     </div>
   );
 }
