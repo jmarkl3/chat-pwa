@@ -255,7 +255,8 @@ function AppHome() {
       setChats(prev => {
         const newChat = {
           messages: [userMessage],
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          title: message.slice(0, 30) + (message.length > 30 ? '...' : '') // Set initial title
         };
         const updated = {
           ...prev,
@@ -275,6 +276,7 @@ function AppHome() {
           return prev;
         }
         const updatedChat = {
+          ...currentChat, // Preserve existing chat data including title
           messages: [...currentChat.messages, userMessage],
           timestamp: Date.now()
         };
@@ -743,6 +745,8 @@ function AppHome() {
     if (chat) {
       setMessages(chat.messages);
       chatIdRef.current = chatId;
+      // Scroll to bottom after loading messages
+      setTimeout(scrollToBottom, 100); // Small delay to ensure messages are rendered
     }
   };
 
@@ -752,6 +756,7 @@ function AppHome() {
     const updatedChats = {
       ...chats,
       [chatIdRef.current]: {
+        ...chats[chatIdRef.current], // Preserve existing chat data like title
         messages: messages,
         timestamp: Date.now()
       }

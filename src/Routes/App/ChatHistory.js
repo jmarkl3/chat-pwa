@@ -5,8 +5,7 @@ import ImportChat, { encryptChatData } from './ImportChat';
 import './ChatHistory.css';
 
 function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, onNewChat, onUpdateChat, onDeleteChat, onImportChat }) {
-  const [editingChatId, setEditingChatId] = useState(null);
-  const [editingTitle, setEditingTitle] = useState('');
+  const [renamingChat, setRenamingChat] = useState(null);
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [chatToDelete, setChatToDelete] = useState(null);
@@ -24,31 +23,19 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
 
   const startEditing = (e, chatId, currentTitle) => {
     e.stopPropagation();
-    setEditingChatId(chatId);
-    setEditingTitle(currentTitle);
+    setRenamingChat({ id: chatId, title: currentTitle });
     setMenuOpenChatId(null);
   };
 
-  const handleRename = (e, chatId) => {
-    e.preventDefault();
-    if (editingTitle.trim()) {
-      onUpdateChat(chatId, { title: editingTitle.trim() });
-      setEditingChatId(null);
-    }
-  };
-
-  const confirmDelete = (e, chatId) => {
-    e.stopPropagation();
-    setChatToDelete(chatId);
-    setShowConfirmation(true);
-    setMenuOpenChatId(null);
-  };
-
-  const handleDelete = () => {
-    if (chatToDelete) {
-      onDeleteChat(chatToDelete);
-      setShowConfirmation(false);
-      setChatToDelete(null);
+  const handleTitleChange = (e) => {
+    const newTitle = e.target.value;
+    if (newTitle.trim() && renamingChat) {
+      const chat = chats[renamingChat.id];
+      onUpdateChat(renamingChat.id, { 
+        title: newTitle.trim(),
+        messages: chat.messages || [], 
+        timestamp: Date.now()
+      });
     }
   };
 
@@ -64,6 +51,21 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
     } catch (error) {
       console.error('Export error:', error);
       alert('Failed to export chat');
+    }
+  };
+
+  const confirmDelete = (e, chatId) => {
+    e.stopPropagation();
+    setChatToDelete(chatId);
+    setShowConfirmation(true);
+    setMenuOpenChatId(null);
+  };
+
+  const handleDelete = () => {
+    if (chatToDelete) {
+      onDeleteChat(chatToDelete);
+      setShowConfirmation(false);
+      setChatToDelete(null);
     }
   };
 
@@ -83,30 +85,41 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
               .map(([chatId, chat]) => {
                 const firstMessage = chat.messages[0]?.content || 'Empty chat';
                 const isActive = chatId === currentChatId;
-                const isEditing = chatId === editingChatId;
 
                 return (
                   <div
                     key={chatId}
                     className={`chat-item ${isActive ? 'active' : ''}`}
                     onClick={() => {
-                      if (!isEditing) {
+                      if (renamingChat?.id !== chatId) {
                         onSelectChat(chatId);
                         setIsOpen(false);
                       }
                     }}
                   >
-                    {isEditing ? (
-                      <form onSubmit={(e) => handleRename(e, chatId)} className="chat-edit-form">
+                    {renamingChat?.id === chatId ? (
+                      <div className="chat-edit-form">
                         <input
                           type="text"
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
+                          className="rename-input"
+                          value={renamingChat.title}
+                          onChange={(e) => {
+                            setRenamingChat({ ...renamingChat, title: e.target.value });
+                            handleTitleChange(e);
+                          }}
                           onClick={(e) => e.stopPropagation()}
                           autoFocus
-                          onBlur={(e) => handleRename(e, chatId)}
                         />
-                      </form>
+                        <button 
+                          className="confirm-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setRenamingChat(null);
+                          }}
+                        >
+                          ✓
+                        </button>
+                      </div>
                     ) : (
                       <>
                         <div className="chat-preview">{chat.title || firstMessage}</div>
@@ -146,7 +159,7 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
           </div>
         </div>
       </SlidePanel>
-      
+
       {showConfirmation && (
         <ConfirmationBox
           message={`Delete chat "${chats[chatToDelete]?.title || 'Untitled'}"?`}
