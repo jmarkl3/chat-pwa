@@ -3,18 +3,17 @@ import './AppHome.css'
 import Menu from './Menu'
 import Message from './Message'
 import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, DEFAULT_SETTINGS, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY } from './Data'
-import { findNumberInArgs, removeSpecialCharacters } from './functions'
+import { findNumberInArgs, removeSpecialCharacters, ellipsis } from './functions'
 import ChatInputArea from './ChatInputArea'
 
 function AppHome() {
+  const [chatIDState, setChatIDState] = useState(null);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   // Shows the Menu
   const [showMenu, setShowMenu] = useState(false);
   // This should be loaded from local storaapp.ge, reloaded on change, and sent to the system
-  const [longTermMemory, setLongTermMemory] = useState('');
   const [tempMem, setTempMem] = useState(null);
-  const [lists, setLists] = useState([]);
   // For the tts
   const [isPaused, setIsPaused] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -29,8 +28,6 @@ function AppHome() {
   const chatIdRef = useRef(null);
   // For replay (maybe not needed naymore)
   const lastSpokenTextRef = useRef('');
-  // Not in use yet but will be
-  const shortTermMemoryRef = useRef('');
   // For the input area so it can be cleared
   const inputRef = useRef(null);
   // For the messages so they can be scrolled to the bottom
@@ -42,16 +39,39 @@ function AppHome() {
   // A flag variable
   const hasFirstMessageRef = useRef(false);
 
+  const setChatID = (id) => {
+    chatIdRef.current = id;
+    setChatIDState(id);
+  };
+
+  // Load messages when chat ID changes
+  useEffect(() => {
+    if (!chatIDState) {
+      setMessages([]);
+      return;
+    }
+
+    const chatData = localStorage.getItem(`chat-${chatIDState}`);
+    if (chatData) {
+      try {
+        const parsedData = JSON.parse(chatData);
+        setMessages(parsedData.messages || []);
+      } catch (error) {
+        console.error('Error loading chat:', error);
+        setMessages([]);
+      }
+    } else {
+      setMessages([]);
+    }
+  }, [chatIDState]);
+
   // #region loading
 
   // Loading settings chats and voices
   useEffect(() => {
     // Load the settings from local storage
     loadSettings()
-    // Load the chats from local storage
-    loadChats()
-    loadLists();
-
+    
     // Get available voices
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
@@ -79,32 +99,8 @@ function AppHome() {
     }
   };
 
-  const loadChats = () => {
-    // Load chats from localStorage
-    try {
-      const savedChats = localStorage.getItem(CHATS_STORAGE_KEY);
-      // console.log('Loaded chats from localStorage:', savedChats);
-      if (savedChats) {
-        const parsedChats = JSON.parse(savedChats);
-        setChats(parsedChats);
-        
-        // Find the most recent chat and set it as current
-        const sortedChats = Object.entries(parsedChats).sort((a, b) => b[1].timestamp - a[1].timestamp);
-        if (sortedChats.length > 0) {
-          chatIdRef.current = sortedChats[0][0];
-        }
-      }
-    } catch (error) {
-      // console .error('Error loading chats:', error);
-    }
-  };
+  
 
-  const loadLists = () => {
-    const listsStr = localStorage.getItem('note-lists') || '[]';
-    const loadedLists = JSON.parse(listsStr);
-    loadedLists.sort((a, b) => b.lastModified - a.lastModified);
-    setLists(loadedLists);
-  };
 
   // #endregion loading
 
@@ -242,55 +238,33 @@ function AppHome() {
       timestamp: new Date().toISOString()
     };
 
+    // Add the user message to localStorage
+    addMessageToChat(userMessage);
+
     // Add user message to messages state
-    setMessages(prev => [...prev, userMessage]);
     setIsLoading(true);
     scrollToBottom();
 
-    // Create a new chat if we don't have one
-    if (!chatIdRef.current) {
-      const newChatId = Math.floor(Math.random() * 1000000).toString();
-      chatIdRef.current = newChatId;
-      // console .log('Creating new chat with ID:', newChatId);
-      
-      setChats(prev => {
-        const newChat = {
-          messages: [userMessage],
-          timestamp: Date.now()
-        };
-        const updated = {
-          ...prev,
-          [newChatId]: newChat
-        };
-        // console .log('New chats state:', updated);
-        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
-        // console .log('Saved new chat to localStorage', JSON.stringify(updated));
-        return updated;
-      });
-    } else {
-      // Add to existing chat
-      // console .log('Adding to existing chat:', chatIdRef.current);
-      setChats(prev => {
-        const currentChat = prev[chatIdRef.current];
-        if (!currentChat) {
-          // console .error('Chat not found:', chatIdRef.current);
-          return prev;
-        }
-        const updatedChat = {
-          messages: [...currentChat.messages, userMessage],
-          timestamp: Date.now()
-        };
-        const updated = {
-          ...prev,
-          [chatIdRef.current]: updatedChat
-        };
-        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
-        return updated;
-      });
-    }
-
     // Now fetch the response
     await fetchDeepSeek(userMessage);
+  }
+
+  // lists, temp mem, long term mem, the list form workingListID, FORMAT_PREFACE, settingsObject.promptPreface, listsContext, tempMemContext
+  const createContestString = () => {
+    let contextString = ""
+
+    // Get the title data for all lists (get each time so current)
+    const listsStr = localStorage.getItem('note-lists') || '[]';
+    contextString += "lists: "+listsStr+"\n"
+
+    // Retained over all chats
+    const currentMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY) || '';
+    contextString += "retained mem: "+currentMemory+"\n"
+
+    // Specific to this chat
+    contextString += "temp mem: "+tempMem+"\n"
+    
+    return contextString
   }
 
   // Sends a message to the API and waits for a response
@@ -305,19 +279,14 @@ function AppHome() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${"sk-6e0ec3f3dc5e42e6b259179411dd2f06"}`,
       };
-      const listsContext = lists.length > 0 ? 
-        `\nAvailable lists: ${lists.map(l => `"${l.content}" (id: ${l.id})`).join(', ')}` : 
-        '\nNo lists available yet.';
-      const tempMemContext = tempMem ? 
-        `\nTemp Mem: ${typeof tempMem === 'string' ? tempMem : JSON.stringify(tempMem)}` : 
-        '\nTemp Mem: empty';
+
       const body = JSON.stringify({
         model: 'deepseek-chat',
         messages: [
-          { role: 'system', content: FORMAT_PREFACE + "\n\n" + settingsObject.promptPreface + listsContext + tempMemContext},
-          { role: 'system', content: "Memory from previous: " + longTermMemory},
-          { role: 'system', content: timeInfo},
-          ...messages.slice(-settingsObject.previousMessagesCount),
+          // The contest like the preface, memory, date, etc
+          { role: 'user', content: createContestString() },
+          // The number of previous messages to include is in the settings
+          ...messages.slice(-settingsObject.previousMessagesCount || -4),
           userMessage,
           { role: 'system', content: FORMAT_PREFACE }
         ],
@@ -341,33 +310,13 @@ function AppHome() {
         content: processedContent,
         timestamp: new Date().toISOString()
       };
-
-      // Add assistant message to messages state
-      setMessages(prev => [...prev, assistantMessage]);
+      
+      // Add assistant message to localStorage and messages array state
+      addMessageToChat(assistantMessage);
       scrollToBottom();
 
       // Speak the response if TTS is enabled
       speakText(assistantMessage.content);
-
-      // Add assistant message to chat history
-      // console .log('Adding assistant message to chat:', chatIdRef.current);
-      setChats(prev => {
-        const currentChat = prev[chatIdRef.current];
-        if (!currentChat) {
-          // console .error('Chat not found:', chatIdRef.current);
-          return prev;
-        }
-        const updatedChat = {
-          messages: [...currentChat.messages, assistantMessage],
-          timestamp: Date.now()
-        };
-        const updated = {
-          ...prev,
-          [chatIdRef.current]: updatedChat
-        };
-        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
-        return updated;
-      });
 
       // Reset inactivity timer after model responds
       resetInactivityTimer();
@@ -529,10 +478,6 @@ function AppHome() {
         // Update localStorage
         localStorage.setItem(LONG_TERM_MEMORY_KEY, updatedMemory);
         
-        // console .log('Updated long term memory:', updatedMemory);
-
-        // Update state
-        setLongTermMemory(updatedMemory);
       }
       else if (cmd.command === "overwrite long term memory" && cmd.variables && cmd.variables.length > 0) {
         const newMemory = cmd.variables[0];
@@ -540,15 +485,10 @@ function AppHome() {
         // Update localStorage
         localStorage.setItem(LONG_TERM_MEMORY_KEY, newMemory);
         
-        // Update state
-        setLongTermMemory(newMemory);
       }
       else if (cmd.command === "clear long term memory") {
         // Update localStorage
         localStorage.setItem(LONG_TERM_MEMORY_KEY, '');
-        
-        // Update state
-        setLongTermMemory('');
       }
       else if (cmd.command === "add to note" && cmd.variables && cmd.variables.length > 0) {
         const newNote = cmd.variables[0];
@@ -582,9 +522,6 @@ function AppHome() {
           lastModified: Date.now()
         });
         localStorage.setItem('note-lists', JSON.stringify(lists));
-        
-        // Reload lists so model has access to new ID
-        loadLists();
         
         // console .log('Created new list:', newList);
         return newList.id; // Return ID for potential use in add to list
@@ -647,9 +584,6 @@ function AppHome() {
 
   // Command action functions: 
   
-  const addToShortTermMemory = (message) => {
-    shortTermMemoryRef.current += message + "\n";
-  };
 
   const updateSetting = (settingName, value) => {
     // Convert setting name to lowercase 
@@ -686,9 +620,6 @@ function AppHome() {
           break;
         case 'showpromptpreface':
           newSettings.showPromptPreface = value;
-          break;
-        case 'showlongtermmemory':
-          newSettings.showLongTermMemory = value;
           break;
         default:
           // console .warn(`Unknown setting: ${settingName}`);
@@ -737,34 +668,103 @@ function AppHome() {
 
   // #region chat loading and saving
 
-  const loadChat = (chatId) => {
-    const chat = chats[chatId];
-    if (chat) {
-      setMessages(chat.messages);
-      chatIdRef.current = chatId;
-    }
-  };
 
-  const saveCurrentChat = () => {
-    if (!chatIdRef.current || messages.length === 0 || !settingsObject.saveHistoryEnabled) return;
-    
-    const updatedChats = {
-      ...chats,
-      [chatIdRef.current]: {
-        messages: messages,
-        timestamp: Date.now()
-      }
-    };
-    setChats(updatedChats);
-    localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updatedChats));
-  };
-
-  // Save current chat when messages change
+  // Load chat when chat ID changes
   useEffect(() => {
-    if (chatIdRef.current) {
-      saveCurrentChat();
+    if (!chatIdRef.current) {
+      setMessages([]);
+      return;
     }
-  }, [messages]);
+
+    // Load messages from chat-chatID
+    const chatData = localStorage.getItem(`chat-${chatIdRef.current}`);
+    if (chatData) {
+      try {
+        const parsedData = JSON.parse(chatData);
+        setMessages(parsedData.messages || []);
+      } catch (error) {
+        console.error('Error parsing chat data:', error);
+        setMessages([]);
+      }
+    } else {
+      setMessages([]);
+    }
+  }, [chatIdRef.current]);
+
+  // Creates a new chat and returns the chatID
+  function createChat(message){
+    // Generate new chat ID
+    const newChatId = Date.now().toString();
+    
+    // Load existing chats
+    const chatsStr = localStorage.getItem('chats') || '[]';
+    const chats = JSON.parse(chatsStr);
+    
+    // Create new chat entry
+    const newChat = {
+      id: newChatId,
+      title: ellipsis(message.content, 20),
+      timestamp: Date.now()
+    };
+    
+    // Add to chats array
+    chats.push(newChat);
+    
+    // Save updated chats
+    localStorage.setItem('chats', JSON.stringify(chats));
+    
+    // Create chat messages storage
+    const chatData = {
+      messages: message ? [message] : []
+    };
+    localStorage.setItem(`chat-${newChatId}`, JSON.stringify(chatData));
+    
+    setChatID(newChatId)
+    return newChatId;
+  }
+
+  // Adds a message to chat in localStorage
+  function addMessageToChat(message){
+    setMessages(messages=>[...messages, message]);
+
+    // If there is no chatID create a chat (will add the first message)
+    if(!chatIdRef.current || !localStorage.getItem(`chat-${chatIdRef.current}`)){
+      createChat(message);
+    }
+    // If chat exists in localStorage, update it
+    else {
+      try {
+        // Get existing chat data
+        const chatData = JSON.parse(localStorage.getItem(`chat-${chatIdRef.current}`));
+        chatData.messages = [...(chatData.messages || []), message];
+        
+        // Update chat timestamp in chats list
+        const chats = JSON.parse(localStorage.getItem('chats') || '[]');
+        const chatIndex = chats.findIndex(c => c.id === chatIdRef.current);
+        
+        // Update the title timestamp
+        if (chatIndex === -1) {
+          // Create new chat entry if it doesn't exist
+          chats.push({
+            id: chatIdRef.current,
+            title: ellipsis(message.content, 20),
+            timestamp: Date.now()
+          });
+        } else {
+          chats[chatIndex].timestamp = Date.now();
+        }
+        
+        // Save updated chats array
+        localStorage.setItem('chats', JSON.stringify(chats));
+        
+        // Save updated chat messages
+        localStorage.setItem(`chat-${chatIdRef.current}`, JSON.stringify(chatData));
+      } catch (error) {
+        speakMessages("Error adding message")
+        console.error('Error updating chat:', error);
+      }
+    }
+  }
 
   // #endregion chat loading and saving
 
@@ -773,33 +773,23 @@ function AppHome() {
   const handleNewChat = () => {
     setMessages([]);
     chatIdRef.current = null;
+    setChatID(null);
     setShowMenu(false);
   };
   
-  const handleUpdateChat = (chatId, updates) => {
-    if (chats[chatId]) {
-      const updatedChat = {
-        ...chats[chatId],
-        ...updates,
-        timestamp: Date.now()  // Update timestamp when chat is modified
-      };
-      const updatedChats = {
-        ...chats,
-        [chatId]: updatedChat
-      };
-      setChats(updatedChats);
-      if (settingsObject.saveHistoryEnabled) {
-        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updatedChats));
-      }
-    }
-  };
 
   const handleDeleteChat = (chatId) => {
-    const { [chatId]: deletedChat, ...remainingChats } = chats;
-    setChats(remainingChats);
-    if (settingsObject.saveHistoryEnabled) {
-      localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(remainingChats));
-    }
+    // Load current chats
+    const chatsStr = localStorage.getItem('chats') || '[]';
+    const chats = JSON.parse(chatsStr);
+    
+    // Remove the chat
+    const updatedChats = chats.filter(chat => chat.id !== chatId);
+    localStorage.setItem('chats', JSON.stringify(updatedChats));
+    
+    // Remove chat messages
+    localStorage.removeItem(`chat-${chatId}`);
+    
     // If the deleted chat was the current chat, create a new chat
     if (chatId === chatIdRef.current) {
       handleNewChat();
@@ -807,25 +797,27 @@ function AppHome() {
   };
 
   const handleImportChat = (chatData) => {
+    // Generate new chat ID
     const chatId = Date.now().toString();
+    
+    // Create chat entry
     const newChat = {
-      ...chatData,
+      id: chatId,
+      title: chatData.messages[0]?.content ? ellipsis(chatData.messages[0].content, 20) : 'Imported Chat',
       timestamp: Date.now()
     };
     
-    const updatedChats = {
-      ...chats,
-      [chatId]: newChat
-    };
+    // Load and update chats array
+    const chatsStr = localStorage.getItem('chats') || '[]';
+    const chats = JSON.parse(chatsStr);
+    chats.push(newChat);
+    localStorage.setItem('chats', JSON.stringify(chats));
     
-    setChats(updatedChats);
-    if (settingsObject.saveHistoryEnabled) {
-      localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updatedChats));
-    }
+    // Save chat messages
+    localStorage.setItem(`chat-${chatId}`, JSON.stringify(chatData));
     
-    // Switch to the imported chat
-    chatIdRef.current = chatId;
-    setMessages(chatData.messages || []);
+    // Switch to new chat
+    setChatID(chatId);
   };
 
   // #endregion chat changes
@@ -836,20 +828,13 @@ function AppHome() {
       <Menu 
         isOpen={showMenu} 
         setIsOpen={(isOpen) => setShowMenu(isOpen)}
-        setShowSettings={(showSettings) => setSettingsObject(prevSettings => ({ ...prevSettings, showSettings }))}
-        setShowLongTermMemory={(showLongTermMemory) => setSettingsObject(prevSettings => ({ ...prevSettings, showLongTermMemory }))}
-        menuChats={chats}
-        menuCurrentChatId={chatIdRef.current}
-        menuOnSelectChat={loadChat}
+        menuOnSelectChat={setChatID}
         menuOnNewChat={handleNewChat}
-        menuOnUpdateChat={handleUpdateChat}
         menuOnDeleteChat={handleDeleteChat}
         menuOnImportChat={handleImportChat}
-        longTermMemory={longTermMemory}
-        setLongTermMemory={setLongTermMemory}
         settingsObject={settingsObject}
         setSettingsObject={setSettingsObject}
-        voices={voices}
+        setChatID={setChatID}
       />
       <div className="messages-container" ref={messagesEndRef}>
         {messages.length === 0 && (
@@ -871,7 +856,6 @@ function AppHome() {
             selectedVoice={settingsObject.selectedVoice}
             voices={voices}
             onSpeakFromHere={() => speakMessages(index)}
-            onAddToShortTermMemory={addToShortTermMemory}
           />
         ))}
         {isLoading && (

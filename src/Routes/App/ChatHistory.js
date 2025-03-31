@@ -1,16 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SlidePanel from './SlidePanel';
 import ConfirmationBox from './ConfirmationBox';
 import ImportChat, { encryptChatData } from './ImportChat';
 import './ChatHistory.css';
 
-function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, onNewChat, onUpdateChat, onDeleteChat, onImportChat }) {
+function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat, onUpdateChat, onDeleteChat, onImportChat }) {
+  const [chats, setChats] = useState([]);
   const [editingChatId, setEditingChatId] = useState(null);
-  const [editingTitle, setEditingTitle] = useState('');
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
-  const [showConfirmation, setShowConfirmation] = useState(false);
   const [chatToDelete, setChatToDelete] = useState(null);
   const [showImport, setShowImport] = useState(false);
+
+  const loadChats = () => {
+    try {
+      const chatsStr = localStorage.getItem('chats') || '[]';
+      const chatsArray = JSON.parse(chatsStr);
+      setChats(chatsArray);
+    } catch (error) {
+      console.error('Error loading chats:', error);
+      setChats([]);
+    }
+  };
+
+  useEffect(()=>{
+    if (!isOpen) return;
+    loadChats();
+  },[isOpen]);
 
   const handleNewChat = () => {
     onNewChat();
@@ -22,49 +37,62 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
     setMenuOpenChatId(chatId === menuOpenChatId ? null : chatId);
   };
 
-  const startEditing = (e, chatId, currentTitle) => {
+  const startEditing = (e, chatId) => {
     e.stopPropagation();
     setEditingChatId(chatId);
-    setEditingTitle(currentTitle);
     setMenuOpenChatId(null);
   };
 
-  const handleRename = (e, chatId) => {
-    e.preventDefault();
-    if (editingTitle.trim()) {
-      onUpdateChat(chatId, { title: editingTitle.trim() });
-      setEditingChatId(null);
-    }
-  };
-
-  const confirmDelete = (e, chatId) => {
+  const handleTitleChange = (e, chatId) => {
     e.stopPropagation();
-    setChatToDelete(chatId);
-    setShowConfirmation(true);
-    setMenuOpenChatId(null);
+    const newTitle = e.target.value.trim();
+    if (newTitle) {
+      // Load current chats
+      const chatsStr = localStorage.getItem('chats') || '[]';
+      const chatsArray = JSON.parse(chatsStr);
+      
+      // Find and update the chat
+      const chatIndex = chatsArray.findIndex(c => c.id === chatId);
+      if (chatIndex !== -1) {
+        chatsArray[chatIndex].title = newTitle;
+        localStorage.setItem('chats', JSON.stringify(chatsArray));
+        loadChats(); // Refresh the list after update
+      }
+    }
   };
 
-  const handleDelete = () => {
-    if (chatToDelete) {
-      onDeleteChat(chatToDelete);
-      setShowConfirmation(false);
-      setChatToDelete(null);
+  const handleDuplicate = (e, chatId) => {
+    e.stopPropagation();
+    const chatData = localStorage.getItem(`chat-${chatId}`);
+    if (chatData) {
+      onImportChat(JSON.parse(chatData));
     }
+    setMenuOpenChatId(null);
+    loadChats()
   };
 
   const handleExport = async (e, chatId) => {
     e.stopPropagation();
-    setMenuOpenChatId(null);
     
     try {
-      const chatData = chats[chatId];
-      const encryptedData = await encryptChatData(chatData);
+      // Load chat data from localStorage
+      const chatData = localStorage.getItem(`chat-${chatId}`);
+      if (chatData) {
+        const parsedData = JSON.parse(chatData);
+        const encryptedData = await encryptChatData(parsedData);
       await navigator.clipboard.writeText(encryptedData);
       alert('Chat exported and copied to clipboard!');
+      }
     } catch (error) {
       console.error('Export error:', error);
       alert('Failed to export chat');
     }
+  };
+
+  const handleDeleteConfirm = (chatId) => {
+    onDeleteChat(chatId);
+    setChatToDelete(null);
+    loadChats();
   };
 
   return (
@@ -78,68 +106,75 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
             Import Chat
           </button>
           <div className="chat-list">
-            {Object.entries(chats)
-              .sort(([, a], [, b]) => b.timestamp - a.timestamp)
-              .map(([chatId, chat]) => {
-                const firstMessage = chat.messages[0]?.content || 'Empty chat';
-                const isActive = chatId === currentChatId;
-                const isEditing = chatId === editingChatId;
+            {chats.sort((a, b) => b.timestamp - a.timestamp)
+              .map(chat => {
+                const isActive = chat.id === currentChatId;
+                const isEditing = chat.id === editingChatId;
 
                 return (
                   <div
-                    key={chatId}
+                    key={chat.id}
                     className={`chat-item ${isActive ? 'active' : ''}`}
                     onClick={() => {
                       if (!isEditing) {
-                        onSelectChat(chatId);
+                        onSelectChat(chat.id);
                         setIsOpen(false);
                       }
                     }}
                   >
-                    {isEditing ? (
-                      <form onSubmit={(e) => handleRename(e, chatId)} className="chat-edit-form">
-                        <input
-                          type="text"
-                          value={editingTitle}
-                          onChange={(e) => setEditingTitle(e.target.value)}
-                          onClick={(e) => e.stopPropagation()}
-                          autoFocus
-                          onBlur={(e) => handleRename(e, chatId)}
-                        />
-                      </form>
-                    ) : (
-                      <>
-                        <div className="chat-preview">{chat.title || firstMessage}</div>
-                        <div className="chat-timestamp">
-                          {new Date(chat.timestamp).toLocaleString()}
+                    <div className="chat-content">
+                      {isEditing ? (
+                        <div className="chat-edit-form">
+                          <input
+                            type="text"
+                            defaultValue={chat.title || ''}
+                            onChange={(e) => handleTitleChange(e, chat.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => setEditingChatId(null)}
+                            className="edit-complete-button"
+                          >✓</button>
                         </div>
-                        <button 
-                          className="chat-menu-button" 
-                          onClick={(e) => handleMenuClick(e, chatId)}
-                        >
-                          ⋮
-                        </button>
-                        {menuOpenChatId === chatId && (
-                          <div className="chat-menu">
-                            <button onClick={(e) => startEditing(e, chatId, chat.title || firstMessage)}>
-                              Rename
-                            </button>
-                            <button onClick={(e) => handleExport(e, chatId)}>
-                              Export
-                            </button>
-                            <button onClick={(e) => confirmDelete(e, chatId)}>
-                              Delete
-                            </button>
-                            <button onClick={(e) => {
-                              e.stopPropagation();
-                              setMenuOpenChatId(null);
-                            }}>
-                              Cancel
-                            </button>
+                      ) : (
+                        <>
+                          <div className="chat-title">
+                            {chat.title || 'Untitled Chat'}
                           </div>
-                        )}
-                      </>
-                    )}
+                          <div className="chat-timestamp">
+                            {new Date(chat.timestamp).toLocaleString()}
+                          </div>
+                          <button 
+                            className="chat-menu-button" 
+                            onClick={(e) => handleMenuClick(e, chat.id)}
+                          >
+                            ⋮
+                          </button>
+                          {menuOpenChatId === chat.id && (
+                            <div className="chat-menu">
+                              <button onClick={(e) => startEditing(e, chat.id)}>
+                                Rename
+                              </button>
+                              <button onClick={(e) => handleDuplicate(e, chat.id)}>
+                                Duplicate
+                              </button>
+                              <button onClick={(e) => {
+                                e.stopPropagation();
+                                setChatToDelete(chat.id);
+                                setMenuOpenChatId(null);
+                              }}>
+                                Delete
+                              </button>
+                              <button onClick={(e) => handleExport(e, chat.id)}>
+                                Export
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -147,14 +182,11 @@ function ChatHistory({ isOpen, setIsOpen, chats, onSelectChat, currentChatId, on
         </div>
       </SlidePanel>
       
-      {showConfirmation && (
+      {chatToDelete && (
         <ConfirmationBox
-          message={`Delete chat "${chats[chatToDelete]?.title || 'Untitled'}"?`}
-          onConfirm={handleDelete}
-          onCancel={() => {
-            setShowConfirmation(false);
-            setChatToDelete(null);
-          }}
+          message={`Delete chat "${chats.find(chat => chat.id === chatToDelete)?.title || 'Untitled'}"?`}
+          onConfirm={() => handleDeleteConfirm(chatToDelete)}
+          onCancel={() => setChatToDelete(null)}
         />
       )}
 
