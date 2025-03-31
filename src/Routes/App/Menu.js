@@ -13,13 +13,10 @@ function Menu({
   menuCurrentChatId,
   menuOnSelectChat,
   menuOnNewChat,
-  menuOnUpdateChat,
   menuOnDeleteChat,
   menuOnImportChat, 
   settingsObject, 
   setSettingsObject,
-  setLongTermMemory,
-  longTermMemory,
   voices
 }) {
   // Installation prompt
@@ -30,36 +27,6 @@ function Menu({
   const [showHistory, setShowHistory] = useState(false);
   const [showLongTermMemory, setShowLongTermMemory] = useState(false);
   const [showNote, setShowNote] = useState(false);
-  const [note, setNote] = useState('');
-
-  useEffect(()=>{
-    loadSavedNote()
-  },[showNote])
-  useEffect(()=>{
-    loadSavedMemory()
-  },[showLongTermMemory])
-  // Functions to load data from localStorage
-  const loadSavedMemory = () => {
-    const savedMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY);
-    if (savedMemory) {
-      setLongTermMemory(savedMemory);
-    }
-  };
-
-  const loadSavedNote = () => {
-    const savedNote = localStorage.getItem(NOTE_STORAGE_KEY);
-    if (savedNote) {
-      setNote(savedNote);
-    }
-  };
-
-  // Load long term memory and note from localStorage
-  useEffect(() => {
-    loadSavedMemory();
-    loadSavedNote();
-  }, [setLongTermMemory, setNote]);
-
-
 
   // Routing
   const navigate = useNavigate();
@@ -112,7 +79,6 @@ function Menu({
     setShowLongTermMemory(true);
   };
 
-  // console.log("settingsObject", settingsObject)
   // Handle note click (just hides this menu and shows that one)
   const handleNoteClick = () => {
     setIsOpen(false);
@@ -121,7 +87,6 @@ function Menu({
 
   return (
     <>
-
       {/* Menu button at top right */}
       <button className="hamburger-button" onClick={() => setIsOpen(true)}>
         <span className="hamburger-line"></span>
@@ -137,7 +102,6 @@ function Menu({
         currentChatId={menuCurrentChatId}
         onSelectChat={menuOnSelectChat}
         onNewChat={menuOnNewChat}
-        onUpdateChat={menuOnUpdateChat}
         onDeleteChat={menuOnDeleteChat}
         onImportChat={menuOnImportChat}
       />
@@ -145,19 +109,15 @@ function Menu({
       {/* Prompt Preface */}
       <TextInput
         title="Prompt Preface"
-        // Showing the menu or not 
         isOpen={showPromptPreface}
         setIsOpen={(isOpen) => setShowPromptPreface(isOpen)}
-        // The surrent value
         defaultValue={settingsObject.promptPreface || PROMPT_PREFACE}
-        // Update the value in localstorage
         onChange={(value) => {
           const settings = { ...settingsObject, promptPreface: value };
-          localStorage.setItem(STORAGE_KEY  , JSON.stringify(settings));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
           setSettingsObject(settings);
         }}
         showRestoreDefault={true}
-        // Restore default value fromthe string in data.js
         onRestoreDefault={() => {
           const settings = { ...settingsObject, promptPreface: PROMPT_PREFACE };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
@@ -171,24 +131,21 @@ function Menu({
         title="Note"
         isOpen={showNote}
         setIsOpen={setShowNote}
-        defaultValue={note}
+        defaultValue={localStorage.getItem(NOTE_STORAGE_KEY) || ''}
         onChange={(value) => {
-          setNote(value);
           localStorage.setItem(NOTE_STORAGE_KEY, value);
         }}
-        refreshFunction={loadSavedNote}
       />
+
       {/* Long Term Memory */}
       <TextInput
         title="Long Term Memory"
         isOpen={showLongTermMemory}
         setIsOpen={setShowLongTermMemory}
-        defaultValue={longTermMemory}
+        defaultValue={localStorage.getItem(LONG_TERM_MEMORY_KEY) || ''}
         onChange={(value) => {
-          setLongTermMemory(value);
           localStorage.setItem(LONG_TERM_MEMORY_KEY, value);
         }}
-        refreshFunction={loadSavedMemory}
       />
 
       {/* Settings */}
