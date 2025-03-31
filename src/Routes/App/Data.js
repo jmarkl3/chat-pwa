@@ -7,15 +7,16 @@ export const AVAILABLE_COMMANDS = `Available commands:
 1. command replay (number) - Replays the last few messages. For example: "command replay 3".
 2. command repeat (number) - Same as replay.
 3. command say (number) - Same as replay.
-4. command setting auto send (true/false) - Enables or disables auto send.
-5. command setting timeout (seconds) - Sets the auto send timeout.
-6. command setting previous messages (number) - Sets how many previous messages to include.
-7. command setting text to speech (true/false) - Enables or disables text to speech.
-8. command setting save history (true/false) - Enables or disables chat history saving.
-9. command setting inactivity timer (true/false) - Enables or disables the inactivity timer.
-10. command note (text) - Adds text to the note stored in local storage.
-11. note (text) - Directly adds text to your notes with double line breaks.
-12. command speech reset - Resets all text-to-speech settings and state to default.
+4. command replay all - Replays all messages from the start.
+5. command setting auto send (true/false) - Enables or disables auto send.
+6. command setting timeout (seconds) - Sets the auto send timeout.
+7. command setting previous messages (number) - Sets how many previous messages to include.
+8. command setting text to speech (true/false) - Enables or disables text to speech.
+9. command setting save history (true/false) - Enables or disables chat history saving.
+10. command setting inactivity timer (true/false) - Enables or disables the inactivity timer.
+11. command note (text) - Adds text to the note stored in local storage.
+12. note (text) - Directly adds text to your notes with double line breaks.
+13. command speech reset - Resets all text-to-speech settings and state to default.
 `;
 export const FORMAT_PREFACE = `
   Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
@@ -117,5 +118,6 @@ export const DEFAULT_SETTINGS = {
   showSettings: false,
   showPromptPreface: false,
   showLongTermMemory: false,
+  replayAllMessages: false,
   promptPreface: PROMPT_PREFACE
 }

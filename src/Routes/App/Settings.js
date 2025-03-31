@@ -57,6 +57,10 @@ function Settings({
     updateSetting('inactivityTimerEnabled', e.target.checked);
   };
 
+  const handleReplayAllMessagesChange = (e) => {
+    updateSetting('replayAllMessages', e.target.checked);
+  };
+
   const testVoice = () => {
     if (settingsObject.ttsEnabled && settingsObject.selectedVoice) {
       const utterance = new SpeechSynthesisUtterance(testText);
@@ -133,6 +137,16 @@ function Settings({
                     onChange={handleInactivityTimerChange}
                   />
                   Enable inactivity timer
+                </label>
+              </div>
+              <div className="setting-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={settingsObject.replayAllMessages}
+                    onChange={handleReplayAllMessagesChange}
+                  />
+                  Include User Messages in Replay
                 </label>
               </div>
               <div className="setting-item">

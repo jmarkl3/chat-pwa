@@ -154,7 +154,7 @@ function AppHome() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const speakMessages = (startIndex = 0) => {
+  const speakMessages = (startIndex = 0, replayAll = false) => {
     if (!settingsObject.ttsEnabled) return;
     
     // Clear any existing speech
@@ -167,15 +167,14 @@ function AppHome() {
     const speakNext = (index) => {
       if (index < messagesToSpeak.length) {
         const message = messagesToSpeak[index];
-        // Only speak assistant messages
-        if (message.role === 'assistant') {
+        // Only speak assistant messages unless replayAll is true
+        if (message.role === 'assistant' || settingsObject.replayAllMessages || replayAll) {
           speakText(message.content, index);
-        } else {
-          // If not assistant message, skip to next
-          speakNext(index + 1);
         }
-      } else {
-        setIsSpeaking(false);
+        // Move to next message after a short delay
+        setTimeout(() => {
+          speakNext(index + 1);
+        }, 100);
       }
     };
 
@@ -257,7 +256,7 @@ function AppHome() {
     const userMessage = {
       role: 'user',
       content: message,
-      timestamp: new Date().toISOString()
+      timestamp: Date.now()
     };
 
     // Add the user message to localStorage
@@ -345,7 +344,7 @@ function AppHome() {
       const assistantMessage = {
         role: 'assistant',
         content: processedContent,
-        timestamp: new Date().toISOString()
+        timestamp: Date.now()
       };
       
       // Add assistant message to localStorage and messages array state
@@ -362,7 +361,7 @@ function AppHome() {
       const errorMessage = {
         role: 'assistant',
         content: 'Sorry, there was an error processing your request.',
-        timestamp: new Date().toISOString()
+        timestamp: Date.now()
       };
       setMessages(prev => [...prev, errorMessage]);
       speakText(errorMessage.content);
@@ -406,25 +405,35 @@ function AppHome() {
       case 'replay':
       case 'repeat':
       case 'say':
-        // Get number of messages to replay (default to 1 if not specified)
-        const count = findNumberInArgs(args) || 1
-        
-        // Validate count is within reasonable range
-        if (count < 1)
-          count = 1
-
-        // Get the last N assistant messages in reverse chronological order (newest first)
-        const assistantMessages = [...messages]
-          .reverse() // Reverse to get newest first
-          .filter(msg => msg.role === 'assistant')
-          .slice(0, count) // Get the N most recent messages
-
-        if (assistantMessages.length > 0) {
-          // Cancel any ongoing speech
-          window.speechSynthesis.cancel();
-          
-          // Create a function to speak messages sequentially
-          speakMessages(0);
+        if (args[0] === 'all') {
+          // Replay all messages from the start
+          speakMessages(0, true);
+        } else {
+          const count = args[0] ? parseInt(args[0]) : 1;
+          if (!isNaN(count)) {
+            // Find indices of all assistant messages
+            const assistantIndices = messages
+              .map((m, index) => m.role === 'assistant' ? index : -1)
+              .filter(index => index !== -1);
+            
+            if (assistantIndices.length > 0) {
+              // Get the last count indices
+              const targetIndices = assistantIndices.slice(-count);
+              // Start from the earlier message
+              const startIndex = targetIndices[0];
+              speakMessages(startIndex);
+            }
+          } else {
+            // If no count specified, replay most recent assistant message
+            const lastAssistantIndex = messages
+              .map((m, index) => m.role === 'assistant' ? index : -1)
+              .filter(index => index !== -1)
+              .pop();
+              
+            if (lastAssistantIndex !== undefined) {
+              speakText(messages[lastAssistantIndex].content);
+            }
+          }
         }
         break;
 
@@ -704,7 +713,8 @@ function AppHome() {
       inactivityTimerRef.current = setTimeout(() => {
         const inactivityUserMessage = {
           role: 'user',
-          content: INACTIVITY_MESSAGE
+          content: INACTIVITY_MESSAGE,
+          timestamp: Date.now()
         };
         inactivityCountRef.current += 1;
         fetchDeepSeek(inactivityUserMessage);
