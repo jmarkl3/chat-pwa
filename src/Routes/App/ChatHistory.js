@@ -77,9 +77,23 @@ function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat
     try {
       // Load chat data from localStorage
       const chatData = localStorage.getItem(`chat-${chatId}`);
+      await navigator.clipboard.writeText(chatData);
+      alert('Chat exported and copied to clipboard!');
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export chat');
+    }
+  };
+  const handleExportEncrypted = async (e, chatId) => {
+    e.stopPropagation();
+    
+    try {
+      // Load chat data from localStorage
+      const chatData = localStorage.getItem(`chat-${chatId}`);
       if (chatData) {
-        const parsedData = JSON.parse(chatData);
-        const encryptedData = await encryptChatData(parsedData);
+        const parsedChatData = JSON.parse(chatData)
+        const encryptedData = await encryptChatData(parsedChatData);
       await navigator.clipboard.writeText(encryptedData);
       alert('Chat exported and copied to clipboard!');
       }
@@ -93,6 +107,10 @@ function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat
     onDeleteChat(chatId);
     setChatToDelete(null);
     loadChats();
+  };
+
+  const handleImportChat = (data) => {
+    onImportChat(data);
   };
 
   return (
@@ -135,7 +153,7 @@ function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat
                           <button 
                             type="button" 
                             onClick={() => setEditingChatId(null)}
-                            className="edit-complete-button"
+                            className="edit-complete-button no-sleect"
                           >✓</button>
                         </div>
                       ) : (
@@ -170,6 +188,9 @@ function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat
                               <button onClick={(e) => handleExport(e, chat.id)}>
                                 Export
                               </button>
+                              <button onClick={(e) => handleExportEncrypted(e, chat.id)}>
+                                Export Encrypted
+                              </button>
                             </div>
                           )}
                         </>
@@ -193,7 +214,14 @@ function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat
       <ImportChat
         isOpen={showImport}
         setIsOpen={setShowImport}
-        onImport={onImportChat}
+        onImport={handleImportChat}
+        onSuccess={() => {
+          // Reload chats from localStorage
+          const savedChats = localStorage.getItem('chats');
+          if (savedChats) {
+            setChats(JSON.parse(savedChats));
+          }
+        }}
       />
     </>
   );

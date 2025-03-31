@@ -88,7 +88,7 @@ function Menu({
   return (
     <>
       {/* Menu button at top right */}
-      <button className="hamburger-button" onClick={() => setIsOpen(true)}>
+      <button className="hamburger-button no-select" onClick={() => setIsOpen(true)}>
         <span className="hamburger-line"></span>
         <span className="hamburger-line"></span>
         <span className="hamburger-line"></span>
@@ -163,7 +163,7 @@ function Menu({
       {isOpen && (
         <div className="menu-overlay" onClick={() => setIsOpen(false)} />
       )}
-      <div className={`menu-container ${isOpen ? 'open' : ''}`}>
+      <div className={`menu-container no-select ${isOpen ? 'open' : ''}`}>
         <div className="menu-content">
           <h3>Menu</h3>
           <div className="menu-items">

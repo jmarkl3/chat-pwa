@@ -313,8 +313,10 @@ function AppHome() {
       const url = 'https://api.deepseek.com/chat/completions';
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${"sk-6e0ec3f3dc5e42e6b259179411dd2f06"}`,
+        'Authorization': `Bearer ${process.env.REACT_APP_DEEPSEEK_KEY}`,
       };
+
+      console.log("key: ", process.env.REACT_APP_DEEPSEEK_KEY)
 
       const body = JSON.stringify({
         model: 'deepseek-chat',
@@ -861,7 +863,7 @@ function AppHome() {
     // Create chat entry
     const newChat = {
       id: chatId,
-      title: chatData.messages[0]?.content ? ellipsis(chatData.messages[0].content, 20) : 'Imported Chat',
+      title: chatData.title || chatData.messages[0]?.content ? ellipsis(chatData.messages[0].content, 20) + " Imported": 'Imported Chat',
       timestamp: Date.now()
     };
     
@@ -896,7 +898,7 @@ function AppHome() {
       />
       <div className="messages-container" ref={messagesEndRef}>
         {messages.length === 0 && (
-          <div className="welcome-box">
+          <div className="welcome-box no-select">
             <p>Send a message or just say hi</p>
             <button 
               className="say-hi-button"

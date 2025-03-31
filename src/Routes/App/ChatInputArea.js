@@ -54,7 +54,7 @@ function ChatInputArea({
             {isSpeaking ? (isPaused ? '▶️' : '⏸️') : '▶️'}
           </button>
         </div>
-        <button className="submit-button" onClick={handleSubmit}>
+        <button className="submit-button no-select" onClick={handleSubmit}>
           Send
         </button>
       </div>

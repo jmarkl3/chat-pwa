@@ -57,7 +57,7 @@ const Message = ({
         {message}
         <button 
           ref={buttonRef}
-          className="menu-dots"
+          className="menu-dots no-select"
           onClick={() => setShowMenu(!showMenu)}
           aria-label="Message options"
         >

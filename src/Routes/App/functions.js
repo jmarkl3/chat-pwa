@@ -32,3 +32,47 @@ export const findNumberInArgs = (args) => {
     // If not, return the original string
     return str;
 }
+
+// Attempts to extract and parse valid JSON from a text that might contain multiple JSON objects
+// or have invalid prefixes/suffixes
+export function extractAndParseJSON(text) {
+  console.log('Raw response from DeepSeek:', text);
+  
+  // Remove any "json" prefix and trim whitespace
+  let cleanText = text.trim();
+  console.log('Cleaned text:', cleanText);
+
+  // If the text is wrapped in single quotes, remove them
+  if (cleanText.startsWith("'") && cleanText.endsWith("'")) {
+    cleanText = cleanText.slice(1, -1);
+    console.log('Removed single quotes:', cleanText);
+  }
+
+  // Replace escaped single quotes with regular single quotes
+  cleanText = cleanText.replace(/\\'/g, "'");
+  console.log('After fixing escaped quotes:', cleanText);
+
+  // Try to parse the entire text as JSON first
+  try {
+    const parsed = JSON.parse(cleanText);
+    console.log('Successfully parsed complete JSON:', parsed);
+    
+    // Validate the expected structure
+    if (parsed && 
+        typeof parsed === 'object' && 
+        typeof parsed.title === 'string' && 
+        Array.isArray(parsed.messages) &&
+        parsed.messages.every(msg => 
+          msg && 
+          typeof msg === 'object' && 
+          typeof msg.content === 'string' && 
+          ['user', 'assistant'].includes(msg.role)
+        )) {
+      return parsed;
+    }
+  } catch (e) {
+    console.log('Failed to parse complete JSON:', e.message);
+  }
+
+  throw new Error('No valid JSON object found with expected chat format');
+}
