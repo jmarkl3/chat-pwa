@@ -421,20 +421,17 @@ function AppHome() {
       case 'repeat':
       case 'say':
         // Get number of messages to replay (default to 1 if not specified)
-        const count = findNumberInArgs(args);
+        const count = findNumberInArgs(args) || 1
         
         // Validate count is within reasonable range
-        if (count < 1 || count > 10) {
-          // console .log('Invalid replay count. Please use a number between 1 and 10');
-          return;
-        }
+        if (count < 1)
+          count = 1
 
-        // Get the last N assistant messages in chronological order
+        // Get the last N assistant messages in reverse chronological order (newest first)
         const assistantMessages = [...messages]
           .reverse() // Reverse to get newest first
           .filter(msg => msg.role === 'assistant')
           .slice(0, count) // Get the N most recent messages
-          .reverse(); // Reverse again to get oldest first
 
         if (assistantMessages.length > 0) {
           // Cancel any ongoing speech
