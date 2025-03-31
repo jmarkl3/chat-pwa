@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Menu.css';
 import ChatHistory from './ChatHistory';
-import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY, LONG_TERM_MEMORY_KEY, PROMPT_PREFACE_KEY } from './Data';
+import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY, LONG_TERM_MEMORY_KEY } from './Data';
 import TextInput from './TextInput';
 import Settings from './Settings';
 
@@ -18,6 +18,8 @@ function Menu({
   menuOnImportChat, 
   settingsObject, 
   setSettingsObject,
+  setLongTermMemory,
+  longTermMemory,
   voices
 }) {
   // Installation prompt
@@ -28,6 +30,36 @@ function Menu({
   const [showHistory, setShowHistory] = useState(false);
   const [showLongTermMemory, setShowLongTermMemory] = useState(false);
   const [showNote, setShowNote] = useState(false);
+  const [note, setNote] = useState('');
+
+  useEffect(()=>{
+    loadSavedNote()
+  },[showNote])
+  useEffect(()=>{
+    loadSavedMemory()
+  },[showLongTermMemory])
+  // Functions to load data from localStorage
+  const loadSavedMemory = () => {
+    const savedMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY);
+    if (savedMemory) {
+      setLongTermMemory(savedMemory);
+    }
+  };
+
+  const loadSavedNote = () => {
+    const savedNote = localStorage.getItem(NOTE_STORAGE_KEY);
+    if (savedNote) {
+      setNote(savedNote);
+    }
+  };
+
+  // Load long term memory and note from localStorage
+  useEffect(() => {
+    loadSavedMemory();
+    loadSavedNote();
+  }, [setLongTermMemory, setNote]);
+
+
 
   // Routing
   const navigate = useNavigate();
@@ -116,22 +148,20 @@ function Menu({
         // Showing the menu or not 
         isOpen={showPromptPreface}
         setIsOpen={(isOpen) => setShowPromptPreface(isOpen)}
-        // The current value
-        defaultValue={localStorage.getItem(PROMPT_PREFACE_KEY) || PROMPT_PREFACE}
+        // The surrent value
+        defaultValue={settingsObject.promptPreface || PROMPT_PREFACE}
         // Update the value in localstorage
         onChange={(value) => {
-          localStorage.setItem(PROMPT_PREFACE_KEY, value);
           const settings = { ...settingsObject, promptPreface: value };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+          localStorage.setItem(STORAGE_KEY  , JSON.stringify(settings));
           setSettingsObject(settings);
         }}
         showRestoreDefault={true}
-        // Restore default value from the string in data.js
+        // Restore default value fromthe string in data.js
         onRestoreDefault={() => {
-          localStorage.setItem(PROMPT_PREFACE_KEY, PROMPT_PREFACE);
           const settings = { ...settingsObject, promptPreface: PROMPT_PREFACE };
           localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-          setSettingsObject(settings);
+          setSettingsObject(settings)
         }}
         styles={{ zIndex: 1001 }}
       />
@@ -141,20 +171,24 @@ function Menu({
         title="Note"
         isOpen={showNote}
         setIsOpen={setShowNote}
-        defaultValue={localStorage.getItem(NOTE_STORAGE_KEY) || ''}
+        defaultValue={note}
         onChange={(value) => {
+          setNote(value);
           localStorage.setItem(NOTE_STORAGE_KEY, value);
         }}
+        refreshFunction={loadSavedNote}
       />
       {/* Long Term Memory */}
       <TextInput
         title="Long Term Memory"
         isOpen={showLongTermMemory}
         setIsOpen={setShowLongTermMemory}
-        defaultValue={localStorage.getItem(LONG_TERM_MEMORY_KEY) || ''}
+        defaultValue={longTermMemory}
         onChange={(value) => {
+          setLongTermMemory(value);
           localStorage.setItem(LONG_TERM_MEMORY_KEY, value);
         }}
+        refreshFunction={loadSavedMemory}
       />
 
       {/* Settings */}
@@ -176,11 +210,11 @@ function Menu({
         <div className="menu-content">
           <h3>Menu</h3>
           <div className="menu-items">
-            <button className="menu-item" onClick={handleSettingsClick}>Settings</button>
             <button className="menu-item" onClick={handleHistoryClick}>History</button>
-            <button className="menu-item" onClick={handleLongTermMemoryClick}>Long Term Memory</button>
-            <button className="menu-item" onClick={handleNoteClick}>Note</button>
             <button className="menu-item" onClick={() => navigate('/nested-list')}>Lists</button>
+            <button className="menu-item" onClick={handleNoteClick}>Note</button>
+            <button className="menu-item" onClick={handleLongTermMemoryClick}>Memory</button>
+            <button className="menu-item" onClick={handleSettingsClick}>Settings</button>
             <button className="menu-item" onClick={handleInstallClick}>Install App</button>
             <button className="menu-item" onClick={() => setIsOpen()}>Close</button>
           </div>
