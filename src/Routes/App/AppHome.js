@@ -310,13 +310,19 @@ function AppHome() {
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       const timeInfo = `Current time: ${now.toLocaleTimeString()}, ${days[now.getDay()]}, ${now.toLocaleDateString()}`;
 
+      const apiKey = process.env.REACT_APP_DEEPSEEK_KEY;
+      if (!apiKey) {
+        console.error('REACT_APP_DEEPSEEK_KEY is not configured');
+        throw new Error('DeepSeek API key is not configured');
+      }
+
       const url = 'https://api.deepseek.com/chat/completions';
       const headers = {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.REACT_APP_DEEPSEEK_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       };
 
-      console.log("key: ", process.env.REACT_APP_DEEPSEEK_KEY)
+      console.log("API key configured:", apiKey ? "Yes" : "No");
 
       const body = JSON.stringify({
         model: 'deepseek-chat',
