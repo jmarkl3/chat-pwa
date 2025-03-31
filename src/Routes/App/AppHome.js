@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import './AppHome.css'
 import Menu from './Menu'
 import Message from './Message'
-import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, DEFAULT_SETTINGS, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY } from './Data'
+import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, PROMPT_PREFACE_KEY, DEFAULT_SETTINGS, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, TEMP_MEMORY_KEY } from './Data'
 import { findNumberInArgs, removeSpecialCharacters, ellipsis } from './functions'
 import ChatInputArea from './ChatInputArea'
 
@@ -26,6 +26,8 @@ function AppHome() {
 
   // For savin the chat or loading new ones
   const chatIdRef = useRef(null);
+  // For the current working list
+  const workingListIDRef = useRef(null);
   // For replay (maybe not needed naymore)
   const lastSpokenTextRef = useRef('');
   // For the input area so it can be cleared
@@ -249,7 +251,7 @@ function AppHome() {
     await fetchDeepSeek(userMessage);
   }
 
-  // lists, temp mem, long term mem, the list form workingListID, FORMAT_PREFACE, settingsObject.promptPreface, listsContext, tempMemContext
+  // the list form promptPreface
   const createContestString = () => {
     let contextString = ""
 
@@ -257,12 +259,27 @@ function AppHome() {
     const listsStr = localStorage.getItem('note-lists') || '[]';
     contextString += "lists: "+listsStr+"\n"
 
+    // If there's a working list, add its data
+    if (workingListIDRef.current) {
+      const listData = localStorage.getItem(`note-list-${workingListIDRef.current}`);
+      if (listData) {
+        contextString += `working list data: ${listData}\n`;
+      }
+    }
+
     // Retained over all chats
-    const currentMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY) || '';
-    contextString += "retained mem: "+currentMemory+"\n"
+    const retainedMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY) || '';
+    contextString += "retained mem: "+retainedMemory+"\n"
 
     // Specific to this chat
     contextString += "temp mem: "+tempMem+"\n"
+    
+    // Response format instructions
+    contextString += "Always follow this: "+FORMAT_PREFACE+"\n"
+
+    // Custom prompt preface
+    const promptPreface = localStorage.getItem(PROMPT_PREFACE_KEY) || PROMPT_PREFACE;
+    contextString += promptPreface+"\n";
     
     return contextString
   }
@@ -433,6 +450,11 @@ function AppHome() {
           localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
           // console .log('Added to note:', noteText);
         }
+        break;
+
+      case 'set working list':
+        // Set the working list ID to the first argument or null if no arguments
+        workingListIDRef.current = args[0] || null;
         break;
 
       default:

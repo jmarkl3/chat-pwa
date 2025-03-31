@@ -37,6 +37,7 @@ export const FORMAT_PREFACE = `
   5. "create list" - creates a new list with name from first variable
   6. "add to list" - adds items to a list. Variables: [listId, path array, items to add...]
   7. "load list" - loads a list into tempMem. Variables: [listId]
+  8. "set working list" - This list's current data will always be sent for context awareness'. Variables: [listId]. Set to null to clear.
 `;
 export const PROMPT_PREFACE = `
   This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
@@ -103,6 +104,7 @@ export const PROMPT_PREFACE = `
   ask the user to solve basic math problems in their head like multiplication or multiplication etc
   also ask them riddles and logic word puzzles
 `;
+export const PROMPT_PREFACE_KEY = 'chat-app-prompt-preface';
 export const DEFAULT_SETTINGS = {
   ttsEnabled: true,
   selectedVoice: '',
