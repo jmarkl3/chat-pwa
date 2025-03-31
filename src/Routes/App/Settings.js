@@ -203,6 +203,19 @@ function Settings({
                     </label>
                   </div>
                   <div className="setting-item">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={settingsObject.filterSpecialCharacters}
+                        onChange={(e) => updateSetting('filterSpecialCharacters', e.target.checked)}
+                      />
+                      Filter special characters in speech
+                    </label>
+                    <div className="setting-description">
+                      Remove special characters like *, -, and / when speaking text
+                    </div>
+                  </div>
+                  <div className="setting-item">
                       <div>
                         Test text:
                       </div>

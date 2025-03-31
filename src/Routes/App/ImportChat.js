@@ -93,16 +93,15 @@ function ImportChat({ isOpen, setIsOpen, onImport, onSuccess }) {
           content: `You are a JSON formatting program. Your only job is to take the conversation text and output it as a single JSON string.
           Rules:
           1. ONLY output the JSON string, nothing else
-          2. The string must be wrapped in single quotes
-          3. Use JSON.stringify format that can be parsed with JSON.parse
+          2. Use JSON.stringify format that can be parsed with JSON.parse
           4. Include all messages in chronological order
           5. Detect the role (user/assistant) based on context
           6. Create a relevant title
 
           Example input:
-          User: How's the weather?
-          Assistant: It's sunny!
-          User: Great!
+          How's the weather?
+          It's sunny!
+          Great!
 
           Example output (exactly like this):
           '{
@@ -116,7 +115,31 @@ function ImportChat({ isOpen, setIsOpen, onImport, onSuccess }) {
         },
         {
           role: 'user',
-          content: importText.trim()
+          content: `
+            Please convert this to a chat json:
+            Good morning
+            Good morning would you like to oplay a game?
+            Sure
+            Great! lets play the connect two game. ready? the words are dog and cat
+          `
+        },
+        {
+          role: 'assistant',
+          content: `
+          {
+            "title": "Connect 2 game: cat dog",
+            "messages": [
+              {"role": "user", "content": "Good morning"},
+              {"role": "assistant", "content": "Good morning would you like to oplay a game?"},
+              {"role": "user", "content": "Sure"}
+              {"role": "assistant", "content": "Great! lets play the connect two game. ready? the words are dog and cat"}
+            ]
+          }
+          `
+        },
+        {
+          role: 'user',
+          content: "Please convert this to a chat json exaclty like before:\n\n "+importText.trim()
         }
       ];
       const jsonString = await fetchDeepSeekResponse(messages);

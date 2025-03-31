@@ -135,8 +135,11 @@ function AppHome() {
       return;
     }
 
+    // Apply text filtering if enabled in settings
+    const finalText = settingsObject.filterSpecialCharacters ? removeSpecialCharacters(text) : text;
+
     setIsSpeaking(true);
-    const utterance = new SpeechSynthesisUtterance(text);
+    const utterance = new SpeechSynthesisUtterance(finalText);
     const voice = voices.find(v => v.name === settingsObject.selectedVoice);
     if (voice) {
       utterance.voice = voice;
@@ -322,7 +325,8 @@ function AppHome() {
         'Authorization': `Bearer ${apiKey}`,
       };
 
-      console.log("API key configured:", apiKey ? "Yes" : "No");
+      console.log("key: ", process.env.REACT_APP_DEEPSEEK_KEY)
+      console.log("process.env: ", process.env)
 
       const body = JSON.stringify({
         model: 'deepseek-chat',

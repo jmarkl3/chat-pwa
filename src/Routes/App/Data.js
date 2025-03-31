@@ -119,5 +119,6 @@ export const DEFAULT_SETTINGS = {
   showPromptPreface: false,
   showLongTermMemory: false,
   replayAllMessages: false,
-  promptPreface: PROMPT_PREFACE
+  promptPreface: PROMPT_PREFACE,
+  filterSpecialCharacters: true
 }
