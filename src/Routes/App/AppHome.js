@@ -71,9 +71,12 @@ function AppHome() {
 
   // Loading settings chats and voices
   useEffect(() => {
-    // Load the settings from local storage
-    loadSettings()
-    
+    // Load settings
+    const savedSettings = localStorage.getItem(STORAGE_KEY);
+    if (savedSettings) {
+      setSettingsObject(JSON.parse(savedSettings));
+    }
+
     // Get available voices
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
@@ -81,11 +84,13 @@ function AppHome() {
       setVoices(availableVoices);
     };
 
-    loadVoices();
+    // Listen for voices to be loaded
     window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
 
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
+      resetSpeech();
     };
   }, []);
 
@@ -107,6 +112,21 @@ function AppHome() {
   // #endregion loading
 
   // #region tts
+  const resetSpeech = () => {
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    // Reset state
+    setIsSpeaking(false);
+    setIsPaused(false);
+    
+    // Reset refs
+    lastSpokenTextRef.current = '';
+    
+    // Remove any event listeners (will be re-added if needed)
+    window.speechSynthesis.onvoiceschanged = null;
+  }
+
   const speakText = async (text, index = 0) => {
     if (!settingsObject.ttsEnabled) return;
 
@@ -455,6 +475,12 @@ function AppHome() {
       case 'set working list':
         // Set the working list ID to the first argument or null if no arguments
         workingListIDRef.current = args[0] || null;
+        break;
+
+      case 'speech':
+        if (args[0] === 'reset') {
+          resetSpeech();
+        }
         break;
 
       default:

@@ -15,6 +15,7 @@ export const AVAILABLE_COMMANDS = `Available commands:
 9. command setting inactivity timer (true/false) - Enables or disables the inactivity timer.
 10. command note (text) - Adds text to the note stored in local storage.
 11. note (text) - Directly adds text to your notes with double line breaks.
+12. command speech reset - Resets all text-to-speech settings and state to default.
 `;
 export const FORMAT_PREFACE = `
   Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
