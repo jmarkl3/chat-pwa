@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import './Menu.css';
 import ChatHistory from './ChatHistory';
 import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY, LONG_TERM_MEMORY_KEY } from './Data';
@@ -8,15 +7,7 @@ import TextInput from './TextInput';
 import Settings from './Settings';
 import { setMenuOpen } from '../../store/menuSlice';
 
-function Menu({ 
-  menuChats,
-  menuCurrentChatId,
-  menuOnSelectChat,
-  menuOnNewChat,
-  menuOnDeleteChat,
-  menuOnImportChat,
-  voices
-}) {
+function Menu({ voices }) {
   const dispatch = useDispatch();
   const { isMenuOpen } = useSelector(state => state.menu);
 
@@ -53,7 +44,7 @@ function Menu({
     setDeferredPrompt(null);
   };
 
-  // Handle settings click (just hides this menu and shows that one)
+  // Handle settings click
   const handleSettingsClick = () => {
     dispatch(setMenuOpen(false));
     setShowSettingsMenu(true);
@@ -139,12 +130,6 @@ function Menu({
       <ChatHistory
         isOpen={showHistory}
         setIsOpen={setShowHistory}
-        chats={menuChats}
-        currentChatId={menuCurrentChatId}
-        onSelectChat={menuOnSelectChat}
-        onNewChat={menuOnNewChat}
-        onDeleteChat={menuOnDeleteChat}
-        onImportChat={menuOnImportChat}
       />
     </>
   );

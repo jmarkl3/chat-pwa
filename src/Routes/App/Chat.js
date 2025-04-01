@@ -30,8 +30,6 @@ export default function Chat({chatIdRef, scrollToBottom}) {
   const workingListIDRef = useRef(null);
   // For replay (maybe not needed naymore)
   const lastSpokenTextRef = useRef('');
-  // For the input area so it can be cleared
-  const inputRef = useRef(null);
   // For the inactivity timer so user can be reminded
   const inactivityTimerRef = useRef(null);
   // For the inactivity count so it only reminds twice
@@ -217,16 +215,24 @@ export default function Chat({chatIdRef, scrollToBottom}) {
   // #region sending and recieving
 
   // When text is being sent
-  const handleSubmit = async () => {
-    const userInput = inputRef.current.value.trim();
-    if (!userInput) return;
+  const handleSubmit = () => {
+    const input = document.getElementById('chat-input');
+    if (!input) return;
 
-    // Clear input immediately
-    inputRef.current.value = '';
+    const text = input.value.trim();
+    if (!text) return;
+
+    // Clear the input
+    input.value = '';
+
+    // Reset any auto-send timers
+    if (input.onChange) {
+      input.onChange({ target: input });
+    }
 
     // Process input and only send to API if it's not a command
-    if (processInput(userInput)) {
-      await handleSendMessage(userInput);
+    if (processInput(text)) {
+      handleSendMessage(text);
     }
   };
 
@@ -930,7 +936,6 @@ export default function Chat({chatIdRef, scrollToBottom}) {
         )}
       </div>
       <ChatInputArea
-        inputRef={inputRef}
         lastSpokenTextRef={lastSpokenTextRef}
         isSpeaking={isSpeaking}
         isPaused={isPaused}

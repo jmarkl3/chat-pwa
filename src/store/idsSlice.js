@@ -14,21 +14,10 @@ export const mainSlice = createSlice({
     },
     setListID: (state, action) => {
       state.listID = action.payload;
-    },
-    newChat: (state) => {
-      state.chatID = null;
-    },
-    deleteChat: (state, action) => {
-      if (state.chatID === action.payload) {
-        state.chatID = null;
-      }
-    },
-    importChat: (state, action) => {
-      const chatData = action.payload;
-      state.chatID = chatData.id;
     }
   }
 });
 
-export const { setChatID, setListID, newChat, deleteChat, importChat } = mainSlice.actions;
+export const { setChatID, setListID } = mainSlice.actions;
+
 export default mainSlice.reducer;

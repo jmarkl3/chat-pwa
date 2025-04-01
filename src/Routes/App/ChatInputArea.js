@@ -2,7 +2,6 @@ import React, { useRef } from 'react'
 import { useSelector } from 'react-redux';
 
 function ChatInputArea({
-  inputRef,
   lastSpokenTextRef,
   isSpeaking,
   isPaused,
@@ -15,29 +14,38 @@ function ChatInputArea({
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit();
+      const input = document.getElementById('chat-input');
+      if (input) {
+        handleSubmit();
+      }
     }
   };
 
   const handleInputChange = () => {
-    if (!settings.autoSendEnabled || !inputRef.current) return;
+    if (!settings.autoSendEnabled) return;
+
+    const input = document.getElementById('chat-input');
+    if (!input) return;
 
     if (autoSendTimerRef.current) {
       clearTimeout(autoSendTimerRef.current);
     }
 
-    const text = inputRef.current.value.trim();
+    console.log(settings.autoSendTimeout)
+
+    const text = input.value.trim();
     if (text) {
       autoSendTimerRef.current = setTimeout(() => {
         handleSubmit();
-      }, settings.autoSendTimeout || 3000);
+      }, (settings.autoSendTimeout * 1000) || 5000);
     }
   };
+
 
   return (
     <div className="input-container">
       <textarea
-        ref={inputRef}
+        id="chat-input"
         placeholder="Type your message..."
         onKeyDown={handleKeyPress}
         onChange={handleInputChange}
@@ -50,12 +58,14 @@ function ChatInputArea({
             disabled={!lastSpokenTextRef.current && !isSpeaking}
             title={isSpeaking ? (isPaused ? 'Resume speech' : 'Pause speech') : 'Replay last speech'}
           >
-            {isSpeaking ? (isPaused ? '▶️' : '⏸️') : '▶️'}
+            {isSpeaking ? (isPaused ? '▶' : '⏸') : '🔁'}
           </button>
         </div>
-        <button className="submit-button no-select" onClick={handleSubmit}>
-          Send
-        </button>
+        <div className="right-buttons">
+          <button className="submit-button no-select" onClick={handleSubmit}>
+            Send
+          </button>
+        </div>
       </div>
     </div>
   )
