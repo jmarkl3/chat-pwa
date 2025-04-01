@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './Message.css';
+import TextInput from './TextInput';
 
 const Message = ({ 
-  message, 
-  type, 
+  messageData, 
   selectedVoice, 
   voices, 
   onSpeakFromHere, 
   onAddToShortTermMemory 
 }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const [showRawMessage, setShowRawMessage] = useState(false);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -31,7 +32,7 @@ const Message = ({
 
   const handleSpeakMessage = () => {
     if (selectedVoice) {
-      const utterance = new SpeechSynthesisUtterance(message);
+      const utterance = new SpeechSynthesisUtterance(messageData.content);
       const voice = voices.find(v => v.name === selectedVoice);
       if (voice) {
         utterance.voice = voice;
@@ -47,14 +48,19 @@ const Message = ({
   };
 
   const handleAddToMemory = () => {
-    onAddToShortTermMemory(message);
+    onAddToShortTermMemory(messageData.content);
+    setShowMenu(false);
+  };
+
+  const handleViewRaw = () => {
+    setShowRawMessage(true);
     setShowMenu(false);
   };
 
   return (
-    <div className={`message ${type}`}>
+    <div className={`message ${messageData.role}`}>
       <div className="message-content">
-        {message}
+        {messageData.content}
         <button 
           ref={buttonRef}
           className="menu-dots no-select"
@@ -68,9 +74,19 @@ const Message = ({
             <button onClick={handleSpeakMessage}>Read message</button>
             <button onClick={handleSpeakFromHere}>Speak from here</button>
             <button onClick={handleAddToMemory}>Add to short term memory</button>
+            <button onClick={handleViewRaw}>View raw message</button>
           </div>
         )}
       </div>
+      <TextInput
+        title="Raw Message Data"
+        isOpen={showRawMessage}
+        setIsOpen={setShowRawMessage}
+        defaultValue={messageData}
+        onChange={() => {}}
+        showRestoreDefault={false}
+        type="json"
+      />
     </div>
   );
 };

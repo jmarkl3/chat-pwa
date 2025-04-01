@@ -334,7 +334,10 @@ function AppHome() {
           // The contest like the preface, memory, date, etc
           { role: 'user', content: createContestString() },
           // The number of previous messages to include is in the settings
-          ...messages.slice(-settingsObject.previousMessagesCount || -4),
+          ...messages.slice(-settingsObject.previousMessagesCount || -4).map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
           userMessage,
           { role: 'system', content: FORMAT_PREFACE }
         ],
@@ -352,11 +355,13 @@ function AppHome() {
       }
 
       const data = await response.json();
-      const processedContent = processResponse(data.choices[0].message.content);
+      const responseContent = data?.choices[0]?.message?.content
+      const processedContent = processResponse(responseContent);
       const assistantMessage = {
         role: 'assistant',
         content: processedContent,
-        timestamp: Date.now()
+        contentRaw: responseContent,
+        timestamp: Date.now(),
       };
       
       // Add assistant message to localStorage and messages array state
@@ -921,8 +926,7 @@ function AppHome() {
         {messages.map((message, index) => (
           <Message
             key={index}
-            message={message.content}
-            type={message.role}
+            messageData={message}
             selectedVoice={settingsObject.selectedVoice}
             voices={voices}
             onSpeakFromHere={() => speakMessages(index)}
