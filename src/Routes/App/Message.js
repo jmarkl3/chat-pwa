@@ -5,7 +5,6 @@ import TextInput from './TextInput';
 const Message = ({ 
   messageData, 
   selectedVoice, 
-  voices, 
   onSpeakFromHere, 
   onAddToShortTermMemory 
 }) => {
@@ -33,6 +32,7 @@ const Message = ({
   const handleSpeakMessage = () => {
     if (selectedVoice) {
       const utterance = new SpeechSynthesisUtterance(messageData.content);
+      const voices = window.speechSynthesis.getVoices();
       const voice = voices.find(v => v.name === selectedVoice);
       if (voice) {
         utterance.voice = voice;

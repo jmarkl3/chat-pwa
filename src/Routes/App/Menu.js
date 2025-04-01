@@ -7,7 +7,7 @@ import TextInput from './TextInput';
 import Settings from './Settings';
 import { setMenuOpen } from '../../store/menuSlice';
 
-function Menu({ voices }) {
+function Menu() {
   const dispatch = useDispatch();
   const { isMenuOpen } = useSelector(state => state.menu);
 
@@ -101,7 +101,6 @@ function Menu({ voices }) {
 
       {/* Settings */}
       <Settings
-        voices={voices || []}
         isOpen={showSettingsMenu}
         setIsOpen={setShowSettingsMenu}
         setShowPromptPreface={()=>{setShowPromptPreface(true); dispatch(setMenuOpen(false));}}

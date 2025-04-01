@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux';
-import { setChatID, setListID } from '../../store/idsSlice';
+import { setChatID } from '../../store/idsSlice';
 import './AppHome.css'
-import Menu from './Menu'
 import Message from './Message'
 import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, PROMPT_PREFACE_KEY, DEFAULT_SETTINGS, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, TEMP_MEMORY_KEY } from './Data'
 import { findNumberInArgs, removeSpecialCharacters, ellipsis } from './functions'
@@ -10,21 +9,14 @@ import ChatInputArea from './ChatInputArea'
 
 export default function Chat({chatIdRef, scrollToBottom}) {
   const dispatch = useDispatch();
-  const { chatID, listID } = useSelector(state => state.main);
+  const { chatID } = useSelector(state => state.main);
   const { settings } = useSelector(state => state.menu);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  // Shows the Menu
-  const [showMenu, setShowMenu] = useState(false);
-  // This should be loaded from local storaapp.ge, reloaded on change, and sent to the system
   const [tempMem, setTempMem] = useState(null);
-  // For the tts
   const [isPaused, setIsPaused] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  // The chats for the history, this should be in the history component
   const [chats, setChats] = useState({});
-  // Used in the tts
-  const [voices, setVoices] = useState([]);
 
   // For the current working list
   const workingListIDRef = useRef(null);
@@ -88,20 +80,8 @@ export default function Chat({chatIdRef, scrollToBottom}) {
 
   // Loading settings chats and voices
   useEffect(() => {
-    // Get available voices
-    const loadVoices = () => {
-      const availableVoices = window.speechSynthesis.getVoices();
-      // console.log('Available voices:', availableVoices);
-      setVoices(availableVoices);
-    };
-
-    // Listen for voices to be loaded
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
-      resetSpeech();
     };
   }, []);
 
@@ -123,7 +103,7 @@ export default function Chat({chatIdRef, scrollToBottom}) {
     window.speechSynthesis.onvoiceschanged = null;
   }
 
-  const speakText = async (text, index = 0) => {
+  const speakText = async (text) => {
     if (!settings.ttsEnabled) return;
 
     // If already speaking, add to queue
@@ -136,9 +116,12 @@ export default function Chat({chatIdRef, scrollToBottom}) {
 
     setIsSpeaking(true);
     const utterance = new SpeechSynthesisUtterance(finalText);
-    const voice = voices.find(v => v.name === settings.selectedVoice);
-    if (voice) {
-      utterance.voice = voice;
+    if (settings.selectedVoice) {
+      const voices = window.speechSynthesis.getVoices();
+      const voice = voices.find(v => v.name === settings.selectedVoice);
+      if (voice) {
+        utterance.voice = voice;
+      }
     }
     
     utterance.onend = () => {
@@ -146,11 +129,12 @@ export default function Chat({chatIdRef, scrollToBottom}) {
     };
 
     utterance.onerror = (event) => {
-      // console.log('Speech error:', event);
+      console.error('Speech error:', event);
       setIsSpeaking(false);
     };
 
     window.speechSynthesis.speak(utterance);
+    lastSpokenTextRef.current = finalText;
   };
 
   const speakMessages = (startIndex = 0, replayAll = false) => {
@@ -844,7 +828,6 @@ export default function Chat({chatIdRef, scrollToBottom}) {
     setMessages([]);
     chatIdRef.current = null;
     dispatch(setChatID(null));
-    setShowMenu(false);
   };
   
 
@@ -895,15 +878,6 @@ export default function Chat({chatIdRef, scrollToBottom}) {
   return (
     <div className="app-container">
 
-      <Menu 
-        isOpen={showMenu} 
-        setIsOpen={(isOpen) => setShowMenu(isOpen)}
-        menuOnSelectChat={(id) => dispatch(setChatID(id))}
-        menuOnNewChat={handleNewChat}
-        menuOnDeleteChat={handleDeleteChat}
-        menuOnImportChat={handleImportChat}
-        voices={voices}
-      />
       <div className="messages-container" id="messages-container">
         {messages.length === 0 && (
           <div className="welcome-box no-select">
@@ -921,7 +895,6 @@ export default function Chat({chatIdRef, scrollToBottom}) {
             key={index}
             messageData={message}
             selectedVoice={settings.selectedVoice}
-            voices={voices}
             onSpeakFromHere={() => speakMessages(index)}
           />
         ))}

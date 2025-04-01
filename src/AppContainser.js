@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Chat from './Routes/App/Chat';
 import NestedList from './Routes/NestedList/NestedList';
+import Menu from './Routes/App/Menu';
 import { loadSettings } from './store/menuSlice';
 
 /*
@@ -31,7 +32,15 @@ function AppContainser() {
 
     // Load settings from localStorage on mount
     useEffect(() => {
-        dispatch(loadSettings());
+        const storedSettings = localStorage.getItem('settings');
+        if (storedSettings) {
+            try {
+                const settings = JSON.parse(storedSettings);
+                dispatch(loadSettings(settings));
+            } catch (error) {
+                console.error('Error loading settings:', error);
+            }
+        }
     }, [dispatch]);
 
     // Update chatIdRef when chatID changes
@@ -42,25 +51,27 @@ function AppContainser() {
 
     // Scroll messages to bottom
     const scrollToBottom = () => {
-        const messagesContainer = document.getElementById('messages-container');
-        if (messagesContainer) {
-            setTimeout(() => {
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }, 100);
+        const element = document.querySelector('.message-list');
+        if (element) {
+            element.scrollTop = element.scrollHeight;
         }
     };
 
     return (
-        <>
+        <div className="app-container">
+            <Menu />
             {componantDisplay === "chat" ?
                 <Chat
                     chatIdRef={chatIdRef}
                     scrollToBottom={scrollToBottom}
                 />
                 :
-                <NestedList />
+                componantDisplay === "list" ?
+                    <NestedList />
+                    :
+                    <div>Error: Unknown component</div>
             }
-        </>
+        </div>
     );
 }
 

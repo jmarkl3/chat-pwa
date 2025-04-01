@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import SlidePanel from './SlidePanel';
 import './Settings.css';
 import { updateSetting } from '../../store/menuSlice';
 
 function Settings({ 
-  voices,
   isOpen,
   setIsOpen,
   setShowPromptPreface,
@@ -14,10 +13,28 @@ function Settings({
 }) {
   const dispatch = useDispatch();
   const { settings } = useSelector(state => state.menu);
+  const [voices, setVoices] = useState([]);
   const [testText, setTestText] = useState("This is a test of the voice");
   const [generalOpen, setGeneralOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      if (availableVoices.length > 0) {
+        setVoices(availableVoices);
+      }
+    };
+
+    loadVoices();
+
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, []);
 
   const handleSettingChange = (settingName, value) => {
     dispatch(updateSetting({ name: settingName, value }));
