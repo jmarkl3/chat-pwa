@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
-import { useSelector } from 'react-redux';
+import React, { useState, useRef, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import Chat from './Routes/App/Chat';
 import NestedList from './Routes/NestedList/NestedList';
+import { loadSettings } from './store/menuSlice';
 
 /*
     This will have the menu in it
@@ -22,18 +23,39 @@ import NestedList from './Routes/NestedList/NestedList';
 
 */
 function AppContainser() {
-
     const [componantDisplay, setComponantDisplay] = useState("chat");
-    const [showMenu, setShowMenu] = useState();
     const chatIdRef = useRef(null);
+    const dispatch = useDispatch();
     
     const { chatID, listID } = useSelector(state => state.main);
+
+    // Load settings from localStorage on mount
+    useEffect(() => {
+        dispatch(loadSettings());
+    }, [dispatch]);
+
+    // Update chatIdRef when chatID changes
+    useEffect(() => {
+        chatIdRef.current = chatID;
+        scrollToBottom();
+    }, [chatID]);
+
+    // Scroll messages to bottom
+    const scrollToBottom = () => {
+        const messagesContainer = document.getElementById('messages-container');
+        if (messagesContainer) {
+            setTimeout(() => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }, 100);
+        }
+    };
 
     return (
         <>
             {componantDisplay === "chat" ?
                 <Chat
                     chatIdRef={chatIdRef}
+                    scrollToBottom={scrollToBottom}
                 />
                 :
                 <NestedList />

@@ -1,4 +1,5 @@
 import React, { useRef } from 'react'
+import { useSelector } from 'react-redux';
 
 function ChatInputArea({
   inputRef,
@@ -6,9 +7,9 @@ function ChatInputArea({
   isSpeaking,
   isPaused,
   togglePause,
-  handleSubmit, 
-  settingsObject,
+  handleSubmit
 }) {
+  const { settings } = useSelector(state => state.menu);
   const autoSendTimerRef = useRef(null);
 
   const handleKeyPress = (e) => {
@@ -19,19 +20,17 @@ function ChatInputArea({
   };
 
   const handleInputChange = () => {
-    // Only set timer if auto-send is enabled and there's text
-    if (settingsObject.autoSendEnabled && inputRef.current.value.trim()) {
-      // Clear any existing timer
-      if (autoSendTimerRef.current) {
-        clearTimeout(autoSendTimerRef.current);
-      }
-      
-      // Set new timer using the timeout from settings
+    if (!settings.autoSendEnabled || !inputRef.current) return;
+
+    if (autoSendTimerRef.current) {
+      clearTimeout(autoSendTimerRef.current);
+    }
+
+    const text = inputRef.current.value.trim();
+    if (text) {
       autoSendTimerRef.current = setTimeout(() => {
-        if (inputRef.current.value.trim()) {
-          handleSubmit();
-        }
-      }, settingsObject.autoSendTimeout * 1000);
+        handleSubmit();
+      }, settings.autoSendTimeout || 3000);
     }
   };
 

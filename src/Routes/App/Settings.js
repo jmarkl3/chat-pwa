@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import SlidePanel from './SlidePanel';
 import './Settings.css';
-
-const STORAGE_KEY = 'chat-app-settings';
+import { updateSetting } from '../../store/menuSlice';
 
 function Settings({ 
-  settingsObject,
-  setSettingsObject,
   voices,
   isOpen,
   setIsOpen,
@@ -14,64 +12,62 @@ function Settings({
   setShowLongTermMemory,
   setShowNote
 }) {
+  const dispatch = useDispatch();
+  const { settings } = useSelector(state => state.menu);
   const [testText, setTestText] = useState("This is a test of the voice");
   const [generalOpen, setGeneralOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
 
-  const updateSetting = (settingName, value) => {
-    setSettingsObject(prevSettings => {
-      const newSettings = { ...prevSettings, [settingName]: value };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-      return newSettings;
-    });
+  const handleSettingChange = (settingName, value) => {
+    dispatch(updateSetting({ name: settingName, value }));
   };
 
   const handleTtsChange = (e) => {
-    updateSetting('ttsEnabled', e.target.checked);
+    handleSettingChange('ttsEnabled', e.target.checked);
   };
 
   const handleVoiceChange = (e) => {
-    updateSetting('selectedVoice', e.target.value);
+    handleSettingChange('selectedVoice', e.target.value);
   };
 
   const handleAutoSendChange = (e) => {
-    updateSetting('autoSendEnabled', e.target.checked);
+    handleSettingChange('autoSendEnabled', e.target.checked);
   };
 
   const handleAutoSendTimeoutChange = (e) => {
     const newValue = e.target.value === '' ? 5 : parseInt(e.target.value);
-    updateSetting('autoSendTimeout', newValue);
+    handleSettingChange('autoSendTimeout', newValue);
   };
 
   const handlePreviousMessagesCountChange = (e) => {
     const newValue = e.target.value === '' ? 10 : parseInt(e.target.value);
-    updateSetting('previousMessagesCount', newValue);
+    handleSettingChange('previousMessagesCount', newValue);
   };
 
   const handleSaveHistoryChange = (e) => {
-    updateSetting('saveHistoryEnabled', e.target.checked);
+    handleSettingChange('saveHistoryEnabled', e.target.checked);
   };
 
   const handleInactivityTimerChange = (e) => {
-    updateSetting('inactivityTimerEnabled', e.target.checked);
+    handleSettingChange('inactivityTimerEnabled', e.target.checked);
+  };
+
+  const handleFilterSpecialCharactersChange = (e) => {
+    handleSettingChange('filterSpecialCharacters', e.target.checked);
   };
 
   const handleReplayAllMessagesChange = (e) => {
-    updateSetting('replayAllMessages', e.target.checked);
+    handleSettingChange('replayAllMessages', e.target.checked);
   };
 
   const testVoice = () => {
-    if (settingsObject.ttsEnabled && settingsObject.selectedVoice) {
-      const utterance = new SpeechSynthesisUtterance(testText);
-      const voice = voices.find(v => v.name === settingsObject.selectedVoice);
-      if (voice) {
-        utterance.voice = voice;
-        window.speechSynthesis.speak(utterance);
-      }
-    } else {
-      alert('Please enable TTS and select a voice first');
+    const utterance = new SpeechSynthesisUtterance(testText);
+    const voice = voices.find(v => v.name === settings.selectedVoice);
+    if (voice) {
+      utterance.voice = voice;
     }
+    window.speechSynthesis.speak(utterance);
   };
 
   const toggleSection = (section) => {
@@ -107,12 +103,12 @@ function Settings({
                 <label>
                   <input
                     type="checkbox"
-                    checked={settingsObject.autoSendEnabled}
+                    checked={settings.autoSendEnabled}
                     onChange={handleAutoSendChange}
                   />
                   Auto send messages
                 </label>
-                {settingsObject.autoSendEnabled && (
+                {settings.autoSendEnabled && (
                   <div className="setting-item" style={{ marginLeft: '20px', marginTop: '8px' }}>
                     <label style={{ display: 'flex', alignItems: 'center' }}>
                       <span>Auto-send timeout:</span>
@@ -120,7 +116,7 @@ function Settings({
                         type="number"
                         min="1"
                         max="30"
-                        value={settingsObject.autoSendTimeout}
+                        value={settings.autoSendTimeout}
                         onChange={handleAutoSendTimeoutChange}
                         className="auto-send-timeout"
                       />
@@ -133,7 +129,7 @@ function Settings({
                 <label>
                   <input
                     type="checkbox"
-                    checked={settingsObject.inactivityTimerEnabled}
+                    checked={settings.inactivityTimerEnabled}
                     onChange={handleInactivityTimerChange}
                   />
                   Enable inactivity timer
@@ -143,7 +139,7 @@ function Settings({
                 <label>
                   <input
                     type="checkbox"
-                    checked={settingsObject.replayAllMessages}
+                    checked={settings.replayAllMessages}
                     onChange={handleReplayAllMessagesChange}
                   />
                   Include User Messages in Replay
@@ -153,7 +149,7 @@ function Settings({
                 <label>
                   <input
                     type="checkbox"
-                    checked={settingsObject.saveHistoryEnabled}
+                    checked={settings.saveHistoryEnabled}
                     onChange={handleSaveHistoryChange}
                   />
                   Save chat history
@@ -177,19 +173,19 @@ function Settings({
                 <label>
                   <input
                     type="checkbox"
-                    checked={settingsObject.ttsEnabled}
+                    checked={settings.ttsEnabled}
                     onChange={handleTtsChange}
                   />
                   Enable text-to-speech
                 </label>
               </div>
-              {settingsObject.ttsEnabled && (
+              {settings.ttsEnabled && (
                 <>
                   <div className="setting-item">
                     <label>
                       Voice:
                       <select 
-                        value={settingsObject.selectedVoice} 
+                        value={settings.selectedVoice} 
                         onChange={handleVoiceChange}
                         className="voice-select"
                       >
@@ -206,8 +202,8 @@ function Settings({
                     <label>
                       <input
                         type="checkbox"
-                        checked={settingsObject.filterSpecialCharacters}
-                        onChange={(e) => updateSetting('filterSpecialCharacters', e.target.checked)}
+                        checked={settings.filterSpecialCharacters}
+                        onChange={handleFilterSpecialCharactersChange}
                       />
                       Filter special characters in speech
                     </label>
@@ -253,7 +249,7 @@ function Settings({
                     type="number"
                     min="1"
                     max="50"
-                    value={settingsObject.previousMessagesCount}
+                    value={settings.previousMessagesCount}
                     onChange={handlePreviousMessagesCountChange}
                     className="previous-messages-count"
                   />

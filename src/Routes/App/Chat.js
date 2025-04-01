@@ -8,9 +8,10 @@ import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS,
 import { findNumberInArgs, removeSpecialCharacters, ellipsis } from './functions'
 import ChatInputArea from './ChatInputArea'
 
-export default function Chat({chatIdRef}) {
+export default function Chat({chatIdRef, scrollToBottom}) {
   const dispatch = useDispatch();
   const { chatID, listID } = useSelector(state => state.main);
+  const { settings } = useSelector(state => state.menu);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   // Shows the Menu
@@ -22,8 +23,6 @@ export default function Chat({chatIdRef}) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   // The chats for the history, this should be in the history component
   const [chats, setChats] = useState({});
-  // Should be loaded form local storage and updated on change with a callback 
-  const [settingsObject, setSettingsObject] = useState({...DEFAULT_SETTINGS});
   // Used in the tts
   const [voices, setVoices] = useState([]);
 
@@ -33,8 +32,6 @@ export default function Chat({chatIdRef}) {
   const lastSpokenTextRef = useRef('');
   // For the input area so it can be cleared
   const inputRef = useRef(null);
-  // For the messages so they can be scrolled to the bottom
-  const messagesEndRef = useRef(null);
   // For the inactivity timer so user can be reminded
   const inactivityTimerRef = useRef(null);
   // For the inactivity count so it only reminds twice
@@ -93,12 +90,6 @@ export default function Chat({chatIdRef}) {
 
   // Loading settings chats and voices
   useEffect(() => {
-    // Load settings
-    const savedSettings = localStorage.getItem(STORAGE_KEY);
-    if (savedSettings) {
-      setSettingsObject(JSON.parse(savedSettings));
-    }
-
     // Get available voices
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
@@ -115,21 +106,6 @@ export default function Chat({chatIdRef}) {
       resetSpeech();
     };
   }, []);
-
-  const loadSettings = () => {
-    try {
-      const savedSettings = localStorage.getItem(STORAGE_KEY);
-      if (savedSettings) {
-        setSettingsObject(JSON.parse(savedSettings) || DEFAULT_SETTINGS);
-      }
-    } catch (error) {
-      setSettingsObject(DEFAULT_SETTINGS);
-      // console .error('Error loading settings:', error);
-    }
-  };
-
-  
-
 
   // #endregion loading
 
@@ -150,7 +126,7 @@ export default function Chat({chatIdRef}) {
   }
 
   const speakText = async (text, index = 0) => {
-    if (!settingsObject.ttsEnabled) return;
+    if (!settings.ttsEnabled) return;
 
     // If already speaking, add to queue
     if (isSpeaking) {
@@ -158,11 +134,11 @@ export default function Chat({chatIdRef}) {
     }
 
     // Apply text filtering if enabled in settings
-    const finalText = settingsObject.filterSpecialCharacters ? removeSpecialCharacters(text) : text;
+    const finalText = settings.filterSpecialCharacters ? removeSpecialCharacters(text) : text;
 
     setIsSpeaking(true);
     const utterance = new SpeechSynthesisUtterance(finalText);
-    const voice = voices.find(v => v.name === settingsObject.selectedVoice);
+    const voice = voices.find(v => v.name === settings.selectedVoice);
     if (voice) {
       utterance.voice = voice;
     }
@@ -180,7 +156,7 @@ export default function Chat({chatIdRef}) {
   };
 
   const speakMessages = (startIndex = 0, replayAll = false) => {
-    if (!settingsObject.ttsEnabled) return;
+    if (!settings.ttsEnabled) return;
     
     // Clear any existing speech
     window.speechSynthesis.cancel();
@@ -193,7 +169,7 @@ export default function Chat({chatIdRef}) {
       if (index < messagesToSpeak.length) {
         const message = messagesToSpeak[index];
         // Only speak assistant messages unless replayAll is true
-        if (message.role === 'assistant' || settingsObject.replayAllMessages || replayAll) {
+        if (message.role === 'assistant' || settings.replayAllMessages || replayAll) {
           speakText(message.content, index);
         }
         // Move to next message after a short delay
@@ -356,7 +332,7 @@ export default function Chat({chatIdRef}) {
           // The contest like the preface, memory, date, etc
           { role: 'user', content: createContestString() },
           // The number of previous messages to include is in the settings
-          ...messages.slice(-settingsObject.previousMessagesCount || -4).map(msg => ({
+          ...messages.slice(-settings.previousMessagesCount || -4).map(msg => ({
             role: msg.role,
             content: msg.content
           })),
@@ -388,13 +364,13 @@ export default function Chat({chatIdRef}) {
       
       // Add assistant message to localStorage and messages array state
       addMessageToChat(assistantMessage);
-      scrollToBottom();
 
       // Speak the response if TTS is enabled
       speakText(assistantMessage.content);
 
       // Reset inactivity timer after model responds
       resetInactivityTimer();
+      scrollToBottom();
     } catch (error) {
       // console .error('Error:', error);
       const errorMessage = {
@@ -424,15 +400,6 @@ export default function Chat({chatIdRef}) {
       setIsLoading(false);
     }
   }
-
-  const scrollToBottom = () => {
-    if (messagesEndRef.current) {
-      setTimeout(() => {
-        messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
-      }, 100);
-    }
-  };
-
 
   // #endregion sending and recieving
 
@@ -686,46 +653,46 @@ export default function Chat({chatIdRef}) {
     const setting = settingName.toLowerCase();
     
     // Update the settings object with the new value
-    setSettingsObject(prevSettings => {
-      const newSettings = { ...prevSettings };
+    // setSettingsObject(prevSettings => {
+    //   const newSettings = { ...prevSettings };
       
-      switch (setting) {
-        case 'ttsenabled':
-          newSettings.ttsEnabled = value;
-          break;
-        case 'selectedvoice':
-          newSettings.selectedVoice = value;
-          break;
-        case 'autosendenabled':
-          newSettings.autoSendEnabled = value;
-          break;
-        case 'autosendtimeout':
-          newSettings.autoSendTimeout = value;
-          break;
-        case 'previousmessagescount':
-          newSettings.previousMessagesCount = value;
-          break;
-        case 'savehistoryenabled':
-          newSettings.saveHistoryEnabled = value;
-          break;
-        case 'inactivitytimerenabled':
-          newSettings.inactivityTimerEnabled = value;
-          break;
-        case 'showsettings':
-          newSettings.showSettings = value;
-          break;
-        case 'showpromptpreface':
-          newSettings.showPromptPreface = value;
-          break;
-        default:
-          // console .warn(`Unknown setting: ${settingName}`);
-          return prevSettings;
-      }
+    //   switch (setting) {
+    //     case 'ttsenabled':
+    //       newSettings.ttsEnabled = value;
+    //       break;
+    //     case 'selectedvoice':
+    //       newSettings.selectedVoice = value;
+    //       break;
+    //     case 'autosendenabled':
+    //       newSettings.autoSendEnabled = value;
+    //       break;
+    //     case 'autosendtimeout':
+    //       newSettings.autoSendTimeout = value;
+    //       break;
+    //     case 'previousmessagescount':
+    //       newSettings.previousMessagesCount = value;
+    //       break;
+    //     case 'savehistoryenabled':
+    //       newSettings.saveHistoryEnabled = value;
+    //       break;
+    //     case 'inactivitytimerenabled':
+    //       newSettings.inactivityTimerEnabled = value;
+    //       break;
+    //     case 'showsettings':
+    //       newSettings.showSettings = value;
+    //       break;
+    //     case 'showpromptpreface':
+    //       newSettings.showPromptPreface = value;
+    //       break;
+    //     default:
+    //       // console .warn(`Unknown setting: ${settingName}`);
+    //       return prevSettings;
+    //   }
 
-      // Save to localStorage
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
-      return newSettings;
-    });
+    //   // Save to localStorage
+    //   localStorage.setItem(STORAGE_KEY, JSON.stringify(newSettings));
+    //   return newSettings;
+    // });
     return true;
   };
   
@@ -743,7 +710,7 @@ export default function Chat({chatIdRef}) {
 
   // Resets the inactivity timer so it sends a messages after 5 minutes
   const resetInactivityTimer = () => {
-    if (!hasFirstMessageRef.current || !settingsObject.inactivityTimerEnabled) return;
+    if (!hasFirstMessageRef.current || !settings.inactivityTimerEnabled) return;
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current);
     }
@@ -929,11 +896,9 @@ export default function Chat({chatIdRef}) {
         menuOnNewChat={handleNewChat}
         menuOnDeleteChat={handleDeleteChat}
         menuOnImportChat={handleImportChat}
-        settingsObject={settingsObject}
-        setSettingsObject={setSettingsObject}
-        setChatID={(id) => dispatch(setChatID(id))}
+        voices={voices}
       />
-      <div className="messages-container" ref={messagesEndRef}>
+      <div className="messages-container" id="messages-container">
         {messages.length === 0 && (
           <div className="welcome-box no-select">
             <p>Send a message or just say hi</p>
@@ -945,11 +910,11 @@ export default function Chat({chatIdRef}) {
             </button>
           </div>
         )}
-        {messages.map((message, index) => (
+        {(messages && Array.isArray(messages)) && messages?.map((message, index) => (
           <Message
             key={index}
             messageData={message}
-            selectedVoice={settingsObject.selectedVoice}
+            selectedVoice={settings.selectedVoice}
             voices={voices}
             onSpeakFromHere={() => speakMessages(index)}
           />
@@ -971,7 +936,6 @@ export default function Chat({chatIdRef}) {
         isPaused={isPaused}
         togglePause={togglePause}
         handleSubmit={handleSubmit}
-        settingsObject={settingsObject}
       />
       
     </div>

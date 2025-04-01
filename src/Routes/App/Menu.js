@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
 import './Menu.css';
 import ChatHistory from './ChatHistory';
 import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY, LONG_TERM_MEMORY_KEY } from './Data';
 import TextInput from './TextInput';
 import Settings from './Settings';
+import { setMenuOpen } from '../../store/menuSlice';
 
 function Menu({ 
-  isOpen, 
-  setIsOpen, 
   menuChats,
   menuCurrentChatId,
   menuOnSelectChat,
   menuOnNewChat,
   menuOnDeleteChat,
-  menuOnImportChat, 
-  settingsObject, 
-  setSettingsObject,
+  menuOnImportChat,
   voices
 }) {
+  const dispatch = useDispatch();
+  const { isMenuOpen } = useSelector(state => state.menu);
+
   // Installation prompt
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   // Display menus
@@ -28,15 +29,12 @@ function Menu({
   const [showLongTermMemory, setShowLongTermMemory] = useState(false);
   const [showNote, setShowNote] = useState(false);
 
-  // Routing
-  const navigate = useNavigate();
-
   // Installation prompt
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-  };
+    };
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -49,50 +47,93 @@ function Menu({
       console.log('No installation prompt available');
       return;
     }
-
-    try {
-      const result = await deferredPrompt.prompt();
-      console.log('Install prompt result:', result);
-    } catch (error) {
-      console.error('Error showing install prompt:', error);
-    }
-
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
     setDeferredPrompt(null);
   };
 
-
   // Handle settings click (just hides this menu and shows that one)
   const handleSettingsClick = () => {
-    setIsOpen(false);
+    dispatch(setMenuOpen(false));
     setShowSettingsMenu(true);
   };
 
-  // Handle history click (just hides this menu and shows that one)
+  // Handle history click
   const handleHistoryClick = () => {
-    setIsOpen(false);
+    dispatch(setMenuOpen(false));
     setShowHistory(true);
   };
 
-  // Handle long term memory click (just hides this menu and shows that one)
+  // Handle long term memory click
   const handleLongTermMemoryClick = () => {
-    setIsOpen(false);
+    dispatch(setMenuOpen(false));
     setShowLongTermMemory(true);
   };
 
-  // Handle note click (just hides this menu and shows that one)
+  // Handle note click
   const handleNoteClick = () => {
-    setIsOpen(false);
+    dispatch(setMenuOpen(false));
     setShowNote(true);
   };
 
   return (
     <>
       {/* Menu button at top right */}
-      <button className="hamburger-button no-select" onClick={() => setIsOpen(true)}>
+      <button className="hamburger-button no-select" onClick={() => dispatch(setMenuOpen(true))}>
         <span className="hamburger-line"></span>
         <span className="hamburger-line"></span>
         <span className="hamburger-line"></span>
       </button>
+
+      {/* Note */}
+      <TextInput
+        title="Note"
+        isOpen={showNote}
+        setIsOpen={(isOpen) => setShowNote(isOpen)}
+        defaultValue={localStorage.getItem(NOTE_STORAGE_KEY)}
+        onChange={(value) => {
+          localStorage.setItem(NOTE_STORAGE_KEY, value);
+        }}
+      />
+
+      {/* Long term memory */}
+      <TextInput
+        title="Memory"
+        isOpen={showLongTermMemory}
+        setIsOpen={(isOpen) => setShowLongTermMemory(isOpen)}
+        defaultValue={localStorage.getItem(LONG_TERM_MEMORY_KEY)}
+        onChange={(value) => {
+          localStorage.setItem(LONG_TERM_MEMORY_KEY, value);
+        }}
+      />
+
+      {/* Settings */}
+      <Settings
+        voices={voices || []}
+        isOpen={showSettingsMenu}
+        setIsOpen={setShowSettingsMenu}
+        setShowPromptPreface={()=>{setShowPromptPreface(true); dispatch(setMenuOpen(false));}}
+        setShowLongTermMemory={()=>{setShowLongTermMemory(true); dispatch(setMenuOpen(false));}}
+        setShowNote={()=>{setShowNote(true); dispatch(setMenuOpen(false));}}
+      />
+
+      {isMenuOpen && (
+        <div className="menu-overlay" onClick={() => dispatch(setMenuOpen(false))} />
+      )}
+      <div className={`menu-container no-select ${isMenuOpen ? 'open' : ''}`}>
+        <div className="menu-content">
+          <h3>Menu</h3>
+          <div className="menu-items">
+            <button className="menu-item" onClick={handleHistoryClick}>History</button>
+            <button className="menu-item" onClick={handleNoteClick}>Note</button>
+            <button className="menu-item" onClick={handleLongTermMemoryClick}>Memory</button>
+            <button className="menu-item" onClick={handleSettingsClick}>Settings</button>
+            <button className="menu-item" onClick={handleInstallClick}>Install App</button>
+            <button className="menu-item" onClick={() => dispatch(setMenuOpen(false))}>Close</button>
+          </div>
+        </div>
+      </div>
 
       {/* Chat History */}
       <ChatHistory
@@ -105,78 +146,6 @@ function Menu({
         onDeleteChat={menuOnDeleteChat}
         onImportChat={menuOnImportChat}
       />
-
-      {/* Prompt Preface */}
-      <TextInput
-        title="Prompt Preface"
-        isOpen={showPromptPreface}
-        setIsOpen={(isOpen) => setShowPromptPreface(isOpen)}
-        defaultValue={settingsObject.promptPreface || PROMPT_PREFACE}
-        onChange={(value) => {
-          const settings = { ...settingsObject, promptPreface: value };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-          setSettingsObject(settings);
-        }}
-        showRestoreDefault={true}
-        onRestoreDefault={() => {
-          const settings = { ...settingsObject, promptPreface: PROMPT_PREFACE };
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-          setSettingsObject(settings)
-        }}
-        styles={{ zIndex: 1001 }}
-      />
-
-      {/* Note */}
-      <TextInput
-        title="Note"
-        isOpen={showNote}
-        setIsOpen={setShowNote}
-        defaultValue={localStorage.getItem(NOTE_STORAGE_KEY) || ''}
-        onChange={(value) => {
-          localStorage.setItem(NOTE_STORAGE_KEY, value);
-        }}
-      />
-
-      {/* Long Term Memory */}
-      <TextInput
-        title="Long Term Memory"
-        isOpen={showLongTermMemory}
-        setIsOpen={setShowLongTermMemory}
-        defaultValue={localStorage.getItem(LONG_TERM_MEMORY_KEY) || ''}
-        onChange={(value) => {
-          localStorage.setItem(LONG_TERM_MEMORY_KEY, value);
-        }}
-      />
-
-      {/* Settings */}
-      <Settings
-        settingsObject={settingsObject}
-        setSettingsObject={setSettingsObject}
-        voices={voices || []}
-        isOpen={showSettingsMenu}
-        setIsOpen={setShowSettingsMenu}
-        setShowPromptPreface={()=>{setShowPromptPreface(true); setIsOpen(false);}}
-        setShowLongTermMemory={()=>{setShowLongTermMemory(true); setIsOpen(false);}}
-        setShowNote={()=>{setShowNote(true); setIsOpen(false);}}
-      />
-
-      {isOpen && (
-        <div className="menu-overlay" onClick={() => setIsOpen(false)} />
-      )}
-      <div className={`menu-container no-select ${isOpen ? 'open' : ''}`}>
-        <div className="menu-content">
-          <h3>Menu</h3>
-          <div className="menu-items">
-            <button className="menu-item" onClick={handleHistoryClick}>History</button>
-            <button className="menu-item" onClick={() => navigate('/nested-list')}>Lists</button>
-            <button className="menu-item" onClick={handleNoteClick}>Note</button>
-            <button className="menu-item" onClick={handleLongTermMemoryClick}>Memory</button>
-            <button className="menu-item" onClick={handleSettingsClick}>Settings</button>
-            <button className="menu-item" onClick={handleInstallClick}>Install App</button>
-            <button className="menu-item" onClick={() => setIsOpen()}>Close</button>
-          </div>
-        </div>
-      </div>
     </>
   );
 }
