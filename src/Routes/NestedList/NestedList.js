@@ -4,6 +4,7 @@ import NestedListItem from './NestedListItem';
 import { ellipsis } from '../App/functions';
 import NestedListMenu from './NestedListMenu';
 import ListsSelector from './ListsSelector';
+import ConfirmationBox from '../App/ConfirmationBox';
 
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -21,6 +22,7 @@ function NestedList() {
   const [listId, setListId] = useState();
   // State for the nested list data
   const [data, setData] = useState(null);
+  const [deleteItemData, setDeleteItemData] = useState(null);
   // State for tracking the current root path
   const [rootPath, setRootPath] = useState([]);
 
@@ -84,6 +86,14 @@ function NestedList() {
     setData(newList);
     setListId(newId);
     setRootPath([]);
+
+    setTimeout(() => {
+      let newItemInput = document.getElementById("textarea-"+newId)
+      if(newItemInput)
+        newItemInput.focus()
+    }, 100);
+
+    return newId;
   };
 
   // Add IDs to initial data structure
@@ -273,10 +283,11 @@ function NestedList() {
     const currentIndex = path[path.length - 1];
     
     // Create empty node with same structure
+    const newId = generateId();
     const emptyNode = {
-      id: generateId(),
-      content: "New Item",
-      isOpen: false,
+      id: newId,
+      content: "",
+      isOpen: true,
       nested: []
     };
     console.log('Adding empty node after index:', currentIndex);
@@ -287,6 +298,32 @@ function NestedList() {
     
     // Update the state with the new data
     setData(newData);
+
+    setTimeout(() => {
+      let newItemInput = document.getElementById("textarea-"+newId)
+      if(newItemInput)
+        newItemInput.focus()
+    }, 100);
+
+    // Return the ID of the newly created item
+    return newId;
+  };
+
+  const deleteItemButtonClick = (itemData, path) => {
+    // Check if confirmation is needed
+    const needsConfirmation = itemData.content.length > 10 || (itemData.nested && itemData.nested.length > 0);
+    
+    if (needsConfirmation) {
+      const preview = itemData.content.slice(0, 10) + (itemData.content.length > 10 ? '...' : '');
+      const nestedCount = itemData.nested ? itemData.nested.length : 0;
+      setDeleteItemData({
+        path,
+        message: `Delete item "${preview}" with ${nestedCount} nested items?`
+      });
+    } else {
+      // If no confirmation needed, delete immediately
+      deleteItem(path);
+    }
   };
 
   // Function to delete a node at the specified path
@@ -365,10 +402,11 @@ function NestedList() {
     }
     
     // Create empty node with same structure
+    const newId = generateId();
     const emptyNode = {
-      id: generateId(),
-      content: "New Item",
-      isOpen: false,
+      id: newId,
+      content: "",
+      isOpen: true,
       nested: []
     };
     
@@ -382,6 +420,14 @@ function NestedList() {
     
     // Update the state with the new data
     setData(newData);
+
+    setTimeout(() => {
+      let newItemInput = document.getElementById("textarea-"+newId)
+      if(newItemInput)
+        newItemInput.focus()
+    }, 100);
+
+    return newId;
   };
 
   // Helper to get node at a specific path
@@ -402,61 +448,72 @@ function NestedList() {
   const rootNode = rootPath.length > 0 ? getNodeAtPath(rootPath) : data;
 
   return (
-    <div className="nested-list-container">
-        <div className="current-path">
-          <button 
-            onClick={() => setRootPath([])}
-            className="path-button"
-          >
-            Root
-          </button>
-          {rootPath.map((index, i) => {
-            const node = getNodeAtPath(getPathToIndex(rootPath, i));
-            return (
-              <React.Fragment key={i}>
-                <span className="path-separator">&gt;</span>
-                <button 
-                  onClick={() => setRootPath(getPathToIndex(rootPath, i))}
-                  className="path-button"
-                >
-                  {ellipsis(node.content, 10)}
-                </button>
-              </React.Fragment>
-            );
-          })}
-        </div>
-        {data ? (
-          <>
-            <NestedListItem
-              key={rootNode.id}
-              item={rootNode}
-              index={0}
-              path={rootPath}
-              updateContent={updateNestedListData}
-              moveItem={moveItem}
-              duplicateItem={duplicateItem}
-              addAfter={addAfter}
-              deleteItem={deleteItem}
-              setAsRoot={setAsRoot}
-              toggleOpen={toggleOpen}
-              insertInto={insertInto}
-            />
-          </>
-        ) : (
-          <div className="empty-state">
-            <ListsSelector
-              onSelectList={setListId}
-              createNewList={createNewList}
-            />
+    <>
+      {deleteItemData &&
+        <ConfirmationBox
+          message={deleteItemData.message}
+          onConfirm={() => {
+            deleteItem(deleteItemData.path);
+            setDeleteItemData(null);
+          }}
+          onCancel={() => setDeleteItemData(null)}
+        />}
+      <div className="nested-list-container">
+          <div className="current-path">
+            <button 
+              onClick={() => setRootPath([])}
+              className="path-button"
+            >
+              Root
+            </button>
+            {rootPath.map((index, i) => {
+              const node = getNodeAtPath(getPathToIndex(rootPath, i));
+              return (
+                <React.Fragment key={i}>
+                  <span className="path-separator">&gt;</span>
+                  <button 
+                    onClick={() => setRootPath(getPathToIndex(rootPath, i))}
+                    className="path-button"
+                  >
+                    {ellipsis(node.content, 10)}
+                  </button>
+                </React.Fragment>
+              );
+            })}
           </div>
-        )}
+          {data ? (
+            <>
+              <NestedListItem
+                key={rootNode.id}
+                item={rootNode}
+                index={0}
+                path={rootPath}
+                updateContent={updateNestedListData}
+                moveItem={moveItem}
+                duplicateItem={duplicateItem}
+                addAfter={addAfter}
+                deleteItemButtonClick={deleteItemButtonClick}
+                setAsRoot={setAsRoot}
+                toggleOpen={toggleOpen}
+                insertInto={insertInto}
+              />
+            </>
+          ) : (
+            <div className="empty-state">
+              <ListsSelector
+                onSelectList={setListId}
+                createNewList={createNewList}
+              />
+            </div>
+          )}
 
-      <NestedListMenu 
-        createNewList={createNewList}
-        onSelectList={setListId}
-      />
+        <NestedListMenu 
+          createNewList={createNewList}
+          onSelectList={setListId}
+        />
 
-    </div>
+      </div>
+    </>
   );
 }
 

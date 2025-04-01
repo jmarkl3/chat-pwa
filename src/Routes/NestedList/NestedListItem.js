@@ -3,7 +3,7 @@ import './NestedList.css';
 import { ellipsis } from '../App/functions';
 
 // Recursive component for rendering individual items
-export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItem, setAsRoot, toggleOpen, insertInto }) {
+export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItemButtonClick, setAsRoot, toggleOpen, insertInto }) {
   // State for UI interactions
   const [menuOpen, setMenuOpen] = useState(false);
   const textareaRef = useRef(null);
@@ -42,6 +42,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
               {item.isOpen ? 
                 <textarea 
                   ref={textareaRef}
+                  id={"textarea-"+item.id}
                   defaultValue={item?.content} 
                   onClick={(e) => { e.stopPropagation() }}
                   onChange={(e) => {
@@ -100,7 +101,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
                   <button onClick={(e) => {
                     e.stopPropagation();
                     setMenuOpen(false);
-                    deleteItem(path);
+                    deleteItemButtonClick(item, path);
                   }}>Delete</button>
                   <button onClick={(e) => {
                     e.stopPropagation();
@@ -129,7 +130,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
               moveItem={moveItem}
               duplicateItem={duplicateItem}
               addAfter={addAfter}
-              deleteItem={deleteItem}
+              deleteItemButtonClick={deleteItemButtonClick}
               setAsRoot={setAsRoot}
               toggleOpen={toggleOpen}
               insertInto={insertInto}
