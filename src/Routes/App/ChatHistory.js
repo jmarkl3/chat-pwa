@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { setChatID } from '../../store/idsSlice';
 import SlidePanel from './SlidePanel';
 import ConfirmationBox from './ConfirmationBox';
 import ImportChat, { encryptChatData } from './ImportChat';
 import './ChatHistory.css';
 
-function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat, onUpdateChat, onDeleteChat, onImportChat }) {
+function ChatHistory({ isOpen, setIsOpen, onNewChat, onDeleteChat, onImportChat }) {
   const [chats, setChats] = useState([]);
   const [editingChatId, setEditingChatId] = useState(null);
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
   const [chatToDelete, setChatToDelete] = useState(null);
   const [showImport, setShowImport] = useState(false);
+
+  const dispatch = useDispatch();
+  const currentChatId = useSelector(state => state.main.chatID);
 
   const loadChats = () => {
     try {
@@ -85,6 +90,7 @@ function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat
       alert('Failed to export chat');
     }
   };
+
   const handleExportEncrypted = async (e, chatId) => {
     e.stopPropagation();
     
@@ -94,8 +100,8 @@ function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat
       if (chatData) {
         const parsedChatData = JSON.parse(chatData)
         const encryptedData = await encryptChatData(parsedChatData);
-      await navigator.clipboard.writeText(encryptedData);
-      alert('Chat exported and copied to clipboard!');
+        await navigator.clipboard.writeText(encryptedData);
+        alert('Chat exported and copied to clipboard!');
       }
     } catch (error) {
       console.error('Export error:', error);
@@ -135,7 +141,7 @@ function ChatHistory({ isOpen, setIsOpen, onSelectChat, currentChatId, onNewChat
                     className={`chat-item ${isActive ? 'active' : ''}`}
                     onClick={() => {
                       if (!isEditing) {
-                        onSelectChat(chat.id);
+                        dispatch(setChatID(chat.id));
                         setIsOpen(false);
                       }
                     }}
