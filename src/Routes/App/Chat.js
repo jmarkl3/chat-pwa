@@ -8,8 +8,9 @@ import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS,
 import { findNumberInArgs, removeSpecialCharacters, ellipsis } from './functions'
 import ChatInputArea from './ChatInputArea'
 
-export default function Chat({chatID, chatIdRef, setChatID, listID, setListID}) {
+export default function Chat({chatIdRef}) {
   const dispatch = useDispatch();
+  const { chatID, listID } = useSelector(state => state.main);
   const [messages, setMessages] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   // Shows the Menu

@@ -37,7 +37,7 @@ export const FORMAT_PREFACE = `
   3. "clear long term memory" - clears all long term memory (no variables needed)
   4. "add to note" - adds first variable to note in local storage
   5. "create list" - creates a new list with name from first variable
-  6. "add to list" - adds items to a list. Variables: [listId, path array, items to add...]
+  6. "add to list" - adds an item to a list. Variables: [listId, [path array (based on nested index ex: [0, 1])], item to add...]
   7. "load list" - loads a list into tempMem. Variables: [listId]
   8. "set working list" - This list's current data will always be sent for context awareness'. Variables: [listId]. Set to null to clear.
 `;

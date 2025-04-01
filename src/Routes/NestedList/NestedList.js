@@ -5,6 +5,8 @@ import { ellipsis } from '../App/functions';
 import NestedListMenu from './NestedListMenu';
 import ListsSelector from './ListsSelector';
 import ConfirmationBox from '../App/ConfirmationBox';
+import { useDispatch, useSelector } from 'react-redux';
+import { setListID } from '../../store/idsSlice';
 
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
@@ -17,8 +19,11 @@ const createEmptyList = () => ({
   nested: []
 });
 
-function NestedList({listID, setlistID}) {
+function NestedList() {
   
+  const dispatch = useDispatch();
+  const { listID } = useSelector(state => state.main);
+
   // State for the nested list data
   const [data, setData] = useState(null);
   const [deleteItemData, setDeleteItemData] = useState(null);
@@ -83,7 +88,7 @@ function NestedList({listID, setlistID}) {
 
     // Set the new list as active
     setData(newList);
-    setlistID(newId);
+    dispatch(setListID(newId));
     setRootPath([]);
 
     setTimeout(() => {
@@ -500,7 +505,7 @@ function NestedList({listID, setlistID}) {
           ) : (
             <div className="empty-state">
               <ListsSelector
-                onSelectList={setlistID}
+                onSelectList={(id) => dispatch(setListID(id))}
                 createNewList={createNewList}
               />
             </div>
@@ -508,7 +513,7 @@ function NestedList({listID, setlistID}) {
 
         <NestedListMenu 
           createNewList={createNewList}
-          onSelectList={setlistID}
+          onSelectList={(id) => dispatch(setListID(id))}
         />
 
       </div>
