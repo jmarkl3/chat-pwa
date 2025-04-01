@@ -6,8 +6,9 @@ import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY, LONG_TERM_MEMORY_KEY } f
 import TextInput from './TextInput';
 import Settings from './Settings';
 import { setMenuOpen, setComponentDisplay } from '../../store/menuSlice';
+import NestedListsWindow from '../NestedList/NestedListsWindow';
 
-function Menu() {
+function Menu({ scrollToBottom }) {
   const dispatch = useDispatch();
   const { isMenuOpen, componentDisplay } = useSelector(state => state.menu);
 
@@ -19,6 +20,7 @@ function Menu() {
   const [showHistory, setShowHistory] = useState(false);
   const [showLongTermMemory, setShowLongTermMemory] = useState(false);
   const [showNote, setShowNote] = useState(false);
+  const [showLists, setShowLists] = useState(false);
 
   // Installation prompt
   useEffect(() => {
@@ -56,6 +58,12 @@ function Menu() {
     setShowHistory(true);
   };
 
+  // Handle lists click
+  const handleListsClick = () => {
+    dispatch(setMenuOpen(false));
+    setShowLists(true);
+  };
+
   // Handle long term memory click
   const handleLongTermMemoryClick = () => {
     dispatch(setMenuOpen(false));
@@ -72,6 +80,11 @@ function Menu() {
   const handleViewToggle = () => {
     dispatch(setMenuOpen(false));
     dispatch(setComponentDisplay(componentDisplay === "chat" ? "list" : "chat"));
+    if (componentDisplay === "list") {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
   };
 
   return (
@@ -121,7 +134,8 @@ function Menu() {
         <div className="menu-content">
           <h3>Menu</h3>
           <div className="menu-items">
-            <button className="menu-item" onClick={handleHistoryClick}>History</button>
+            <button className="menu-item" onClick={handleHistoryClick}>Chats History</button>
+            <button className="menu-item" onClick={handleListsClick}>Lists</button>
             <button className="menu-item" onClick={handleViewToggle}>
               Switch to {componentDisplay === "chat" ? "List" : "Chat"} View
             </button>
@@ -138,6 +152,13 @@ function Menu() {
       <ChatHistory
         isOpen={showHistory}
         setIsOpen={setShowHistory}
+        scrollToBottom={scrollToBottom}
+      />
+
+      {/* Lists Window */}
+      <NestedListsWindow
+        isOpen={showLists}
+        setIsOpen={setShowLists}
       />
     </>
   );

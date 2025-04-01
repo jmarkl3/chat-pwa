@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react'
+import { useDispatch, useSelector } from 'react-redux';
+import { setListID } from '../../store/idsSlice';
+import { setComponentDisplay, setMenuOpen } from '../../store/menuSlice';
 import ConfirmationBox from '../App/ConfirmationBox';
 import './ListsSelector.css';
 
-function ListsSelector({ isOpen, setIsOpen = ()=>{}, onSelectList=() => {}, createNewList=()=>{} }) {
+function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
+    const dispatch = useDispatch();
+    const { listID } = useSelector(state => state.main);
     const [lists, setLists] = useState([]);
     const [listToDelete, setListToDelete] = useState(null);
     const [listToDuplicate, setListToDuplicate] = useState(null);
@@ -19,8 +24,10 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{}, onSelectList=() => {}, crea
     }, [isOpen]); // Reload when window opens
   
     const handleSelectList = (list) => {
-      onSelectList(list.id);
-      setIsOpen(false); // Close the window after selection
+      dispatch(setListID(list.id));
+      dispatch(setComponentDisplay("list"));
+      dispatch(setMenuOpen(false));
+      setIsOpen(false);
     };
 
     const handleMenuClick = (e, listId) => {
@@ -161,7 +168,7 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{}, onSelectList=() => {}, crea
       const currentListId = localStorage.getItem('selected-list-id');
       if (currentListId === listToDelete.id) {
         localStorage.setItem('selected-list-id', '');
-        onSelectList(null);
+        dispatch(setListID(null));
       }
     };
 
@@ -169,10 +176,43 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{}, onSelectList=() => {}, crea
       setListToDelete(null);
     };
 
+    const handleCreateNewList = () => {
+      const newList = {
+        id: Date.now().toString(),
+        content: "New List",
+        lastModified: Date.now()
+      };
+      
+      // Save new list
+      localStorage.setItem(`note-list-${newList.id}`, JSON.stringify({
+        id: newList.id,
+        content: newList.content,
+        isOpen: true,
+        nested: []
+      }));
+      
+      // Get current lists from localStorage and update
+      const listsStr = localStorage.getItem('note-lists') || '[]';
+      const currentLists = JSON.parse(listsStr);
+      const updatedLists = [newList, ...currentLists];
+      localStorage.setItem('note-lists', JSON.stringify(updatedLists));
+      setLists(updatedLists);
+      
+      // Select the new list
+      dispatch(setListID(newList.id));
+      dispatch(setComponentDisplay("list"));
+      dispatch(setMenuOpen(false));
+      setIsOpen(false);
+    };
+
   return (
-    <div className="lists-window">
-        <button onClick={createNewList}>Create New List</button>
-        <h2>Your Lists</h2>
+    <div className="lists-selector">
+        <div className="lists-header">
+          <h3>Lists</h3>
+          <button className="new-list-button" onClick={handleCreateNewList}>
+            New List
+          </button>
+        </div>
         <div className="lists-container">
           {lists.map(list => (
             <div 

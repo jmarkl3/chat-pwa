@@ -51,7 +51,9 @@ function AppContainser() {
 
     // Scroll messages to bottom
     const scrollToBottom = () => {
-        const element = document.querySelector('.message-list');
+        console.log("scrollToBottom")
+        const element = document.querySelector('#messages-container');
+        console.log("element: ", element)
         if (element) {
             element.scrollTop = element.scrollHeight;
         }
@@ -59,18 +61,15 @@ function AppContainser() {
 
     return (
         <div className="app-container">
-            <Menu />
+            <Menu scrollToBottom={scrollToBottom} />
             {componentDisplay === "chat" ?
                 <Chat
                     chatIdRef={chatIdRef}
                     scrollToBottom={scrollToBottom}
                 />
                 :
-                componentDisplay === "list" ?
-                    <NestedList />
-                    :
-                    <div>Error: Unknown component</div>
-            }
+                <NestedList />
+                                }
         </div>
     );
 }

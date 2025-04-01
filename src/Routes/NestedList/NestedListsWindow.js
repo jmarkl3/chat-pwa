@@ -3,14 +3,13 @@ import SlidePanel from '../App/SlidePanel';
 import './NestedListMenu.css';
 import ListsSelector from './ListsSelector';
 
-function NestedListsWindow({isOpen, setIsOpen, onSelectList}) {
+function NestedListsWindow({isOpen, setIsOpen}) {
 
   return (    
     <SlidePanel isOpen={isOpen} setIsOpen={setIsOpen}>
       <ListsSelector
         isOpen={isOpen}
         setIsOpen={setIsOpen}
-        onSelectList={onSelectList}
       />
     </SlidePanel>
   );

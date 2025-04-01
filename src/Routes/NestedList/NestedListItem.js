@@ -36,7 +36,18 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
 
   // Handle key press events
   const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter') {
+      // If shift key is pressed, allow default behavior
+      if (e.shiftKey) return;
+
+      // Alt + Enter inserts into
+      if (e.altKey && settings.newLineOnEnter) {
+        e.preventDefault();
+        insertInto(path);
+        return;
+      }
+
+      // Regular Enter inserts after (when the setting is true)
       if (settings.newLineOnEnter) {
         e.preventDefault();
         addAfter(path);

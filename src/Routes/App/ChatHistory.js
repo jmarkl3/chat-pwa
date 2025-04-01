@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setChatID } from '../../store/idsSlice';
+import { setComponentDisplay } from '../../store/menuSlice';
 import SlidePanel from './SlidePanel';
 import ConfirmationBox from './ConfirmationBox';
 import ImportChat, { encryptChatData } from './ImportChat';
 import './ChatHistory.css';
 
-function ChatHistory({ isOpen, setIsOpen }) {
+function ChatHistory({ isOpen, setIsOpen, scrollToBottom }) {
   const [editingChatId, setEditingChatId] = useState(null);
   const [menuOpenChatId, setMenuOpenChatId] = useState(null);
   const [chatToDelete, setChatToDelete] = useState(null);
@@ -126,25 +127,27 @@ function ChatHistory({ isOpen, setIsOpen }) {
     }
   };
 
+  const handleChatSelect = (chatId) => {
+    dispatch(setChatID(chatId));
+    dispatch(setComponentDisplay("chat"));
+    setIsOpen(false);
+    setTimeout(() => {
+      scrollToBottom();
+    }, 100);
+  };
+
   return (
     <>
       <SlidePanel title="Chat History" isOpen={isOpen} setIsOpen={setIsOpen}>
-        <div className="chat-history-container">
-          <button className="new-chat-button" onClick={handleNewChat}>
-            New Chat
-          </button>
-          <button className="import-chat-button" onClick={() => setShowImport(true)}>
-            Import Chat
-          </button>
+        <div className="chat-history">
+          <button className="new-chat-button" onClick={handleNewChat}>New Chat</button>
+          <button className="import-chat-button" onClick={() => setShowImport(true)}>Import Chat</button>
           <div className="chat-list">
             {chats.sort((a, b) => b.timestamp - a.timestamp).map((chat) => (
               <div
                 key={chat.id}
-                className={`chat-item ${chat.id === currentChatId ? 'selected' : ''}`}
-                onClick={() => {
-                  dispatch(setChatID(chat.id));
-                  setIsOpen(false);
-                }}
+                className={`chat-item ${chat.id === currentChatId ? 'active' : ''}`}
+                onClick={() => handleChatSelect(chat.id)}
               >
                 <div className="chat-item-content">
                   {editingChatId === chat.id ? (

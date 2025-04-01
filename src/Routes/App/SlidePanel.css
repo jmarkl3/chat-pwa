@@ -47,7 +47,6 @@
 
 .slide-panel-body {
   flex: 1;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  overflow-y: auto;
+  padding: 20px;
 }

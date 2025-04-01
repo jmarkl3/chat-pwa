@@ -29,7 +29,6 @@ function NestedListMenu({ createNewList, onSelectList }) {
                 <div className="menu-content">
                 <h3>Menu</h3>
                 <div className="menu-items">
-                    <button className="menu-item" onClick={handleShowLists}>Lists</button>
                     <button className="menu-item" onClick={() => navigate('/app')}>Chat</button>
                     <button className="menu-item" onClick={() => setIsOpen(false)}>Close</button>
                 </div>
