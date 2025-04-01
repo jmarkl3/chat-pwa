@@ -5,11 +5,11 @@ import ChatHistory from './ChatHistory';
 import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY, LONG_TERM_MEMORY_KEY } from './Data';
 import TextInput from './TextInput';
 import Settings from './Settings';
-import { setMenuOpen } from '../../store/menuSlice';
+import { setMenuOpen, setComponentDisplay } from '../../store/menuSlice';
 
 function Menu() {
   const dispatch = useDispatch();
-  const { isMenuOpen } = useSelector(state => state.menu);
+  const { isMenuOpen, componentDisplay } = useSelector(state => state.menu);
 
   // Installation prompt
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -68,6 +68,12 @@ function Menu() {
     setShowNote(true);
   };
 
+  // Handle view toggle
+  const handleViewToggle = () => {
+    dispatch(setMenuOpen(false));
+    dispatch(setComponentDisplay(componentDisplay === "chat" ? "list" : "chat"));
+  };
+
   return (
     <>
       {/* Menu button at top right */}
@@ -116,6 +122,9 @@ function Menu() {
           <h3>Menu</h3>
           <div className="menu-items">
             <button className="menu-item" onClick={handleHistoryClick}>History</button>
+            <button className="menu-item" onClick={handleViewToggle}>
+              Switch to {componentDisplay === "chat" ? "List" : "Chat"} View
+            </button>
             <button className="menu-item" onClick={handleNoteClick}>Note</button>
             <button className="menu-item" onClick={handleLongTermMemoryClick}>Memory</button>
             <button className="menu-item" onClick={handleSettingsClick}>Settings</button>

@@ -15,6 +15,7 @@ const loadSettingsFromStorage = () => {
 
 const initialState = {
   isMenuOpen: false,
+  componentDisplay: "chat",
   settings: loadSettingsFromStorage() || {
     ttsEnabled: true,
     selectedVoice: '',
@@ -31,6 +32,9 @@ export const menuSlice = createSlice({
     setMenuOpen: (state, action) => {
       state.isMenuOpen = action.payload;
     },
+    setComponentDisplay: (state, action) => {
+      state.componentDisplay = action.payload;
+    },
     updateSetting: (state, action) => {
       const { name, value } = action.payload;
       state.settings[name] = value;
@@ -46,6 +50,6 @@ export const menuSlice = createSlice({
   }
 });
 
-export const { setMenuOpen, updateSetting, loadSettings } = menuSlice.actions;
+export const { setMenuOpen, setComponentDisplay, updateSetting, loadSettings } = menuSlice.actions;
 
 export default menuSlice.reducer;

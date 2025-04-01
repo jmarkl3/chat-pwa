@@ -511,10 +511,10 @@ function NestedList() {
             </div>
           )}
 
-        <NestedListMenu 
+        {/* <NestedListMenu 
           createNewList={createNewList}
           onSelectList={(id) => dispatch(setListID(id))}
-        />
+        /> */}
 
       </div>
     </>

@@ -24,11 +24,11 @@ import { loadSettings } from './store/menuSlice';
 
 */
 function AppContainser() {
-    const [componantDisplay, setComponantDisplay] = useState("chat");
     const chatIdRef = useRef(null);
     const dispatch = useDispatch();
     
     const { chatID, listID } = useSelector(state => state.main);
+    const { componentDisplay } = useSelector(state => state.menu);
 
     // Load settings from localStorage on mount
     useEffect(() => {
@@ -60,13 +60,13 @@ function AppContainser() {
     return (
         <div className="app-container">
             <Menu />
-            {componantDisplay === "chat" ?
+            {componentDisplay === "chat" ?
                 <Chat
                     chatIdRef={chatIdRef}
                     scrollToBottom={scrollToBottom}
                 />
                 :
-                componantDisplay === "list" ?
+                componentDisplay === "list" ?
                     <NestedList />
                     :
                     <div>Error: Unknown component</div>
