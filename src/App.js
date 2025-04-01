@@ -1,21 +1,26 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { store } from './store/store';
 import Landing from './Routes/Landing/Landing';
-import AppHome from './Routes/App/AppHome';
 import JsonList from './Routes/JsonList/JsonList';
 import './App.css';
 import NestedList from './Routes/NestedList/NestedList';
+import AppContainser from './AppContainser';
+import Chat from './Routes/App/Chat';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/app" element={<AppHome />} />
-        <Route path="/json-list" element={<JsonList />} />
-        <Route path="/nested-list" element={<NestedList />} />
-      </Routes>
-    </Router>
+    <Provider store={store}>
+      <Router>
+        <Routes>
+          <Route path="/landing" element={<Landing />} />
+          <Route path="/" element={<AppContainser />} />
+          <Route path="/Chat" element={<Chat />} />
+          <Route path="/nested-list" element={<NestedList />} />
+        </Routes>
+      </Router>
+    </Provider>
   );
 }
 

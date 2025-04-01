@@ -17,40 +17,39 @@ const createEmptyList = () => ({
   nested: []
 });
 
-function NestedList() {
+function NestedList({listID, setlistID}) {
   
-  const [listId, setListId] = useState();
   // State for the nested list data
   const [data, setData] = useState(null);
   const [deleteItemData, setDeleteItemData] = useState(null);
   // State for tracking the current root path
   const [rootPath, setRootPath] = useState([]);
 
-  // Load list data when listId changes
+  // Load list data when listID changes
   useEffect(() => {
-    if (listId) {
-      const savedData = localStorage.getItem(`note-list-${listId}`);
+    if (listID) {
+      const savedData = localStorage.getItem(`note-list-${listID}`);
       if (savedData) {
         setData(JSON.parse(savedData));
         setRootPath([]); // Reset root path when loading new list
       }
     }
-  }, [listId]);
+  }, [listID]);
 
   // Save data whenever it changes
   useEffect(() => {
-    if (listId && data) {
+    if (listID && data) {
       // Save the full list data
-      localStorage.setItem(`note-list-${listId}`, JSON.stringify(data));
+      localStorage.setItem(`note-list-${listID}`, JSON.stringify(data));
 
       // Update the lists index
       const listsStr = localStorage.getItem('note-lists') || '[]';
       const lists = JSON.parse(listsStr);
       const timestamp = Date.now();
 
-      const updatedLists = lists.filter(l => l.id !== listId);
+      const updatedLists = lists.filter(l => l.id !== listID);
       updatedLists.push({
-        id: listId,
+        id: listID,
         content: data.content,
         lastModified: timestamp
       });
@@ -59,7 +58,7 @@ function NestedList() {
       updatedLists.sort((a, b) => b.lastModified - a.lastModified);
       localStorage.setItem('note-lists', JSON.stringify(updatedLists));
     }
-  }, [data, listId]);
+  }, [data, listID]);
 
   // Create a new list
   const createNewList = () => {
@@ -84,7 +83,7 @@ function NestedList() {
 
     // Set the new list as active
     setData(newList);
-    setListId(newId);
+    setlistID(newId);
     setRootPath([]);
 
     setTimeout(() => {
@@ -501,7 +500,7 @@ function NestedList() {
           ) : (
             <div className="empty-state">
               <ListsSelector
-                onSelectList={setListId}
+                onSelectList={setlistID}
                 createNewList={createNewList}
               />
             </div>
@@ -509,7 +508,7 @@ function NestedList() {
 
         <NestedListMenu 
           createNewList={createNewList}
-          onSelectList={setListId}
+          onSelectList={setlistID}
         />
 
       </div>
