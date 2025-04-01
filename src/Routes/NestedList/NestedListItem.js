@@ -33,7 +33,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
   }, [item.isOpen, item?.content]);
 
   return (
-    <div className="nested-list-item" style={{ paddingLeft: `${depth * 20}px` }}>
+    <div className="nested-list-item" >
       <div className="nested-item-header" onClick={() => toggleOpen(path)}>
         <div className="header-content">
           <span className={`arrow ${item.isOpen ? 'open' : ''}`}>▶</span>
@@ -72,43 +72,58 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
                 <div 
                   className={"note-list-item-menu-inner "+ (menuOpen ? "note-list-item-menu-inner-open" : "")}
                 > 
-                
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    moveItem(path, 'up');
-                  }}>Move Up</button>
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    moveItem(path, 'down');
-                  }}>Move Down</button>
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    duplicateItem(path);
-                  }}>Duplicate</button>
+                  {/* Add After */}
                   <button onClick={(e) => {
                     e.stopPropagation();
                     setMenuOpen(false);
                     addAfter(path);
                   }}>Add After</button>
+
+                  {/* Insert Into */}
                   <button onClick={(e) => {
                     e.stopPropagation();
                     setMenuOpen(false);
                     insertInto(path);
                   }}>Insert Into</button>
+
+                  {/* Move Up */}
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    moveItem(path, 'up');
+                  }}>Move Up</button>
+
+                  {/* Move Down */}
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    moveItem(path, 'down');
+                  }}>Move Down</button>
+
+                  {/* Duplicate */}
+                  <button onClick={(e) => {
+                    e.stopPropagation();
+                    setMenuOpen(false);
+                    duplicateItem(path);
+                  }}>Duplicate</button>
+
+                  {/* Delete */}
                   <button onClick={(e) => {
                     e.stopPropagation();
                     setMenuOpen(false);
                     deleteItemButtonClick(item, path);
                   }}>Delete</button>
+
+                  {/* Set As Root */}
                   <button onClick={(e) => {
                     e.stopPropagation();
                     setMenuOpen(false);
                     setAsRoot(path);
                   }}>Set as Root</button>
+
+                  {/* Cancel (close menu) */}
                   <button onClick={toggleMenu}>Cancel</button>
+                  
                 </div>
 
               </div>

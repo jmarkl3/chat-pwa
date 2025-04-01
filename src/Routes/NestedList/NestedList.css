@@ -1,5 +1,6 @@
 .nested-list-item{
   position: relative;
+  padding-left: 20px;
 }
 .note-list-item-menu{
   position: absolute;
@@ -59,8 +60,9 @@
 }
 .nested-list-container{
   height: 100vh;
-  padding: 10px;
-  padding-bottom: 80px;
   overflow-y: scroll;
   box-sizing: border-box;
+}
+.nested-title{
+  width: calc(100% - 80px);
 }
