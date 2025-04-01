@@ -21,7 +21,8 @@ const initialState = {
     selectedVoice: '',
     inactivityTimerEnabled: true,
     filterSpecialCharacters: true,
-    showPromptPreface: false
+    showPromptPreface: false,
+    newLineOnEnter: true
   }
 };
 

@@ -18,6 +18,7 @@ function Settings({
   const [generalOpen, setGeneralOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [listSettingsOpen, setListSettingsOpen] = useState(false);
 
   useEffect(() => {
     const loadVoices = () => {
@@ -97,6 +98,9 @@ function Settings({
         break;
       case 'memory':
         setMemoryOpen(!memoryOpen);
+        break;
+      case 'listSettings':
+        setListSettingsOpen(!listSettingsOpen);
         break;
       default:
         break;
@@ -245,6 +249,30 @@ function Settings({
                   </div>
                 </>
               )}
+            </div>
+          )}
+        </div>
+
+        <div className="settings-section">
+          <button 
+            className="section-header" 
+            onClick={() => toggleSection('listSettings')}
+          >
+            <span>List Settings</span>
+            <span className="arrow">{listSettingsOpen ? '▼' : '▶'}</span>
+          </button>
+          {listSettingsOpen && (
+            <div className="section-content">
+              <div className="setting-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={settings.newLineOnEnter}
+                    onChange={(e) => handleSettingChange('newLineOnEnter', e.target.checked)}
+                  />
+                  New Line on Enter
+                </label>
+              </div>
             </div>
           )}
         </div>

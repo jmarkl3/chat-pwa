@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './NestedList.css';
 import { ellipsis } from '../App/functions';
+import { useSelector } from 'react-redux';
 
 // Recursive component for rendering individual items
 export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItemButtonClick, setAsRoot, toggleOpen, insertInto }) {
   // State for UI interactions
   const [menuOpen, setMenuOpen] = useState(false);
   const textareaRef = useRef(null);
+  const { settings } = useSelector(state => state.menu);
   
   // Check if this item has nested items
   const hasNested = item.nested && item.nested.length > 0;
@@ -32,6 +34,16 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
     }
   }, [item.isOpen, item?.content]);
 
+  // Handle key press events
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      if (settings.newLineOnEnter) {
+        e.preventDefault();
+        addAfter(path);
+      }
+    }
+  };
+
   return (
     <div className="nested-list-item" >
       <div className="nested-item-header" onClick={() => toggleOpen(path)}>
@@ -45,6 +57,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
                   id={"textarea-"+item.id}
                   defaultValue={item?.content} 
                   onClick={(e) => { e.stopPropagation() }}
+                  onKeyDown={handleKeyPress}
                   onChange={(e) => {
                     // Adjust height on content change
                     e.target.style.height = 'auto';
