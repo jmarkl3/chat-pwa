@@ -48,8 +48,15 @@ function AppHome() {
 
   // Load messages when chat ID changes
   useEffect(() => {
+      // Clear inactivity timer when chat id changes
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+
     if (!chatIDState) {
       setMessages([]);
+
       return;
     }
 
@@ -66,6 +73,18 @@ function AppHome() {
       setMessages([]);
     }
   }, [chatIDState]);
+
+  // Component cleanup
+  useEffect(() => {
+    return () => {
+      // Clear inactivity timer when component unmounts
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+      inactivityCountRef.current = 0;
+    };
+  }, []);
 
   // #region loading
 
