@@ -2,10 +2,11 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   chatID: null,
-  listID: null
+  listID: null,
+  listUpdateTimestamp: null,
 };
 
-export const mainSlice = createSlice({
+export const idsSlice = createSlice({
   name: 'main',
   initialState,
   reducers: {
@@ -14,10 +15,13 @@ export const mainSlice = createSlice({
     },
     setListID: (state, action) => {
       state.listID = action.payload;
+    },
+    updateListTimestamp: (state) => {
+      state.listUpdateTimestamp = Date.now();
     }
   }
 });
 
-export const { setChatID, setListID } = mainSlice.actions;
+export const { setChatID, setListID, updateListTimestamp } = idsSlice.actions;
 
-export default mainSlice.reducer;
+export default idsSlice.reducer;

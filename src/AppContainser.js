@@ -4,7 +4,7 @@ import Chat from './Routes/App/Chat';
 import NestedList from './Routes/NestedList/NestedList';
 import Menu from './Routes/App/Menu';
 import { loadSettings, updateSetting } from './store/menuSlice';
-import { setChatID } from './store/idsSlice';
+import { setChatID, updateListTimestamp } from './store/idsSlice';
 import { CHATS_STORAGE_KEY, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, FORMAT_PREFACE, PROMPT_PREFACE_KEY, PROMPT_PREFACE, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, STORAGE_KEY } from './Routes/App/Data';
 import { removeSpecialCharacters, ellipsis } from './Routes/App/functions';
 import ChatInputArea from './Routes/App/ChatInputArea';
@@ -644,6 +644,9 @@ function AppContainser() {
               lists[listIndex].lastModified = Date.now();
               localStorage.setItem('note-lists', JSON.stringify(lists));
             }
+
+            // Notify that list has been updated
+            dispatch(updateListTimestamp());
             
             // console .log('Added items to list:', items);
           }

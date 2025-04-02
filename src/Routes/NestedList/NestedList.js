@@ -22,7 +22,7 @@ const createEmptyList = () => ({
 function NestedList() {
   
   const dispatch = useDispatch();
-  const { listID } = useSelector(state => state.main);
+  const { listID, listUpdateTimestamp } = useSelector(state => state.main);
 
   // State for the nested list data
   const [data, setData] = useState(null);
@@ -30,7 +30,7 @@ function NestedList() {
   // State for tracking the current root path
   const [rootPath, setRootPath] = useState([]);
 
-  // Load list data when listID changes
+  // Load list data when listID changes or when list is updated externally
   useEffect(() => {
     if (listID) {
       const savedData = localStorage.getItem(`note-list-${listID}`);
@@ -39,7 +39,7 @@ function NestedList() {
         setRootPath([]); // Reset root path when loading new list
       }
     }
-  }, [listID]);
+  }, [listID, listUpdateTimestamp]);
 
   // Save data whenever it changes
   useEffect(() => {
