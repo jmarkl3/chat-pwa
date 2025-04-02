@@ -219,7 +219,11 @@ html, body {
     font-family: inherit;
     font-size: inherit;
 }
-
+.points-display{
+    position: absolute;
+    top: 10px;
+    left: 10px;
+}
 .test-voice-button {
     width: 100%;
     padding: 8px;

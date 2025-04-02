@@ -4,34 +4,35 @@ import Chat from './Routes/App/Chat';
 import NestedList from './Routes/NestedList/NestedList';
 import Menu from './Routes/App/Menu';
 import { loadSettings, updateSetting, setComponentDisplay } from './store/menuSlice';
-import { setChatID, updateListTimestamp } from './store/idsSlice';
-import { CHATS_STORAGE_KEY, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, FORMAT_PREFACE, PROMPT_PREFACE_KEY, PROMPT_PREFACE, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, STORAGE_KEY } from './Routes/App/Data';
+import { setChatID, setListID, updateListTimestamp } from './store/idsSlice';
+import { CHATS_STORAGE_KEY, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, FORMAT_PREFACE, PROMPT_PREFACE_KEY, PROMPT_PREFACE, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, STORAGE_KEY, POINTS_STORAGE_KEY } from './Routes/App/Data';
 import { removeSpecialCharacters, ellipsis } from './Routes/App/functions';
 import ChatInputArea from './Routes/App/ChatInputArea';
 
 /*
-    This will have the menu in it
-    it will have a state variable that determines if the chat or nested list view is showing
-    the chatid and loaded nested list wil persist even when switching back and fourth from chat and nested list
-
-    todo:
-
     
-    error when opening settings, seems the settings object is undefined
-    menu items order
+    maybe add later:
+      nested list
+        improve the note that instructs the system on how to respond
+        also handle more possible responses
+          save examples when it does and doesn't work (they are in the history so just make note)
+        also move list item in and out depth menu options
+        top buttons bar in list editor
+        command to open and close items (by index or name)
+          could tell the system the name and it will find the path
     
-    should the loaded list in nestedlist be the same as the one the system has access to for chat
-    
-    later:
-    top buttons bar in list editor
-    points
+      points
+      
+      better menu
+        decides if it should show left or right up or down based on screen position and screen height width
 
 */
 function AppContainser() {
     const chatIdRef = useRef(null);
     const dispatch = useDispatch();
+    const [dailyPoints, setDailyPoints] = useState(0);
     
-    const { chatID } = useSelector(state => state.main);
+    const { chatID, listID } = useSelector(state => state.main);
     const { componentDisplay } = useSelector(state => state.menu);
 
     const { settings } = useSelector(state => state.menu);
@@ -60,6 +61,11 @@ function AppContainser() {
       }
     }, [chatID, chatIdRef]);
   
+    // Maintain the ref same as the listID in redux sate
+    useEffect(()=>{
+      workingListIDRef.current = listID
+    },[listID])
+
     // Load messages when chat ID changes
     useEffect(() => {
         // Clear inactivity timer when chat id changes
@@ -321,7 +327,6 @@ function AppContainser() {
   
     // Sends a message to the API and waits for a response
     async function fetchDeepSeek(userMessage) {
-      try {
         const now = new Date();
         const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const timeInfo = `Current time: ${now.toLocaleTimeString()}, ${days[now.getDay()]}, ${now.toLocaleDateString()}`;
@@ -367,6 +372,8 @@ function AppContainser() {
           throw new Error('Network response was not ok');
         }
   
+        try {
+
         const data = await response.json();
         const responseContent = data?.choices[0]?.message?.content
         const processedContent = processResponse(responseContent);
@@ -390,7 +397,7 @@ function AppContainser() {
         // console .error('Error:', error);
         const errorMessage = {
           role: 'assistant',
-          content: 'Sorry, there was an error processing your request.',
+          content: 'Sorry, there was an error processing your request. error: '+error,
           timestamp: Date.now()
         };
         setMessages(prev => [...prev, errorMessage]);
@@ -542,6 +549,8 @@ function AppContainser() {
     };
   
     function extractJSONs(text) {
+      // const jsonPattern = /{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*}/g;
+
       const jsonPattern = /{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*}|\[(?:[^[\]]|\[(?:[^[\]]|\[[^[\]]*\])*\])*\]/g;
       const candidates = text.match(jsonPattern) || [];
       const validJSONs = [];
@@ -573,12 +582,16 @@ function AppContainser() {
 
     // Processes the response from the API
     const processResponse = (text) => {
+      console.log("processing response ", text)
       try{
         let jsons = extractJSONs(text) || []
-        console.log(jsons)
+        console.log("jsons: ", jsons)
         jsons.forEach(json => {
           if (json.commands && Array.isArray(json.commands)) {
             handleApiCommand(json.commands)
+          }
+          if (json.points && typeof json.points === 'number') {
+            addToPoints(json.points);
           }
         });
         if (jsons[0] && jsons[0].message) {
@@ -768,6 +781,7 @@ function AppContainser() {
         }
         else if (cmd.command === "load list" && cmd.variables && cmd.variables.length > 0) {
           const listId = cmd.variables[0];
+          dispatch(setListID(listId))
           workingListIDRef.current = listId
           console.log("set workingListIDRef to ", workingListIDRef)
         }
@@ -999,6 +1013,23 @@ function AppContainser() {
   
     // #endregion chat changes
   
+    useEffect(() => {
+      loadDailyPoints();
+    }, []);
+
+    const loadDailyPoints = () => {
+      const today = new Date().toISOString().split('T')[0];
+      const pointsData = JSON.parse(localStorage.getItem(POINTS_STORAGE_KEY) || '{}');
+      setDailyPoints(pointsData[today] || 0);
+    };
+
+    const addToPoints = (points) => {
+      const today = new Date().toISOString().split('T')[0];
+      const pointsData = JSON.parse(localStorage.getItem(POINTS_STORAGE_KEY) || '{}');
+      pointsData[today] = (pointsData[today] || 0) + points;
+      localStorage.setItem(POINTS_STORAGE_KEY, JSON.stringify(pointsData));
+      setDailyPoints(pointsData[today]);
+    };
 
     // Load settings from localStorage on mount
     useEffect(() => {
@@ -1047,6 +1078,7 @@ function AppContainser() {
                     settings={settings}
                     speakMessages={speakMessages}
                     isLoading={isLoading}
+                    dailyPoints={dailyPoints}
                 />
                 :
                 <NestedList />

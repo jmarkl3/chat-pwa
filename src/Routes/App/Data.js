@@ -2,6 +2,7 @@ export const STORAGE_KEY = 'chat-app-settings';
 export const CHATS_STORAGE_KEY = 'chat-app-chats';
 export const LONG_TERM_MEMORY_KEY = 'chat-app-long-term-memory';
 export const NOTE_STORAGE_KEY = 'chat-app-note';
+export const POINTS_STORAGE_KEY = 'chat-app-points';
 export const INACTIVITY_MESSAGE = 'User has been inactive for 5 minutes, attempt to reengage them';
 export const AVAILABLE_COMMANDS = `Available commands:
 1. command replay (number) - Replays the last few messages. For example: "command replay 3".
@@ -23,6 +24,7 @@ export const FORMAT_PREFACE = `
   Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
   {
     message: <your message here>,
+    ponts: int, // If the user completes a game or did something productive you can reward them with points. add the thing and number to long term mem so you can ref it for consistant numbers for thigns
     // you can send multiple commands 
     commands: [
       {
@@ -42,8 +44,10 @@ export const FORMAT_PREFACE = `
   "load list" - loads a list into tempMem. Variables: [listId]
   "add to list" - adds an item to a list. Variables: [listId, [path array (based on nested index ex: [0, 1])], item to add...]
     ex: commands: [{command: "add to list", variables: [<list id>, [<path ex: 0, 1>], "content text for item 1", "item 2 content"]}, ]
+    remember each item has its own command and path
+
   "modify list item" vars: [<list id>, [...path], "new content string"] updates the content  of an item
-  "switch view" - switches between chat and list view. specify view with teh variable "list or "chat".
+  "switch view" - switches between chat and list view. specify view with teh variable "list or "chat". ONLY do this if the user specifically asks for it, never any other time. 
 `;
 export const PROMPT_PREFACE = `
   This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.

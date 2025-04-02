@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React from 'react'
 import { useSelector, useDispatch } from 'react-redux';
 import { setChatID } from '../../store/idsSlice';
 import './AppHome.css'
@@ -6,12 +6,15 @@ import Message from './Message'
 import { STORAGE_KEY, CHATS_STORAGE_KEY, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, FORMAT_PREFACE, PROMPT_PREFACE, PROMPT_PREFACE_KEY, DEFAULT_SETTINGS, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, TEMP_MEMORY_KEY } from './Data'
 import { findNumberInArgs, removeSpecialCharacters, ellipsis } from './functions'
 
-export default function Chat({chatIdRef, scrollToBottom, messages = [], handleSendMessage, settings, speakMessages, isLoading}) {
+export default function Chat({chatIdRef, scrollToBottom, messages = [], handleSendMessage, settings, speakMessages, isLoading, dailyPoints}) {
   const dispatch = useDispatch();
   const { chatID } = useSelector(state => state.main);
 
   return (
     <div className="app-container">
+      <div className="points-display">
+        P: {dailyPoints}
+      </div>
 
       <div className="messages-container" id="messages-container">
         {messages.length === 0 && (
