@@ -17,9 +17,11 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
     useEffect(() => {
       // Load lists from localStorage
       const listsStr = localStorage.getItem('note-lists') || '[]';
-      const loadedLists = JSON.parse(listsStr);
-      // Sort by last modified
-      loadedLists.sort((a, b) => b.lastModified - a.lastModified);
+      console.log("listsStr: ", listsStr)
+      let loadedLists = JSON.parse(listsStr);
+      // Sort by timestamp
+      loadedLists = loadedLists.sort((a, b) => b.timestamp - a.timestamp);
+      console.log("listsStr sorted: ", listsStr)
       setLists(loadedLists);
     }, [isOpen]); // Reload when window opens
   
@@ -62,7 +64,7 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
       
       const updatedLists = currentLists.map(l => 
         l.id === titleEditList.id 
-          ? { ...l, content: newTitle, lastModified: Date.now() }
+          ? { ...l, content: newTitle, timestamp: Date.now() }
           : l
       );
       console.log('Lists after update:', updatedLists);
@@ -124,11 +126,11 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
         const newList = {
           id: newId,
           content: newListData.content,
-          lastModified: timestamp
+          timestamp: timestamp
         };
 
         currentLists.push(newList);
-        currentLists.sort((a, b) => b.lastModified - a.lastModified);
+        currentLists.sort((a, b) => b.timestamp - a.timestamp);
         localStorage.setItem('note-lists', JSON.stringify(currentLists));
 
         // Update UI
@@ -180,7 +182,7 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
       const newList = {
         id: Date.now().toString(),
         content: "New List",
-        lastModified: Date.now()
+        timestamp: Date.now()
       };
       
       // Save new list
@@ -249,7 +251,7 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
                   <>
                     <span className="list-title">{list.content}</span>
                     <span className="last-modified">
-                      {new Date(list.lastModified).toLocaleDateString()}
+                      {new Date(list.timestamp).toLocaleDateString()}
                     </span>
                     <button 
                       className="chat-menu-button" 

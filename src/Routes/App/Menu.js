@@ -134,11 +134,11 @@ function Menu({ scrollToBottom }) {
         <div className="menu-content">
           <h3>Menu</h3>
           <div className="menu-items">
-            <button className="menu-item" onClick={handleHistoryClick}>Chats History</button>
-            <button className="menu-item" onClick={handleListsClick}>Lists</button>
             <button className="menu-item" onClick={handleViewToggle}>
               Switch to {componentDisplay === "chat" ? "List" : "Chat"} View
             </button>
+            <button className="menu-item" onClick={handleHistoryClick}>Chats History</button>
+            <button className="menu-item" onClick={handleListsClick}>Lists</button>
             <button className="menu-item" onClick={handleNoteClick}>Note</button>
             <button className="menu-item" onClick={handleLongTermMemoryClick}>Memory</button>
             <button className="menu-item" onClick={handleSettingsClick}>Settings</button>

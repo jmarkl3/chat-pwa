@@ -626,12 +626,12 @@ function AppContainser() {
             
             const updatedLists = lists.map(l => 
               l.id === listId 
-                ? { ...l, lastModified: timestamp }
+                ? { ...l, timestamp: timestamp }
                 : l
             );
             
-            // Sort by last modified
-            updatedLists.sort((a, b) => b.lastModified - a.lastModified);
+            // Sort by timestamp
+            updatedLists.sort((a, b) => b.timestamp - a.timestamp);
             localStorage.setItem('note-lists', JSON.stringify(updatedLists));
           }
         }
@@ -664,7 +664,7 @@ function AppContainser() {
           lists.push({
             id: newList.id,
             content: listName,
-            lastModified: Date.now()
+            timestamp: Date.now()
           });
           localStorage.setItem('note-lists', JSON.stringify(lists));
           
@@ -709,7 +709,7 @@ function AppContainser() {
             const lists = JSON.parse(listsStr);
             const listIndex = lists.findIndex(l => l.id === listId);
             if (listIndex >= 0) {
-              lists[listIndex].lastModified = Date.now();
+              lists[listIndex].timestamp = Date.now();
               localStorage.setItem('note-lists', JSON.stringify(lists));
             }
 

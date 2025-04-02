@@ -56,11 +56,11 @@ function NestedList() {
       updatedLists.push({
         id: listID,
         content: data.content,
-        lastModified: timestamp
+        timestamp: timestamp
       });
 
-      // Sort by last modified, most recent first
-      updatedLists.sort((a, b) => b.lastModified - a.lastModified);
+      // Sort by timestamp, most recent first
+      updatedLists.sort((a, b) => b.timestamp - a.timestamp);
       localStorage.setItem('note-lists', JSON.stringify(updatedLists));
     }
   }, [data, listID]);
@@ -81,7 +81,7 @@ function NestedList() {
     lists.push({
       id: newId,
       content: newList.content,
-      lastModified: timestamp
+      timestamp: timestamp
     });
 
     localStorage.setItem('note-lists', JSON.stringify(lists));

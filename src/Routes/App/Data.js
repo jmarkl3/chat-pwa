@@ -22,6 +22,7 @@ export const FORMAT_PREFACE = `
   Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
   {
     message: <your message here>,
+    // you can send multiple commands 
     commands: [
       {
         command: <command name>,
