@@ -457,7 +457,7 @@ function AppContainser() {
             }
           }
           break;
-  
+
         case 'setting':
         case 'settings':
         case 'update':
@@ -477,6 +477,7 @@ function AppContainser() {
   
           if (updateSetting(settingName, value)) {
             // console .log(`Updated ${settingName} to ${value}`);
+            speakText(`Updated ${settingName} to ${value}`);
           }
           break;
   
@@ -498,13 +499,14 @@ function AppContainser() {
             const currentNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
             const updatedNote = currentNote ? `${currentNote}\n\n${noteText}` : noteText;
             localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
-            // console .log('Added to note:', noteText);
+            speakText('Note updated');
           }
           break;
   
         case 'speech':
           if (args[0] === 'reset') {
             resetSpeech();
+            speakText('Speech reset');
           }
           break;
   
@@ -530,6 +532,7 @@ function AppContainser() {
               scrollToBottom();
             }, 100);
           }
+          // speakText(`Switched to ${newView} view`);
           break;
   
         default:
@@ -593,141 +596,174 @@ function AppContainser() {
         console.log(cmd)
 
         if (cmd.command === "add to long term memory" && cmd.variables && cmd.variables.length > 0) {
-          const newMemory = cmd.variables[0];
-          // Append to existing memory with a newline
-          const currentMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY) || '';
-          const updatedMemory = currentMemory ? `${currentMemory}\n${newMemory}` : newMemory;
-          
-          // Update localStorage
-          localStorage.setItem(LONG_TERM_MEMORY_KEY, updatedMemory);
-          
+          try {
+            const newMemory = cmd.variables[0];
+            // Append to existing memory with a newline
+            const currentMemory = localStorage.getItem(LONG_TERM_MEMORY_KEY) || '';
+            const updatedMemory = currentMemory ? `${currentMemory}\n${newMemory}` : newMemory;
+            
+            // Update localStorage
+            localStorage.setItem(LONG_TERM_MEMORY_KEY, updatedMemory);
+            speakText('Memory updated');
+          } catch (error) {
+            speakText('Error updating memory');
+          }
         }
         else if (cmd.command === "overwrite long term memory" && cmd.variables && cmd.variables.length > 0) {
-          const newMemory = cmd.variables[0];
-          
-          // Update localStorage
-          localStorage.setItem(LONG_TERM_MEMORY_KEY, newMemory);
-          
+          try {
+            const newMemory = cmd.variables[0];
+            localStorage.setItem(LONG_TERM_MEMORY_KEY, newMemory);
+            speakText('Memory overwritten');
+          } catch (error) {
+            speakText('Error overwriting memory');
+          }
         }
         else if (cmd.command === "clear long term memory") {
-          // Update localStorage
-          localStorage.setItem(LONG_TERM_MEMORY_KEY, '');
+          try {
+            localStorage.setItem(LONG_TERM_MEMORY_KEY, '');
+            speakText('Memory cleared');
+          } catch (error) {
+            speakText('Error clearing memory');
+          }
         }
         else if (cmd.command === "modify list item" && cmd.variables && cmd.variables.length >= 3) {
-          const listId = cmd.variables[0];
-          const path = cmd.variables[1];
-          const newContent = cmd.variables[2];
-          
-          const listDataStr = localStorage.getItem(`note-list-${listId}`);
-          if (listDataStr) {
-            const listData = JSON.parse(listDataStr);
+          try {
+            const listId = cmd.variables[0];
+            const path = cmd.variables[1];
+            const newContent = cmd.variables[2];
             
-            // Navigate to the target item using the path
-            let current = listData;
-            for (let i = 0; i < path.length - 1; i++) {
-              current = current.nested[path[i]];
+            const listDataStr = localStorage.getItem(`note-list-${listId}`);
+            if (listDataStr) {
+              const listData = JSON.parse(listDataStr);
+              
+              // Navigate to the target item using the path
+              let current = listData;
+              for (let i = 0; i < path.length - 1; i++) {
+                current = current.nested[path[i]];
+              }
+              
+              // Update the target item's content
+              const targetIndex = path[path.length - 1];
+              current.nested[targetIndex].content = newContent;
+              
+              // Save the updated list
+              localStorage.setItem(`note-list-${listId}`, JSON.stringify(listData));
+              
+              // Update lists metadata with new timestamp
+              const listsStr = localStorage.getItem('note-lists') || '[]';
+              const lists = JSON.parse(listsStr);
+              const timestamp = Date.now();
+              
+              const updatedLists = lists.map(l => 
+                l.id === listId 
+                  ? { ...l, timestamp: timestamp }
+                  : l
+              );
+              
+              // Sort by timestamp
+              updatedLists.sort((a, b) => b.timestamp - a.timestamp);
+              localStorage.setItem('note-lists', JSON.stringify(updatedLists));
+              speakText(`Updated item at path ${path.join(', ')}`);
             }
+          } catch (error) {
+            speakText('Error updating list item');
+          }
+        }
+        else if (cmd.command === "add to note" && cmd.variables && cmd.variables.length > 0) {
+          try {
+            const newNote = cmd.variables[0];
+            // Append to existing note with a newline
+            const existingNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
+            localStorage.setItem(NOTE_STORAGE_KEY, existingNote + (existingNote ? '\n\n' : '') + newNote);
+            speakText('Note updated');
+          } catch (error) {
+            speakText('Error updating note');
+          }
+        }
+        else if (cmd.command === "create list" && cmd.variables && cmd.variables.length > 0) {
+          try {
+            const listName = cmd.variables[0];
+            const newList = {
+              id: Math.random().toString(36).substr(2, 9),
+              content: listName,
+              isOpen: true,
+              nested: []
+            };
             
-            // Update the target item's content
-            const targetIndex = path[path.length - 1];
-            current.nested[targetIndex].content = newContent;
+            // Save the new list data
+            localStorage.setItem(`note-list-${newList.id}`, JSON.stringify(newList));
             
-            // Save the updated list
-            localStorage.setItem(`note-list-${listId}`, JSON.stringify(listData));
-            
-            // Update lists metadata with new timestamp
+            // Update lists index
             const listsStr = localStorage.getItem('note-lists') || '[]';
             const lists = JSON.parse(listsStr);
             const timestamp = Date.now();
             
-            const updatedLists = lists.map(l => 
-              l.id === listId 
-                ? { ...l, timestamp: timestamp }
-                : l
-            );
-            
-            // Sort by timestamp
-            updatedLists.sort((a, b) => b.timestamp - a.timestamp);
-            localStorage.setItem('note-lists', JSON.stringify(updatedLists));
+            lists.push({
+              id: newList.id,
+              content: listName,
+              timestamp: timestamp
+            });
+            localStorage.setItem('note-lists', JSON.stringify(lists));
+            speakText(`Created new list: ${listName}`);
+            return newList.id;
+          } catch (error) {
+            speakText('Error creating list');
           }
         }
-        else if (cmd.command === "add to note" && cmd.variables && cmd.variables.length > 0) {
-          const newNote = cmd.variables[0];
-          // Append to existing note with a newline
-          const existingNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
-          localStorage.setItem(NOTE_STORAGE_KEY, existingNote + (existingNote ? '\n\n' : '') + newNote);
-        }
-        else if (cmd.command === "create list" && cmd.variables && cmd.variables.length > 0) {
-          const listName = cmd.variables[0];
-          const newList = {
-            id: Math.random().toString(36).substr(2, 9),
-            content: listName,
-            isOpen: true,
-            nested: []
-          };
-          
-          // Save the list
-          localStorage.setItem(`note-list-${newList.id}`, JSON.stringify(newList));
-          
-          // Update lists index
-          const listsStr = localStorage.getItem('note-lists') || '[]';
-          const lists = JSON.parse(listsStr);
-          lists.push({
-            id: newList.id,
-            content: listName,
-            timestamp: Date.now()
-          });
-          localStorage.setItem('note-lists', JSON.stringify(lists));
-          
-          // console .log('Created new list:', newList);
-          return newList.id; // Return ID for potential use in add to list
-        }
         else if (cmd.command === "add to list" && cmd.variables && cmd.variables.length >= 3) {
-
-          const [listId, pathArray, ...items] = cmd.variables;
-          
-          // Load the list
-          const listStr = localStorage.getItem(`note-list-${listId}`);
-          if (!listStr) return;
-          
-          const list = JSON.parse(listStr);
-          
-          // Helper to find target node
-          const findNode = (node, path) => {
-            if (path.length === 0) return node;
-            const [index, ...rest] = path;
-            if (!node.nested[index]) return null;
-            return findNode(node.nested[index], rest);
-          };
-          
-          // Find target node and add items
-          const targetNode = findNode(list, pathArray);
-          if (targetNode) {
-            items.forEach(item => {
-              targetNode.nested.push({
-                id: Math.random().toString(36).substr(2, 9),
-                content: item,
-                isOpen: true,
-                nested: []
-              });
-            });
+          try {
+            const [listId, pathArray, ...items] = cmd.variables;
             
-            // Save updated list
-            localStorage.setItem(`note-list-${listId}`, JSON.stringify(list));
-            
-            // Update last modified
-            const listsStr = localStorage.getItem('note-lists') || '[]';
-            const lists = JSON.parse(listsStr);
-            const listIndex = lists.findIndex(l => l.id === listId);
-            if (listIndex >= 0) {
-              lists[listIndex].timestamp = Date.now();
-              localStorage.setItem('note-lists', JSON.stringify(lists));
+            // Load the list
+            const listStr = localStorage.getItem(`note-list-${listId}`);
+            if (!listStr) {
+              speakText('List not found');
+              return;
             }
-
-            // Notify that list has been updated
-            dispatch(updateListTimestamp());
             
-            // console .log('Added items to list:', items);
+            const list = JSON.parse(listStr);
+            
+            // Helper to find target node
+            const findNode = (node, path) => {
+              if (path.length === 0) return node;
+              const [index, ...rest] = path;
+              if (!node.nested[index]) return null;
+              return findNode(node.nested[index], rest);
+            };
+            
+            // Find target node and add items
+            const targetNode = findNode(list, pathArray);
+            if (targetNode) {
+              items.forEach(item => {
+                targetNode.nested.push({
+                  id: Math.random().toString(36).substr(2, 9),
+                  content: item,
+                  isOpen: true,
+                  nested: []
+                });
+              });
+              
+              // Save updated list
+              localStorage.setItem(`note-list-${listId}`, JSON.stringify(list));
+              
+              // Update last modified
+              const listsStr = localStorage.getItem('note-lists') || '[]';
+              const lists = JSON.parse(listsStr);
+              const listIndex = lists.findIndex(l => l.id === listId);
+              if (listIndex >= 0) {
+                lists[listIndex].timestamp = Date.now();
+                localStorage.setItem('note-lists', JSON.stringify(lists));
+              }
+
+              // Notify that list has been updated
+              dispatch(updateListTimestamp());
+              
+              speakText(`Added ${items.length} items to list at path ${pathArray.join(', ')}`);
+            } else {
+              speakText('Target node not found');
+            }
+          } catch (error) {
+            speakText('Error adding items to list');
           }
         }
         else if (cmd.command === "load list" && cmd.variables && cmd.variables.length > 0) {
@@ -736,26 +772,31 @@ function AppContainser() {
           console.log("set workingListIDRef to ", workingListIDRef)
         }
         else if (cmd.command === "switch view") {
-          // Get requested view from variables
-          const requestedView = cmd.variables && cmd.variables.length > 0 ? cmd.variables[0] : null;
-          let newView;
-          
-          if (requestedView === "list" || requestedView === "chat") {
-            // Use specified view
-            newView = requestedView;
-          } else {
-            // If no valid view specified, swap current view
-            newView = componentDisplay === "chat" ? "list" : "chat";
-          }
-          
-          // Switch to the new view
-          dispatch(setComponentDisplay(newView));
-          
-          // Scroll to bottom if switching to chat view
-          if (newView === "chat") {
-            setTimeout(() => {
-              scrollToBottom();
-            }, 100);
+          try {
+            // Get requested view from variables
+            const requestedView = cmd.variables && cmd.variables.length > 0 ? cmd.variables[0] : null;
+            let newView;
+            
+            if (requestedView === "list" || requestedView === "chat") {
+              // Use specified view
+              newView = requestedView;
+            } else {
+              // If no valid view specified, swap current view
+              newView = componentDisplay === "chat" ? "list" : "chat";
+            }
+            
+            // Switch to the new view
+            dispatch(setComponentDisplay(newView));
+            
+            // Scroll to bottom if switching to chat view
+            if (newView === "chat") {
+              setTimeout(() => {
+                scrollToBottom();
+              }, 100);
+            }
+            speakText(`Switched to ${newView} view`);
+          } catch (error) {
+            speakText('Error switching view');
           }
         }
       });
