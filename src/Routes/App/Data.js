@@ -17,6 +17,7 @@ export const AVAILABLE_COMMANDS = `Available commands:
 11. command note (text) - Adds text to the note stored in local storage.
 12. note (text) - Directly adds text to your notes with double line breaks.
 13. command speech reset - Resets all text-to-speech settings and state to default.
+    command view chat sets the view to chat or list or swaps
 `;
 export const FORMAT_PREFACE = `
   Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
@@ -42,8 +43,8 @@ export const FORMAT_PREFACE = `
   "add to list" - adds an item to a list. Variables: [listId, [path array (based on nested index ex: [0, 1])], item to add...]
     ex: commands: [{command: "add to list", variables: [<list id>, [<path ex: 0, 1>], "content text for item 1", "item 2 content"]}, ]
   "modify list item" vars: [<list id>, [...path], "new content string"] updates the content  of an item
-
-  `;
+  "switch view" - switches between chat and list view. specify view with teh variable "list or "chat".
+`;
 export const PROMPT_PREFACE = `
   This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
 

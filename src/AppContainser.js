@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Chat from './Routes/App/Chat';
 import NestedList from './Routes/NestedList/NestedList';
 import Menu from './Routes/App/Menu';
-import { loadSettings, updateSetting } from './store/menuSlice';
+import { loadSettings, updateSetting, setComponentDisplay } from './store/menuSlice';
 import { setChatID, updateListTimestamp } from './store/idsSlice';
 import { CHATS_STORAGE_KEY, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, FORMAT_PREFACE, PROMPT_PREFACE_KEY, PROMPT_PREFACE, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, STORAGE_KEY } from './Routes/App/Data';
 import { removeSpecialCharacters, ellipsis } from './Routes/App/functions';
@@ -252,14 +252,14 @@ function AppContainser() {
       }
     };
   
-    // Checks to see if its a command, if so calls handleCommand
+    // Checks to see if its a command, if so calls handleUserCommand
     const processInput = (input) => {
       const words = input.trim().split(/\s+/);
       let firstWord = words[0].toLowerCase()
       if (words.length >= 2 && (firstWord === 'command' || firstWord === 'commands')) {
         const command = words[1];
         const args = words.slice(2);
-        handleCommand(command, args);
+        handleUserCommand(command, args);
         return false; // Don't send to API
       }
       return true; // Send to API
@@ -429,7 +429,7 @@ function AppContainser() {
     // #region commands (from user and system)
   
     // User Commands:
-    const handleCommand = (command, args) => {
+    const handleUserCommand = (command, args) => {
       switch (command.toLowerCase()) {
         case 'replay':
         case 'repeat':
@@ -516,6 +516,30 @@ function AppContainser() {
           }
           break;
   
+        case 'view':
+          // Get requested view from args
+          const requestedView = args && args.length > 0 ? args[0] : null;
+          let newView;
+          
+          if (requestedView === "list" || requestedView === "chat") {
+            // Use specified view
+            newView = requestedView;
+          } else {
+            // If no valid view specified, swap current view
+            newView = componentDisplay === "chat" ? "list" : "chat";
+          }
+          
+          // Switch to the new view
+          dispatch(setComponentDisplay(newView));
+          
+          // Scroll to bottom if switching to chat view
+          if (newView === "chat") {
+            setTimeout(() => {
+              scrollToBottom();
+            }, 100);
+          }
+          break;
+  
         default:
           // console .log('Unknown command:', command);
           speakText(`Unknown command: ${command}`);
@@ -559,7 +583,7 @@ function AppContainser() {
         console.log(jsons)
         jsons.forEach(json => {
           if (json.commands && Array.isArray(json.commands)) {
-            processAPICommands(json.commands)
+            handleApiCommand(json.commands)
           }
         });
         if (jsons[0] && jsons[0].message) {
@@ -571,7 +595,7 @@ function AppContainser() {
       }
     };
   
-    function processAPICommands(commands){
+    function handleApiCommand(commands){
       commands.forEach(cmd => {
         console.log("Processing "+cmd.command)
         console.log(cmd)
@@ -638,13 +662,8 @@ function AppContainser() {
         else if (cmd.command === "add to note" && cmd.variables && cmd.variables.length > 0) {
           const newNote = cmd.variables[0];
           // Append to existing note with a newline
-          const currentNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
-          const updatedNote = currentNote ? `${currentNote}\n${newNote}` : newNote;
-          
-          // Update localStorage
-          localStorage.setItem(NOTE_STORAGE_KEY, updatedNote);
-          
-          // console .log('Updated note:', updatedNote);
+          const existingNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
+          localStorage.setItem(NOTE_STORAGE_KEY, existingNote + (existingNote ? '\n\n' : '') + newNote);
         }
         else if (cmd.command === "create list" && cmd.variables && cmd.variables.length > 0) {
           const listName = cmd.variables[0];
@@ -723,6 +742,29 @@ function AppContainser() {
           const listId = cmd.variables[0];
           workingListIDRef.current = listId
           console.log("set workingListIDRef to ", workingListIDRef)
+        }
+        else if (cmd.command === "switch view") {
+          // Get requested view from variables
+          const requestedView = cmd.variables && cmd.variables.length > 0 ? cmd.variables[0] : null;
+          let newView;
+          
+          if (requestedView === "list" || requestedView === "chat") {
+            // Use specified view
+            newView = requestedView;
+          } else {
+            // If no valid view specified, swap current view
+            newView = componentDisplay === "chat" ? "list" : "chat";
+          }
+          
+          // Switch to the new view
+          dispatch(setComponentDisplay(newView));
+          
+          // Scroll to bottom if switching to chat view
+          if (newView === "chat") {
+            setTimeout(() => {
+              scrollToBottom();
+            }, 100);
+          }
         }
       });
     }
