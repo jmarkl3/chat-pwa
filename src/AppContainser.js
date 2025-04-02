@@ -19,20 +19,12 @@ import ChatInputArea from './Routes/App/ChatInputArea';
     
     error when opening settings, seems the settings object is undefined
     menu items order
-
-    check all functionality to make sure its working
-    check the system commands are working to load and modify lists
-
+    
+    should the loaded list in nestedlist be the same as the one the system has access to for chat
+    
+    later:
     top buttons bar in list editor
-
-    organize files
-    remove unused files
-
-    end of day tomorrow
-    should be able to chat normally when in chat or list mode
-    should be able to create and modify lists just by speaking
-    all basic functionality should be workign
-
+    points
 
 */
 function AppContainser() {

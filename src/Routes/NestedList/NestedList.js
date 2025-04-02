@@ -485,37 +485,33 @@ function NestedList() {
               );
             })}
           </div>
-          {data ? (
-            <>
-              <NestedListItem
-                key={rootNode.id}
-                item={rootNode}
-                index={0}
-                path={rootPath}
-                updateContent={updateNestedListData}
-                moveItem={moveItem}
-                duplicateItem={duplicateItem}
-                addAfter={addAfter}
-                deleteItemButtonClick={deleteItemButtonClick}
-                setAsRoot={setAsRoot}
-                toggleOpen={toggleOpen}
-                insertInto={insertInto}
-              />
-            </>
-          ) : (
-            <div className="empty-state">
-              <ListsSelector
-                onSelectList={(id) => dispatch(setListID(id))}
-                createNewList={createNewList}
-              />
-            </div>
-          )}
-
-        {/* <NestedListMenu 
-          createNewList={createNewList}
-          onSelectList={(id) => dispatch(setListID(id))}
-        /> */}
-
+          <div className="nested-list-container-scroll">
+            {data ? (
+              <>
+                <NestedListItem
+                  key={rootNode.id}
+                  item={rootNode}
+                  index={0}
+                  path={rootPath}
+                  updateContent={updateNestedListData}
+                  moveItem={moveItem}
+                  duplicateItem={duplicateItem}
+                  addAfter={addAfter}
+                  deleteItemButtonClick={deleteItemButtonClick}
+                  setAsRoot={setAsRoot}
+                  toggleOpen={toggleOpen}
+                  insertInto={insertInto}
+                />
+              </>
+            ) : (
+              <div className="empty-state">
+                <ListsSelector
+                  onSelectList={(id) => dispatch(setListID(id))}
+                  createNewList={createNewList}
+                />
+              </div>
+            )}
+          </div>
       </div>
     </>
   );
