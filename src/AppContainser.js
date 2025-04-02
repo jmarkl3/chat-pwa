@@ -16,15 +16,23 @@ import ChatInputArea from './Routes/App/ChatInputArea';
 
     todo:
 
-    put list id in redux so it persists
-        and make it so when tha changes the ref in chat updates so it is always accessed before the fetch
-    test taht switching back and fourth from chat and list they are both staying the same chat id and list id    
     
-    put menu int app container so settings are available in both
-    add setting for enter to create new list item
+    error when opening settings, seems the settings object is undefined
+    menu items order
+
+    check all functionality to make sure its working
+    check the system commands are working to load and modify lists
+
+    top buttons bar in list editor
 
     organize files
     remove unused files
+
+    end of day tomorrow
+    should be able to chat normally when in chat or list mode
+    should be able to create and modify lists just by speaking
+    all basic functionality should be workign
+
 
 */
 function AppContainser() {
@@ -502,11 +510,6 @@ function AppContainser() {
           }
           break;
   
-        case 'set working list':
-          // Set the working list ID to the first argument or null if no arguments
-          workingListIDRef.current = args[0] || null;
-          break;
-  
         case 'speech':
           if (args[0] === 'reset') {
             resetSpeech();
@@ -519,34 +522,60 @@ function AppContainser() {
       }
     };
   
+    function extractJSONs(text) {
+      const jsonPattern = /{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*}|\[(?:[^[\]]|\[(?:[^[\]]|\[[^[\]]*\])*\])*\]/g;
+      const candidates = text.match(jsonPattern) || [];
+      const validJSONs = [];
+  
+      for (const candidate of candidates) {
+          try {
+              // Attempt to parse the candidate
+              const parsed = JSON.parse(candidate);
+              validJSONs.push(parsed);
+          } catch (e) {
+              // If basic parsing fails, try to handle unquoted properties
+              try {
+                  // This regex adds quotes around unquoted property names
+                  const fixed = candidate.replace(
+                      /([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)(\s*:)/g,
+                      '$1"$2"$3'
+                  );
+                  const parsed = JSON.parse(fixed);
+                  validJSONs.push(parsed);
+              } catch (e2) {
+                  // If it still fails, skip this candidate
+                  continue;
+              }
+          }
+      }
+  
+      return validJSONs;
+    }
+
     // Processes the response from the API
     const processResponse = (text) => {
-      const cleanedText = removeSpecialCharacters(text);
-      // console .log("cleanedText: ", cleanedText)
-      try {
-        // Remove any leading/trailing whitespace and any text before/after the JSON
-        const jsonMatch = cleanedText.match(/\{[^]*\}/);
-        if (jsonMatch) {
-          const jsonStr = jsonMatch[0];
-          const parsed = JSON.parse(jsonStr);
-          
-          // Process commands if they exist
-          if (parsed.commands && Array.isArray(parsed.commands)) {
-            processAPICommands(parsed.commands)
+      try{
+        let jsons = extractJSONs(text) || []
+        console.log(jsons)
+        jsons.forEach(json => {
+          if (json.commands && Array.isArray(json.commands)) {
+            processAPICommands(json.commands)
           }
-  
-          if (parsed && parsed.message) {
-            return parsed.message;
-          }
+        });
+        if (jsons[0] && jsons[0].message) {
+          return removeSpecialCharacters(jsons[0].message);
         }
-      } catch (e) {
-        // console .log('Response was not valid JSON, using as plain text:', e);
       }
-      return cleanedText;
+      catch{
+        return text
+      }
     };
   
     function processAPICommands(commands){
       commands.forEach(cmd => {
+        console.log("Processing "+cmd.command)
+        console.log(cmd)
+
         if (cmd.command === "add to long term memory" && cmd.variables && cmd.variables.length > 0) {
           const newMemory = cmd.variables[0];
           // Append to existing memory with a newline
@@ -567,6 +596,44 @@ function AppContainser() {
         else if (cmd.command === "clear long term memory") {
           // Update localStorage
           localStorage.setItem(LONG_TERM_MEMORY_KEY, '');
+        }
+        else if (cmd.command === "modify list item" && cmd.variables && cmd.variables.length >= 3) {
+          const listId = cmd.variables[0];
+          const path = cmd.variables[1];
+          const newContent = cmd.variables[2];
+          
+          const listDataStr = localStorage.getItem(`note-list-${listId}`);
+          if (listDataStr) {
+            const listData = JSON.parse(listDataStr);
+            
+            // Navigate to the target item using the path
+            let current = listData;
+            for (let i = 0; i < path.length - 1; i++) {
+              current = current.nested[path[i]];
+            }
+            
+            // Update the target item's content
+            const targetIndex = path[path.length - 1];
+            current.nested[targetIndex].content = newContent;
+            
+            // Save the updated list
+            localStorage.setItem(`note-list-${listId}`, JSON.stringify(listData));
+            
+            // Update lists metadata with new timestamp
+            const listsStr = localStorage.getItem('note-lists') || '[]';
+            const lists = JSON.parse(listsStr);
+            const timestamp = Date.now();
+            
+            const updatedLists = lists.map(l => 
+              l.id === listId 
+                ? { ...l, lastModified: timestamp }
+                : l
+            );
+            
+            // Sort by last modified
+            updatedLists.sort((a, b) => b.lastModified - a.lastModified);
+            localStorage.setItem('note-lists', JSON.stringify(updatedLists));
+          }
         }
         else if (cmd.command === "add to note" && cmd.variables && cmd.variables.length > 0) {
           const newNote = cmd.variables[0];
@@ -605,6 +672,7 @@ function AppContainser() {
           return newList.id; // Return ID for potential use in add to list
         }
         else if (cmd.command === "add to list" && cmd.variables && cmd.variables.length >= 3) {
+
           const [listId, pathArray, ...items] = cmd.variables;
           
           // Load the list
@@ -653,12 +721,8 @@ function AppContainser() {
         }
         else if (cmd.command === "load list" && cmd.variables && cmd.variables.length > 0) {
           const listId = cmd.variables[0];
-          const listStr = localStorage.getItem(`note-list-${listId}`);
-          if (listStr) {
-            const list = JSON.parse(listStr);
-            setTempMem(list);
-            // console .log('Loaded list into tempMem:', list);
-          }
+          workingListIDRef.current = listId
+          console.log("set workingListIDRef to ", workingListIDRef)
         }
       });
     }
@@ -891,7 +955,6 @@ function AppContainser() {
     const scrollToBottom = () => {
         console.log("scrollToBottom")
         const element = document.querySelector('#messages-container');
-        console.log("element: ", element)
         if (element) {
             element.scrollTop = element.scrollHeight;
         }

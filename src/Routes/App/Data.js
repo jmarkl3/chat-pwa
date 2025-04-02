@@ -32,15 +32,17 @@ export const FORMAT_PREFACE = `
   }
 
   Available commands:
-  1. "add to long term memory" - adds first variable to long term memory
-  2. "overwrite long term memory" - replaces entire long term memory with first variable
-  3. "clear long term memory" - clears all long term memory (no variables needed)
-  4. "add to note" - adds first variable to note in local storage
-  5. "create list" - creates a new list with name from first variable
-  6. "add to list" - adds an item to a list. Variables: [listId, [path array (based on nested index ex: [0, 1])], item to add...]
-  7. "load list" - loads a list into tempMem. Variables: [listId]
-  8. "set working list" - This list's current data will always be sent for context awareness'. Variables: [listId]. Set to null to clear.
-`;
+  "add to long term memory" - adds first variable to long term memory
+  "overwrite long term memory" - replaces entire long term memory with first variable
+  "clear long term memory" - clears all long term memory (no variables needed)
+  "add to note" - adds first variable to note in local storage
+  "create list" - creates a new list with name from first variable
+  "load list" - loads a list into tempMem. Variables: [listId]
+  "add to list" - adds an item to a list. Variables: [listId, [path array (based on nested index ex: [0, 1])], item to add...]
+    ex: commands: [{command: "add to list", variables: [<list id>, [<path ex: 0, 1>], "content text for item 1", "item 2 content"]}, ]
+  "modify list item" vars: [<list id>, [...path], "new content string"] updates the content  of an item
+
+  `;
 export const PROMPT_PREFACE = `
   This is a speech based conversation app. Give relatively short answers that would be expected during a spoken conversation.
 
