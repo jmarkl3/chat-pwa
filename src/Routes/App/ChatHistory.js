@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setChatID } from '../../store/idsSlice';
 import { setComponentDisplay } from '../../store/menuSlice';
@@ -16,6 +16,7 @@ function ChatHistory({ isOpen, setIsOpen, scrollToBottom }) {
 
   const dispatch = useDispatch();
   const currentChatId = useSelector(state => state.main.chatID);
+    const titleChangeTimerRef = useRef()
 
   useEffect(() => {
     if (!isOpen) return;
@@ -48,20 +49,6 @@ function ChatHistory({ isOpen, setIsOpen, scrollToBottom }) {
     setMenuOpenChatId(null);
   };
 
-  const handleTitleChange = (e, chatId) => {
-    if (e.key === 'Enter') {
-      const title = e.target.value.trim();
-      if (title) {
-        const updatedChats = chats.map(chat => 
-          chat.id === chatId ? { ...chat, title } : chat
-        );
-        localStorage.setItem('chats', JSON.stringify(updatedChats));
-        setChats(updatedChats);
-        setEditingChatId(null);
-      }
-    }
-  };
-
   const handleDeleteClick = (e, chatId) => {
     e.stopPropagation();
     setChatToDelete(chatId);
@@ -92,6 +79,10 @@ function ChatHistory({ isOpen, setIsOpen, scrollToBottom }) {
   };
 
   const handleImportChat = (chatData) => {
+    // if the chat data dose not have an id create one
+    if(!chatData.id)
+      chatData.id = Date.now()
+       
     // Save chat data
     localStorage.setItem(`chat-${chatData.id}`, JSON.stringify(chatData));
 
@@ -134,6 +125,55 @@ function ChatHistory({ isOpen, setIsOpen, scrollToBottom }) {
     setTimeout(() => {
       scrollToBottom();
     }, 100);
+  };
+
+  const handleEditSave = (e, chatId) => {
+    e.stopPropagation();
+    if (titleChangeTimerRef.current) {
+      clearTimeout(titleChangeTimerRef.current);
+      titleChangeTimerRef.current = null;
+    }
+    updateTitle(chatId, e.target.value);
+    setEditingChatId(null);
+  };
+
+
+  const updateTitle = (chatId, newTitle) => {
+    if (!newTitle || !chatId) return;
+
+    // Get fresh chat data from localStorage
+    const chatsStr = localStorage.getItem('chats') || '[]';
+    const currentChats = JSON.parse(chatsStr);
+    
+    // Update chats list
+    const updatedChats = currentChats.map(chat => 
+      chat.id === chatId ? { ...chat, title: newTitle } : chat
+    );
+    localStorage.setItem('chats', JSON.stringify(updatedChats));
+    setChats(updatedChats);
+
+    // Update individual chat data
+    const chatData = JSON.parse(localStorage.getItem(`chat-${chatId}`));
+    if (chatData) {
+      chatData.title = newTitle;
+      localStorage.setItem(`chat-${chatId}`, JSON.stringify(chatData));
+    }
+  };
+
+  
+  const handleTitleChange = (e, chatId) => {
+  console.log("hello", e.target.value)
+    const newValue = e.target.value;
+    
+    // Clear any existing timer
+    if (titleChangeTimerRef.current) {
+      clearTimeout(titleChangeTimerRef.current);
+    }
+
+    // Set new timer
+    titleChangeTimerRef.current = setTimeout(() => {
+      updateTitle(chatId, newValue);
+    }, 500);
   };
 
   return (

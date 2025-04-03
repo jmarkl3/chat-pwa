@@ -580,8 +580,9 @@ function AppContainser() {
       return validJSONs;
     }
 
-    // Processes the response from the API
+    // Processes the response from the API 
     const processResponse = (text) => {
+      // TODO: look for message: in the response as a fallback, if not and no json use the full response as the message, if json and no message put <no message>
       console.log("processing response ", text)
       try{
         let jsons = extractJSONs(text) || []

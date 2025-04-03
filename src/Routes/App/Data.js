@@ -38,7 +38,6 @@ export const FORMAT_PREFACE = `
   Available commands:
   "add to long term memory" - adds first variable to long term memory
   "overwrite long term memory" - replaces entire long term memory with first variable
-  "clear long term memory" - clears all long term memory (no variables needed)
   "add to note" - adds first variable to note in local storage
   "create list" - creates a new list with name from first variable
   "load list" - loads a list into tempMem. Variables: [listId]
