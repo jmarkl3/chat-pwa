@@ -191,13 +191,22 @@ function ChatHistory({ isOpen, setIsOpen, scrollToBottom }) {
               >
                 <div className="chat-item-content">
                   {editingChatId === chat.id ? (
-                    <input
-                      type="text"
-                      defaultValue={chat.title}
-                      onKeyDown={(e) => handleTitleChange(e, chat.id)}
-                      onBlur={() => setEditingChatId(null)}
-                      autoFocus
-                    />
+                    <div className="chat-item-edit" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        defaultValue={chat.title}
+                        onChange={(e) => handleTitleChange(e, chat.id)}
+                        onBlur={(e) => handleEditSave(e, chat.id)}
+                        className="chat-title-input"
+                        autoFocus
+                      />
+                      <button 
+                        className="save-title-button"
+                        onClick={(e) => handleEditSave(e, chat.id)}
+                      >
+                        ✓
+                      </button>
+                    </div>
                   ) : (
                     <span className="chat-title">{chat.title || 'Untitled Chat'}</span>
                   )}
