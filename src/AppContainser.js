@@ -26,6 +26,8 @@ import ChatInputArea from './Routes/App/ChatInputArea';
       better menu
         decides if it should show left or right up or down based on screen position and screen height width
 
+      https://murf.ai/api
+
 */
 function AppContainser() {
     const chatIdRef = useRef(null);
@@ -318,7 +320,7 @@ function AppContainser() {
       // Response format instructions
       contextString += "Always follow this: "+FORMAT_PREFACE+"\n"
   
-      // Custom prompt preface
+      // Custom prompt preface (custom if there is one, else default)
       const promptPreface = localStorage.getItem(PROMPT_PREFACE_KEY) || PROMPT_PREFACE;
       contextString += promptPreface+"\n";
       

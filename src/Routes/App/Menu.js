@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import './Menu.css';
 import ChatHistory from './ChatHistory';
-import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY, LONG_TERM_MEMORY_KEY } from './Data';
+import { PROMPT_PREFACE, STORAGE_KEY, NOTE_STORAGE_KEY, LONG_TERM_MEMORY_KEY, PROMPT_PREFACE_KEY } from './Data';
 import TextInput from './TextInput';
 import Settings from './Settings';
 import { setMenuOpen, setComponentDisplay } from '../../store/menuSlice';
@@ -115,6 +115,17 @@ function Menu({ scrollToBottom }) {
         defaultValue={localStorage.getItem(LONG_TERM_MEMORY_KEY)}
         onChange={(value) => {
           localStorage.setItem(LONG_TERM_MEMORY_KEY, value);
+        }}
+      />
+
+      {/* Prompt Preface term memory */}
+      <TextInput
+        title="Prompt Preface"
+        isOpen={showPromptPreface}
+        setIsOpen={(isOpen) => setShowPromptPreface(isOpen)}
+        defaultValue={localStorage.getItem(PROMPT_PREFACE_KEY) || PROMPT_PREFACE}
+        onChange={(value) => {
+          localStorage.setItem(PROMPT_PREFACE_KEY, value);
         }}
       />
 
