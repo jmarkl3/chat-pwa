@@ -67,17 +67,23 @@ const DotMenu = ({ children }) => {
     }
   }, [showMenu]);
 
+  function optionClick(e){
+    console.log("optionClick: ", optionClick)
+    e.stopPropagation()
+    setShowMenu(!showMenu)
+  }
+
   return (
     <>
       <button 
         ref={buttonRef}
         className="menu-dots no-select" 
-        onClick={() => setShowMenu(!showMenu)}
+        onClick={optionClick}
         aria-label="Menu options"
       >
         ⋮
         {showMenu && (
-          <div ref={menuRef} className={`message-menu corner-${corner}`}>
+          <div ref={menuRef} className={`message-menu corner-${corner}`} onClick={optionClick}>
             {children}
           </div>
         )}

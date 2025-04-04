@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import './NestedList.css';
 import { ellipsis } from '../App/functions';
 import { useSelector } from 'react-redux';
+import DotMenu from '../App/DotMenu';
 
 // Recursive component for rendering individual items
 export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItemButtonClick, setAsRoot, toggleOpen, insertInto }) {
   // State for UI interactions
-  const [menuOpen, setMenuOpen] = useState(false);
   const textareaRef = useRef(null);
   const { settings } = useSelector(state => state.menu);
   
@@ -18,11 +18,6 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
     ? item.content.slice(0, 60) + '...' 
     : item.content;
   
-  // Toggle the action menu
-  const toggleMenu = (e) => {
-    e.stopPropagation();
-    setMenuOpen(!menuOpen);
-  };
 
   // Auto-resize textarea when content changes or when it becomes visible
   useEffect(() => {
@@ -87,70 +82,47 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
                 ellipsis(item?.content) 
               }
             </div>
-              <div className={"note-list-item-menu"}>
-                <button 
-                  className="menu-button" 
-                  onClick={toggleMenu}
-                  aria-label="Menu"
-                >⋮</button>
-                <div 
-                  className={"note-list-item-menu-inner "+ (menuOpen ? "note-list-item-menu-inner-open" : "")}
-                > 
-                  {/* Add After */}
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    addAfter(path);
-                  }}>Add After</button>
+              <DotMenu>
+                {/* Add After */}
+                <button onClick={(e) => {
+                  addAfter(path);
+                }}>Add After</button>
 
-                  {/* Insert Into */}
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    insertInto(path);
-                  }}>Insert Into</button>
+                {/* Insert Into */}
+                <button onClick={(e) => {
+                  insertInto(path);
+                }}>Insert Into</button>
 
-                  {/* Move Up */}
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    moveItem(path, 'up');
-                  }}>Move Up</button>
+                {/* Move Up */}
+                <button onClick={(e) => {
+                  moveItem(path, 'up');
+                }}>Move Up</button>
 
-                  {/* Move Down */}
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    moveItem(path, 'down');
-                  }}>Move Down</button>
+                {/* Move Down */}
+                <button onClick={(e) => {
+                  moveItem(path, 'down');
+                }}>Move Down</button>
 
-                  {/* Duplicate */}
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    duplicateItem(path);
-                  }}>Duplicate</button>
+                {/* Duplicate */}
+                <button onClick={(e) => {
+                  duplicateItem(path);
+                }}>Duplicate</button>
 
-                  {/* Delete */}
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    deleteItemButtonClick(item, path);
-                  }}>Delete</button>
+                {/* Delete */}
+                <button onClick={(e) => {
+                  deleteItemButtonClick(item, path);
+                }}>Delete</button>
 
-                  {/* Set As Root */}
-                  <button onClick={(e) => {
-                    e.stopPropagation();
-                    setMenuOpen(false);
-                    setAsRoot(path);
-                  }}>Set as Root</button>
+                {/* Set As Root */}
+                <button onClick={(e) => {
+                  setAsRoot(path);
+                }}>Set as Root</button>
 
-                  {/* Cancel (close menu) */}
-                  <button onClick={toggleMenu}>Cancel</button>
-                  
-                </div>
-
-              </div>
+                {/* Cancel (close menu) */}
+                <button>Cancel</button>
+              
+              </DotMenu>
+             
           </div>
         </div>
       </div>
