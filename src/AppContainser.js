@@ -375,11 +375,15 @@ function AppContainser() {
         try {
 
         const data = await response.json();
+        console.log("retch data response: ", data)
         const responseContent = data?.choices[0]?.message?.content
+        // Parses the json, handles commands or points, returns message text
         const processedContent = processResponse(responseContent);
         const assistantMessage = {
+          // in case there is anything interesting in here
+          ...processedContent,
           role: 'assistant',
-          content: processedContent,
+          content: processedContent?.content,
           contentRaw: responseContent,
           timestamp: Date.now(),
         };
@@ -389,7 +393,7 @@ function AppContainser() {
   
         // Speak the response if TTS is enabled
         speakText(assistantMessage.content);
-  
+        
         // Reset inactivity timer after model responds
         resetInactivityTimer();
         scrollToBottom();
@@ -418,9 +422,8 @@ function AppContainser() {
           localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
           return updated;
         });
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     }
   
     // #endregion sending and recieving
@@ -432,7 +435,6 @@ function AppContainser() {
       switch (command.toLowerCase()) {
         case 'replay':
         case 'repeat':
-        case 'say':
           if (args[0] === 'all') {
             // Replay all messages from the start
             speakMessages(0, true);
@@ -548,59 +550,53 @@ function AppContainser() {
       }
     };
   
-    function extractJSONs(text) {
-      // const jsonPattern = /{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*}/g;
-
-      const jsonPattern = /{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*}|\[(?:[^[\]]|\[(?:[^[\]]|\[[^[\]]*\])*\])*\]/g;
-      const candidates = text.match(jsonPattern) || [];
-      const validJSONs = [];
-  
-      for (const candidate of candidates) {
+    /*
+      This fonctin should combite the jsons on to one if there are multiple
+      find the message attribute and others if it is not formatted correctly for json.parse
+      and if there is no valid json return a json with content: <the whole text>
+    */
+    function extractJSON(text) {
+      console.log(text)
+      const jsonStart = text.indexOf('{');
+      const jsonEnd = text.lastIndexOf('}');
+      console.log(jsonStart, jsonEnd)
+      
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
           try {
-              // Attempt to parse the candidate
-              const parsed = JSON.parse(candidate);
-              validJSONs.push(parsed);
+              const jsonStr = text.slice(jsonStart, jsonEnd + 1);
+              console.log("jsonStr:", jsonStr)
+              
+              const parsed = JSON.parse(jsonStr);
+              console.log("parsed:", parsed)
+              
+              // Ensure we have at least a message property
+              return {
+                  content: parsed.content || text, // Fallback to full text
+                  ...parsed
+              };
           } catch (e) {
-              // If basic parsing fails, try to handle unquoted properties
-              try {
-                  // This regex adds quotes around unquoted property names
-                  const fixed = candidate.replace(
-                      /([{,]\s*)([a-zA-Z_$][a-zA-Z0-9_$]*)(\s*:)/g,
-                      '$1"$2"$3'
-                  );
-                  const parsed = JSON.parse(fixed);
-                  validJSONs.push(parsed);
-              } catch (e2) {
-                  // If it still fails, skip this candidate
-                  continue;
-              }
+              // Extraction failed - fall through
           }
       }
-  
-      return validJSONs;
-    }
+
+      // 3. Final fallback - use entire text as message
+      return { content: text };
+  }
 
     // Processes the response from the API 
     const processResponse = (text) => {
-      // TODO: look for message: in the response as a fallback, if not and no json use the full response as the message, if json and no message put <no message>
+      // TODO: look for content: in the response as a fallback, if not and no json use the full response as the message, if json and no message put <no message>
       console.log("processing response ", text)
       try{
-        let jsons = extractJSONs(text) || []
-        console.log("jsons: ", jsons)
-        jsons.forEach(json => {
-          if (json.commands && Array.isArray(json.commands)) {
-            handleApiCommand(json.commands)
-          }
-          if (json.points && typeof json.points === 'number') {
-            addToPoints(json.points);
-          }
-        });
-        if (jsons[0] && jsons[0].message) {
-          return removeSpecialCharacters(jsons[0].message);
-        }
+        let json = extractJSON(text)
+        console.log("json: ", json)
+        handleApiCommand(json.commands)
+        addToPoints(json.points);
+        return json
       }
       catch{
-        return text
+        // A default json to response with 
+        return {content: text}
       }
     };
   

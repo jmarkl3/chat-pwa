@@ -23,7 +23,7 @@ export const AVAILABLE_COMMANDS = `Available commands:
 export const FORMAT_PREFACE = `
   Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
   {
-    message: <your message here>,
+    content: <your message here>,
     ponts: int, // If the user completes a game or did something productive you can reward them with points. add the thing and number to long term mem so you can ref it for consistant numbers for thigns
     // you can send multiple commands 
     commands: [
