@@ -1,0 +1,85 @@
+.menu-dots {
+    background: none;
+    border: none;
+    font-size: 20px;
+    padding: 0 4px;
+    cursor: pointer;
+    color: #666;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    border: 1px solid black;
+    border-radius: 5px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.menu-dots:hover {
+    opacity: 1;
+}
+
+.message-menu {
+    position: absolute;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+    min-width: 200px;
+    z-index: 9999;
+    animation: slideIn 0.2s ease-out;
+}
+
+/* Corner 1: Top Left */
+.message-menu.corner-1 {
+    top: 0;
+    left: 0;
+    transform-origin: top left;
+}
+
+/* Corner 2: Top Right */
+.message-menu.corner-2 {
+    top: 0;
+    right: 0;
+    transform-origin: top right;
+}
+
+/* Corner 3: Bottom Left */
+.message-menu.corner-3 {
+    bottom: 0;
+    left: 0;
+    transform-origin: bottom left;
+}
+
+/* Corner 4: Bottom Right */
+.message-menu.corner-4 {
+    bottom: 0;
+    right: 0;
+    transform-origin: bottom right;
+}
+
+.message-menu button {
+    padding: 8px 16px;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.message-menu button:hover {
+    background-color: #f0f0f0;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

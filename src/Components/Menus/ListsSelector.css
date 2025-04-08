@@ -1,0 +1,90 @@
+.chat-menu-button {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 5px 8px;
+  color: #444;
+  display: block;
+  border-radius: 4px;
+}
+
+.list-item:hover .chat-menu-button {
+  background-color: #f0f0f0;
+}
+
+.chat-menu-button:active {
+  background-color: #e0e0e0;
+}
+
+.chat-menu {
+  position: absolute;
+  right: 30px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.chat-menu button {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.chat-menu button:hover {
+  background-color: #f5f5f5;
+}
+
+.list-edit-form {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 40px;
+}
+
+.list-edit-form input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.list-edit-form .confirm-button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #28a745;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.list-edit-form .confirm-button:hover {
+  color: #218838;
+}
+
+.list-content {
+  position: relative;
+  width: 100%;
+  padding-right: 40px;
+}
+
+.list-title, .last-modified {
+  display: inline-block;
+  margin-right: 10px;
+}
