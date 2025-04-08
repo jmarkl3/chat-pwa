@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import Chat from './Routes/App/Chat';
+import Chat from './Routes/Chat/Chat';
 import NestedList from './Routes/NestedList/NestedList';
-import Menu from './Routes/App/Menu';
+import Menu from './Components/Menus/Menu';
 import { loadSettings, updateSetting, setComponentDisplay } from './store/menuSlice';
 import { setChatID, setListID, updateListTimestamp } from './store/idsSlice';
-import { CHATS_STORAGE_KEY, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, FORMAT_PREFACE, PROMPT_PREFACE_KEY, PROMPT_PREFACE, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, STORAGE_KEY, POINTS_STORAGE_KEY } from './Routes/App/Data';
-import { removeSpecialCharacters, ellipsis } from './Routes/App/functions';
-import ChatInputArea from './Routes/App/ChatInputArea';
+import { CHATS_STORAGE_KEY, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, FORMAT_PREFACE, PROMPT_PREFACE_KEY, PROMPT_PREFACE, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, STORAGE_KEY, POINTS_STORAGE_KEY } from './Global/Data';
+import { removeSpecialCharacters, ellipsis } from './Global/functions';
+import ChatInputArea from './Routes/Chat/ChatInputArea';
 
 /*
     

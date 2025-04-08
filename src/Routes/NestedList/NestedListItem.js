@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './NestedList.css';
-import { ellipsis } from '../App/functions';
+import { ellipsis } from '../../Global/functions';
 import { useSelector } from 'react-redux';
-import DotMenu from '../App/DotMenu';
+import DotMenu from '../../Components/DotMenu';
 
 // Recursive component for rendering individual items
 export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItemButtonClick, setAsRoot, toggleOpen, insertInto }) {

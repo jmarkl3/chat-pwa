@@ -1,5 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { STORAGE_KEY } from '../Routes/App/Data';
+import { STORAGE_KEY } from '../Global/Data';
 
 const loadSettingsFromStorage = () => {
   try {

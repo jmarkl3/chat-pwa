@@ -3,11 +3,10 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import Landing from './Routes/Landing/Landing';
-import JsonList from './Routes/JsonList/JsonList';
 import './App.css';
 import NestedList from './Routes/NestedList/NestedList';
 import AppContainser from './AppContainser';
-import Chat from './Routes/App/Chat';
+import Chat from './Routes/Chat/Chat';
 
 function App() {
   return (

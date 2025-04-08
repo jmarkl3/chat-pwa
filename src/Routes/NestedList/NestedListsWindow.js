@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import SlidePanel from '../App/SlidePanel';
 import './NestedListMenu.css';
-import ListsSelector from './ListsSelector';
+import SlidePanel from '../../Components/SlidePanel';
+import ListsSelector from '../../Components/Menus/ListsSelector';
 
 function NestedListsWindow({isOpen, setIsOpen}) {
 
