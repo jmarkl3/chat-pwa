@@ -1,6 +1,7 @@
 .nested-list-item{
   position: relative;
   padding-left: 20px;
+  margin-bottom: 5px;
 }
 .note-list-item-menu{
   position: absolute;
@@ -73,4 +74,5 @@
 }
 .nested-title{
   width: calc(100% - 80px);
+  display: inline-block;
 }

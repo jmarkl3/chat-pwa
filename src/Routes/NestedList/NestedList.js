@@ -6,6 +6,7 @@ import ListsSelector from '../../Components/Menus/ListsSelector';
 import ConfirmationBox from '../../Components/ConfirmationBox';
 import { useDispatch, useSelector } from 'react-redux';
 import { setListID } from '../../store/idsSlice';
+import "./JsonList.css"
 
 /*
   commands to add:

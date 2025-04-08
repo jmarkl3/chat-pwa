@@ -53,77 +53,81 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
   return (
     <div className="nested-list-item" >
       <div className="nested-item-header" onClick={() => toggleOpen(path)}>
-        <div className="header-content">
-          <span className={`arrow ${item.isOpen ? 'open' : ''}`}>▶</span>
-          <div className="nested-title">
-            <div className="content-text">
-              {item.isOpen ? 
-                <textarea 
-                  ref={textareaRef}
-                  id={"textarea-"+item.id}
-                  defaultValue={item?.content} 
-                  onClick={(e) => { e.stopPropagation() }}
-                  onKeyDown={handleKeyPress}
-                  onChange={(e) => {
-                    // Adjust height on content change
-                    e.target.style.height = 'auto';
-                    e.target.style.height = e.target.scrollHeight + 'px';
-                    // Update content in parent
-                    updateContent(e.target.value, path);
-                  }}
-                  style={{
-                    width: '100%',
-                    overflow: 'hidden',
-                    resize: 'none',
-                    minHeight: '20px'
-                  }}
-                /> 
-                :
-                ellipsis(item?.content) 
-              }
-            </div>
-              <DotMenu>
-                {/* Add After */}
-                <button onClick={(e) => {
-                  addAfter(path);
-                }}>Add After</button>
+        {/* Arrow */}
+        <span className={`arrow ${item.isOpen ? 'open' : ''}`}>▶</span>
 
-                {/* Insert Into */}
-                <button onClick={(e) => {
-                  insertInto(path);
-                }}>Insert Into</button>
-
-                {/* Move Up */}
-                <button onClick={(e) => {
-                  moveItem(path, 'up');
-                }}>Move Up</button>
-
-                {/* Move Down */}
-                <button onClick={(e) => {
-                  moveItem(path, 'down');
-                }}>Move Down</button>
-
-                {/* Duplicate */}
-                <button onClick={(e) => {
-                  duplicateItem(path);
-                }}>Duplicate</button>
-
-                {/* Delete */}
-                <button onClick={(e) => {
-                  deleteItemButtonClick(item, path);
-                }}>Delete</button>
-
-                {/* Set As Root */}
-                <button onClick={(e) => {
-                  setAsRoot(path);
-                }}>Set as Root</button>
-
-                {/* Cancel (close menu) */}
-                <button>Cancel</button>
-              
-              </DotMenu>
-             
+        
+        {/* Text and dot menu */}
+        <div className="nested-title">
+          
+          <div className="content-text">
+            {item.isOpen ? 
+              <textarea 
+                ref={textareaRef}
+                id={"textarea-"+item.id}
+                defaultValue={item?.content} 
+                onClick={(e) => { e.stopPropagation() }}
+                onKeyDown={handleKeyPress}
+                onChange={(e) => {
+                  // Adjust height on content change
+                  e.target.style.height = 'auto';
+                  e.target.style.height = e.target.scrollHeight + 'px';
+                  // Update content in parent
+                  updateContent(e.target.value, path);
+                }}
+                style={{
+                  width: '100%',
+                  overflow: 'hidden',
+                  resize: 'none',
+                  minHeight: '20px'
+                }}
+              /> 
+              :
+              ellipsis(item?.content) 
+            }
           </div>
+        
+          <DotMenu>
+            {/* Add After */}
+            <button onClick={(e) => {
+              addAfter(path);
+            }}>Add After</button>
+
+            {/* Insert Into */}
+            <button onClick={(e) => {
+              insertInto(path);
+            }}>Insert Into</button>
+
+            {/* Move Up */}
+            <button onClick={(e) => {
+              moveItem(path, 'up');
+            }}>Move Up</button>
+
+            {/* Move Down */}
+            <button onClick={(e) => {
+              moveItem(path, 'down');
+            }}>Move Down</button>
+
+            {/* Duplicate */}
+            <button onClick={(e) => {
+              duplicateItem(path);
+            }}>Duplicate</button>
+
+            {/* Delete */}
+            <button onClick={(e) => {
+              deleteItemButtonClick(item, path);
+            }}>Delete</button>
+
+            {/* Set As Root */}
+            <button onClick={(e) => {
+              setAsRoot(path);
+            }}>Set as Root</button>
+
+            {/* Cancel (close menu) */}
+            <button>Cancel</button>
+          
+          </DotMenu>
+            
         </div>
       </div>
       
@@ -149,6 +153,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
           ))}
         </div>
       )}
+
     </div>
   );
 }
