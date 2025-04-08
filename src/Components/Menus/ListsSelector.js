@@ -4,6 +4,7 @@ import { setListID } from '../../store/idsSlice';
 import { setComponentDisplay, setMenuOpen } from '../../store/menuSlice';
 import ConfirmationBox from '../ConfirmationBox';
 import './ListsSelector.css';
+import SlidePanel from '../SlidePanel';
 
 function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
     const dispatch = useDispatch();
@@ -208,7 +209,9 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
     };
 
   return (
-    <div className="lists-selector">
+    <SlidePanel isOpen={isOpen} setIsOpen={setIsOpen}>
+
+      <div className="lists-selector">
         <div className="lists-header">
           <h3>Lists</h3>
           <button className="new-list-button" onClick={handleCreateNewList}>
@@ -302,6 +305,8 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
           />
         )}
       </div>
+    </SlidePanel>
+
   )
 }
 

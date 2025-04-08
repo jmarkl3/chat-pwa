@@ -7,6 +7,7 @@ import TextInput from '../TextInput';
 import Settings from '../Settings';
 import { setMenuOpen, setComponentDisplay } from '../../store/menuSlice';
 import NestedListsWindow from '../../Routes/NestedList/NestedListsWindow';
+import ListsSelector from './ListsSelector';
 
 function Menu({ scrollToBottom }) {
   const dispatch = useDispatch();
@@ -96,6 +97,30 @@ function Menu({ scrollToBottom }) {
         <span className="hamburger-line"></span>
       </button>
 
+      {/* Shaddow Overlay */}
+      {isMenuOpen && (
+        <div className="menu-overlay" onClick={() => dispatch(setMenuOpen(false))} />
+      )}
+
+      {/* Menu Items */}
+      <div className={`menu-container no-select ${isMenuOpen ? 'open' : ''}`}>
+        <div className="menu-content">
+          <h3>Menu</h3>
+          <div className="menu-items">
+            <button className="menu-item" onClick={handleViewToggle}>
+              Switch to {componentDisplay === "chat" ? "List" : "Chat"} View
+            </button>
+            <button className="menu-item" onClick={handleHistoryClick}>Chats History</button>
+            <button className="menu-item" onClick={handleListsClick}>Lists</button>
+            <button className="menu-item" onClick={handleNoteClick}>Note</button>
+            <button className="menu-item" onClick={handleLongTermMemoryClick}>Memory</button>
+            <button className="menu-item" onClick={handleSettingsClick}>Settings</button>
+            <button className="menu-item" onClick={handleInstallClick}>Install App</button>
+            <button className="menu-item" onClick={() => dispatch(setMenuOpen(false))}>Close</button>
+          </div>
+        </div>
+      </div>
+
       {/* Note */}
       <TextInput
         title="Note"
@@ -138,27 +163,6 @@ function Menu({ scrollToBottom }) {
         setShowNote={()=>{setShowNote(true); dispatch(setMenuOpen(false));}}
       />
 
-      {isMenuOpen && (
-        <div className="menu-overlay" onClick={() => dispatch(setMenuOpen(false))} />
-      )}
-      <div className={`menu-container no-select ${isMenuOpen ? 'open' : ''}`}>
-        <div className="menu-content">
-          <h3>Menu</h3>
-          <div className="menu-items">
-            <button className="menu-item" onClick={handleViewToggle}>
-              Switch to {componentDisplay === "chat" ? "List" : "Chat"} View
-            </button>
-            <button className="menu-item" onClick={handleHistoryClick}>Chats History</button>
-            <button className="menu-item" onClick={handleListsClick}>Lists</button>
-            <button className="menu-item" onClick={handleNoteClick}>Note</button>
-            <button className="menu-item" onClick={handleLongTermMemoryClick}>Memory</button>
-            <button className="menu-item" onClick={handleSettingsClick}>Settings</button>
-            <button className="menu-item" onClick={handleInstallClick}>Install App</button>
-            <button className="menu-item" onClick={() => dispatch(setMenuOpen(false))}>Close</button>
-          </div>
-        </div>
-      </div>
-
       {/* Chat History */}
       <ChatHistory
         isOpen={showHistory}
@@ -167,7 +171,7 @@ function Menu({ scrollToBottom }) {
       />
 
       {/* Lists Window */}
-      <NestedListsWindow
+      <ListsSelector
         isOpen={showLists}
         setIsOpen={setShowLists}
       />

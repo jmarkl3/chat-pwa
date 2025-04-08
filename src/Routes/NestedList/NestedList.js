@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import './NestedList.css';
 import NestedListItem from './NestedListItem';
 import { ellipsis } from '../../Global/functions';
-import NestedListMenu from './NestedListMenu';
 import ListsSelector from '../../Components/Menus/ListsSelector';
 import ConfirmationBox from '../../Components/ConfirmationBox';
 import { useDispatch, useSelector } from 'react-redux';
