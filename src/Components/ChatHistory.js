@@ -183,7 +183,7 @@ function ChatHistory({ isOpen, setIsOpen, scrollToBottom }) {
           <button className="new-chat-button" onClick={handleNewChat}>New Chat</button>
           <button className="import-chat-button" onClick={() => setShowImport(true)}>Import Chat</button>
           <div className="chat-list">
-            {chats.sort((a, b) => b.timestamp - a.timestamp).map((chat) => (
+            {chats?.sort((a, b) => b.timestamp - a.timestamp).map((chat) => (
               <div
                 key={chat.id}
                 className={`chat-item ${chat.id === currentChatId ? 'active' : ''}`}

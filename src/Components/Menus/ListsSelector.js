@@ -219,7 +219,7 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
           </button>
         </div>
         <div className="lists-container">
-          {lists.map(list => (
+          {lists?.sort((a, b) => b.timestamp - a.timestamp)?.map(list => (
             <div 
               key={list.id} 
               className="list-item"
