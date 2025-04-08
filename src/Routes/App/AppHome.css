@@ -31,6 +31,11 @@ html, body {
     gap: 10px;
     width: 50%;
 }
+.right-buttons {
+    display: flex;
+    gap: 10px;
+    width: 50%;
+}
 
 .voice-input-button,
 .pause-button {

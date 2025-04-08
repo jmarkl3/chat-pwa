@@ -294,6 +294,48 @@ function AppContainser() {
       scrollToBottom(); // Add scroll after API response
     }
   
+    /*
+    This function takes a stringified json, 
+      {content: "text", nested: [{...same nested},...]}, 
+    adds an index attribute corresponding to the index of the nested objects in the nested array attribute
+    and turns it back into a stringified json 
+    
+    */ 
+  function addIndexsToNestedList(listsString) {
+    try {
+        const parsedData = JSON.parse(listsString);
+        
+        const processNested = (obj, index = null) => {
+            // Create a new object with shallow copy of properties
+            let newObj = {};
+            
+            // Add index if provided (first so it shows up on top for legibility)
+            if (index !== null) {
+                newObj.index = index;
+            }
+            
+            console.log("newObj:", newObj)
+            // Now add all of the other data
+            newObj = {...newObj, ...obj}
+            console.log("newObj2:", newObj)
+            
+            // Process nested array if it exists
+            if (obj.nested && Array.isArray(obj.nested)) {
+                newObj.nested = obj.nested.map((item, idx) => 
+                    processNested(item, idx)
+                );
+            }
+            
+            return newObj;
+        };
+        
+        const resultData = processNested(parsedData);
+        return JSON.stringify(resultData);
+    } catch (error) {
+        console.error("Error processing JSON:", error);
+        return listsString;
+    }
+}
     // the list form promptPreface
     const createContestString = () => {
       let contextString = ""
@@ -306,6 +348,8 @@ function AppContainser() {
       if (workingListIDRef.current) {
         const listData = localStorage.getItem(`note-list-${workingListIDRef.current}`);
         if (listData) {
+          const listWithIndexValues = addIndexsToNestedList(listData)
+          console.log("listWithIndexValues: ", listWithIndexValues)
           contextString += `working list data: ${listData}\n`;
         }
       }
@@ -558,18 +602,14 @@ function AppContainser() {
       and if there is no valid json return a json with content: <the whole text>
     */
     function extractJSON(text) {
-      console.log(text)
       const jsonStart = text.indexOf('{');
       const jsonEnd = text.lastIndexOf('}');
-      console.log(jsonStart, jsonEnd)
       
       if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
           try {
               const jsonStr = text.slice(jsonStart, jsonEnd + 1);
-              console.log("jsonStr:", jsonStr)
               
               const parsed = JSON.parse(jsonStr);
-              console.log("parsed:", parsed)
               
               // Ensure we have at least a message property
               return {
@@ -583,15 +623,43 @@ function AppContainser() {
 
       // 3. Final fallback - use entire text as message
       return { content: text };
+    }
+    function extractJSON2(text) {
+      let startIndex = text.indexOf('{');
+      if (startIndex === -1) return { content: text };
+  
+      let braceCount = 1;
+      let currentIndex = startIndex + 1;
+  
+      while (currentIndex < text.length && braceCount > 0) {
+          const char = text[currentIndex];
+          if (char === '{') braceCount++;
+          if (char === '}') braceCount--;
+          currentIndex++;
+      }
+  
+      if (braceCount === 0) {
+          const jsonStr = text.slice(startIndex, currentIndex);
+          try {
+              const parsed = JSON.parse(jsonStr);
+              return {
+                  content: parsed.content || text,
+                  ...parsed
+              };
+          } catch (e) {
+              console.error("JSON parse error:", e);
+              return { content: text };
+          }
+      }
+  
+      return { content: text };
   }
 
     // Processes the response from the API 
     const processResponse = (text) => {
       // TODO: look for content: in the response as a fallback, if not and no json use the full response as the message, if json and no message put <no message>
-      console.log("processing response ", text)
       try{
-        let json = extractJSON(text)
-        console.log("json: ", json)
+        let json = extractJSON2(text)
         handleApiCommand(json.commands)
         addToPoints(json.points);
         return json
@@ -604,8 +672,7 @@ function AppContainser() {
   
     function handleApiCommand(commands){
       commands.forEach(cmd => {
-        console.log("Processing "+cmd.command)
-        console.log(cmd)
+        console.log("Processing "+cmd)
 
         if (cmd.command === "add to long term memory" && cmd.variables && cmd.variables.length > 0) {
           try {

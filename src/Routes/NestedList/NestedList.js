@@ -8,6 +8,31 @@ import ConfirmationBox from '../App/ConfirmationBox';
 import { useDispatch, useSelector } from 'react-redux';
 import { setListID } from '../../store/idsSlice';
 
+/*
+  commands to add:
+  update text content of an item
+  open or close an item
+  reorder things
+
+  it seems it can rename things but it sometimes renames the wrong one
+    it was just sending the wrong index for some reason
+      maybe including the index in the object tha is sent will help it
+      along with examples
+
+      asking it to add items it adds to the wrong places
+        like fruits under apple category
+      it puts it in the wrong index simetimes too, added index to the text idk if it helped tho
+      its note reliable
+      says its diong this that it doesn't do
+
+      maybe give it more examples
+      and more detailed instructions
+      and have this additional text available ony when a list is loaded
+      and when a list is loaded the game data maybe won't be loaded
+      also the game data could be more detailed but only show when a certain game is being played
+        so this would need to be saed in a game name ref
+
+*/
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substr(2, 9);
 
