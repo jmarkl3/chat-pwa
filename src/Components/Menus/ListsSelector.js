@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import { setListID } from '../../store/idsSlice';
 import { setComponentDisplay, setMenuOpen } from '../../store/menuSlice';
+import { setSelectedListID } from '../../store/listSlice';
 import ConfirmationBox from '../ConfirmationBox';
 import './ListsSelector.css';
 import SlidePanel from '../SlidePanel';
@@ -27,7 +28,7 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
     }, [isOpen]); // Reload when window opens
   
     const handleSelectList = (list) => {
-      dispatch(setListID(list.id));
+      dispatch(setSelectedListID(list.id));
       dispatch(setComponentDisplay("list"));
       dispatch(setMenuOpen(false));
       setIsOpen(false);

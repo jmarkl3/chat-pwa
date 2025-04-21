@@ -62,6 +62,17 @@ const testData = {
     ]
   }
 
+  export function loadLists() {
+    const lists = localStorage.getItem('note-lists');
+    return lists ? JSON.parse(lists) : [];
+  }
+  
+  // Loads a specific list's data from localStorage
+  export function loadList(listID) {
+    const listData = localStorage.getItem(`note-list-${listID}`);
+    return listData ? JSON.parse(listData) : null;
+  }
+
 // Lists
 export function deleteList(listID, updateListsCallback = ()=>{}) {
   // Remove from titles list

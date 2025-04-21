@@ -7,6 +7,7 @@ import ConfirmationBox from '../../Components/ConfirmationBox';
 import { useDispatch, useSelector } from 'react-redux';
 import { setListID } from '../../store/idsSlice';
 import "./JsonList.css"
+import { setListData } from '../../store/listSlice';
 
 /*
   commands to add:
@@ -28,8 +29,8 @@ import "./JsonList.css"
       maybe give it more examples
       and more detailed instructions
       and have this additional text available ony when a list is loaded
-      and when a list is loaded the game data maybe won't be loaded
-      also the game data could be more detailed but only show when a certain game is being played
+      and when a list is loaded the game listData maybe won't be loaded
+      also the game listData could be more detailed but only show when a certain game is being played
         so this would need to be saed in a game name ref
 
 */
@@ -47,40 +48,29 @@ const createEmptyList = () => ({
 function NestedList() {
   
   const dispatch = useDispatch();
-  const { listID, listUpdateTimestamp } = useSelector(state => state.main);
+  const { listUpdateTimestamp } = useSelector(state => state.main);
+  const { selectedListID, listData } = useSelector(state => state.list);
 
-  // State for the nested list data
-  const [data, setData] = useState(null);
+  // State for the nested list listData
   const [deleteItemData, setDeleteItemData] = useState(null);
   // State for tracking the current root path
   const [rootPath, setRootPath] = useState([]);
 
-  // Load list data when listID changes or when list is updated externally
+  // Save listData whenever it changes
   useEffect(() => {
-    if (listID) {
-      const savedData = localStorage.getItem(`note-list-${listID}`);
-      if (savedData) {
-        setData(JSON.parse(savedData));
-        setRootPath([]); // Reset root path when loading new list
-      }
-    }
-  }, [listID, listUpdateTimestamp]);
-
-  // Save data whenever it changes
-  useEffect(() => {
-    if (listID && data) {
-      // Save the full list data
-      localStorage.setItem(`note-list-${listID}`, JSON.stringify(data));
+    if (selectedListID && listData) {
+      // Save the full list listData
+      localStorage.setItem(`note-list-${selectedListID}`, JSON.stringify(listData));
 
       // Update the lists index
       const listsStr = localStorage.getItem('note-lists') || '[]';
       const lists = JSON.parse(listsStr);
       const timestamp = Date.now();
 
-      const updatedLists = lists.filter(l => l.id !== listID);
+      const updatedLists = lists.filter(l => l.id !== selectedListID);
       updatedLists.push({
-        id: listID,
-        content: data.content,
+        id: selectedListID,
+        content: listData.content,
         timestamp: timestamp
       });
 
@@ -88,14 +78,14 @@ function NestedList() {
       updatedLists.sort((a, b) => b.timestamp - a.timestamp);
       localStorage.setItem('note-lists', JSON.stringify(updatedLists));
     }
-  }, [data, listID]);
+  }, [listData, selectedListID]);
 
   // Create a new list
   const createNewList = () => {
     const newList = createEmptyList();
     const newId = newList.id;
 
-    // Save the new list data
+    // Save the new list listData
     localStorage.setItem(`note-list-${newId}`, JSON.stringify(newList));
 
     // Update the lists index
@@ -112,7 +102,7 @@ function NestedList() {
     localStorage.setItem('note-lists', JSON.stringify(lists));
 
     // Set the new list as active
-    setData(newList);
+    dispatch(setListData(newList))
     dispatch(setListID(newId));
     setRootPath([]);
 
@@ -125,7 +115,7 @@ function NestedList() {
     return newId;
   };
 
-  // Add IDs to initial data structure
+  // Add IDs to initial listData structure
   const addIds = (node) => {
     node.id = generateId();
     if (node.nested) {
@@ -134,7 +124,7 @@ function NestedList() {
     return node;
   };
 
-  // Sample test data with 3 layers of nesting and 12 total items
+  // Sample test listData with 3 layers of nesting and 12 total items
   const testData = addIds({
     content: "Root List",
     isOpen: true,
@@ -180,14 +170,14 @@ function NestedList() {
     ]
   }); 
 
-  // Function to update nested list data
+  // Function to update nested list listData
   const updateNestedListData = (newContent, path) => {
-    // Create a deep copy of the current data
-    const newData = JSON.parse(JSON.stringify(data));
+    // Create a deep copy of the current listData
+    const newData = JSON.parse(JSON.stringify(listData));
     
     // If path is empty, update root level
     if (path.length === 0) {
-      setData({ ...newData, content: newContent });
+      dispatch(setListData({ ...newData, content: newContent }))
       return;
     }
 
@@ -201,16 +191,16 @@ function NestedList() {
     const targetIndex = path[path.length - 1];
     current.nested[targetIndex].content = newContent;
 
-    // Update the state with the new data
-    setData(newData);
+    // Update the state with the new listData
+    dispatch(setListData(newData))
   };
 
   // Function to move an item up or down in its current level
   const moveItem = (path, direction) => {
     console.log(`Moving item with path [${path.join(',')}] ${direction}`);
     
-    // Create a deep copy of the current data
-    const newData = JSON.parse(JSON.stringify(data));
+    // Create a deep copy of the current listData
+    const newData = JSON.parse(JSON.stringify(listData));
     
     // If path is empty, we can't move the root
     if (path.length === 0) {
@@ -245,16 +235,16 @@ function NestedList() {
     items[currentIndex] = items[newIndex];
     items[newIndex] = temp;
     console.log(newData)
-    // Update the state with the new data
-    setData(newData);
+    // Update the state with the new listData
+    dispatch(setListData(newData))
   };
 
   // Function to duplicate a node and insert it after the original
   const duplicateItem = (path) => {
     console.log(`Duplicating item at path [${path.join(',')}]`);
     
-    // Create a deep copy of the current data
-    const newData = JSON.parse(JSON.stringify(data));
+    // Create a deep copy of the current listData
+    const newData = JSON.parse(JSON.stringify(listData));
     
     // If path is empty, we can't duplicate root
     if (path.length === 0) {
@@ -283,16 +273,16 @@ function NestedList() {
     items.splice(currentIndex + 1, 0, duplicatedItem);
     console.log('New array length:', items.length);
     
-    // Update the state with the new data
-    setData(newData);
+    // Update the state with the new listData
+    dispatch(setListData(newData))
   };
 
   // Function to add an empty node after the specified path
   const addAfter = (path) => {
     console.log(`Adding empty node after path [${path.join(',')}]`);
     
-    // Create a deep copy of the current data
-    const newData = JSON.parse(JSON.stringify(data));
+    // Create a deep copy of the current listData
+    const newData = JSON.parse(JSON.stringify(listData));
     
     // If path is empty, we can't add after root
     if (path.length === 0) {
@@ -325,8 +315,8 @@ function NestedList() {
     items.splice(currentIndex + 1, 0, emptyNode);
     console.log('New array length:', items.length);
     
-    // Update the state with the new data
-    setData(newData);
+    // Update the state with the new listData
+    dispatch(setListData(newData))
 
     setTimeout(() => {
       let newItemInput = document.getElementById("textarea-"+newId)
@@ -359,8 +349,8 @@ function NestedList() {
   const deleteItem = (path) => {
     console.log(`Deleting item at path [${path.join(',')}]`);
     
-    // Create a deep copy of the current data
-    const newData = JSON.parse(JSON.stringify(data));
+    // Create a deep copy of the current listData
+    const newData = JSON.parse(JSON.stringify(listData));
     
     // If path is empty, we can't delete root
     if (path.length === 0) {
@@ -386,8 +376,8 @@ function NestedList() {
     items.splice(targetIndex, 1);
     console.log('New array length:', items.length);
     
-    // Update the state with the new data
-    setData(newData);
+    // Update the state with the new listData
+    dispatch(setListData(newData))
   };
 
   // Function to set a new root path
@@ -400,8 +390,8 @@ function NestedList() {
   const toggleOpen = (path) => {
     console.log('Toggling open state at path:', path);
     
-    // Create a deep copy of the current data
-    const newData = JSON.parse(JSON.stringify(data));
+    // Create a deep copy of the current listData
+    const newData = JSON.parse(JSON.stringify(listData));
     
     // Navigate to the target node
     let current = newData;
@@ -413,16 +403,16 @@ function NestedList() {
     current.isOpen = !current.isOpen;
     console.log('New isOpen state:', current.isOpen);
     
-    // Update the state with the new data
-    setData(newData);
+    // Update the state with the new listData
+    dispatch(setListData(newData))
   };
 
   // Function to insert a new item inside a node's nested list
   const insertInto = (path) => {
     console.log('Inserting new item into path:', path);
     
-    // Create a deep copy of the current data
-    const newData = JSON.parse(JSON.stringify(data));
+    // Create a deep copy of the current listData
+    const newData = JSON.parse(JSON.stringify(listData));
     
     // Navigate to the target node
     let current = newData;
@@ -447,8 +437,8 @@ function NestedList() {
     current.isOpen = true;
     console.log('Opened parent node');
     
-    // Update the state with the new data
-    setData(newData);
+    // Update the state with the new listData
+    dispatch(setListData(newData))
 
     setTimeout(() => {
       let newItemInput = document.getElementById("textarea-"+newId)
@@ -461,7 +451,7 @@ function NestedList() {
 
   // Helper to get node at a specific path
   const getNodeAtPath = (path) => {
-    let current = data;
+    let current = listData;
     for (let i = 0; i < path.length; i++) {
       current = current.nested[path[i]];
     }
@@ -474,7 +464,7 @@ function NestedList() {
   };
 
   // Get the current root node based on rootPath
-  const rootNode = rootPath.length > 0 ? getNodeAtPath(rootPath) : data;
+  const rootNode = rootPath.length > 0 ? getNodeAtPath(rootPath) : listData;
 
   return (
     <>
@@ -511,7 +501,7 @@ function NestedList() {
             })}
           </div>
           <div className="nested-list-container-scroll">
-            {data ? (
+            {listData ? (
               <>
                 <NestedListItem
                   key={rootNode.id}

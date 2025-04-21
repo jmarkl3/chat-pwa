@@ -36,6 +36,7 @@ function AppContainser() {
     
     const { chatID, listID } = useSelector(state => state.main);
     const { componentDisplay } = useSelector(state => state.menu);
+    const { selectedListID } = useSelector(state => state.list);
 
     const { settings } = useSelector(state => state.menu);
     const [messages, setMessages] = useState([]);

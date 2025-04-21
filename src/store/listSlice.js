@@ -1,4 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { act } from '@testing-library/react';
+import { loadList } from '../Routes/NestedList/ListFunctions';
 
 const initialState = {
   selectedListID: null,
@@ -14,6 +16,7 @@ export const listSlice = createSlice({
   reducers: {
     setSelectedListID: (state, action) => {
       state.selectedListID = action.payload;
+      state.listData = loadList(action.payload)
     },
     setRootPath: (state, action) => {
       state.rootPath = action.payload;
