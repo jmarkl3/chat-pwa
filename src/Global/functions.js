@@ -1,3 +1,4 @@
+
 export const findNumberInArgs = (args) => {
     // Look through all args to find a number
     for (const arg of args) {
@@ -75,4 +76,7 @@ export function extractAndParseJSON(text) {
   }
 
   throw new Error('No valid JSON object found with expected chat format');
+}
+export function generateId() {
+  return Math.random().toString(36).substring(2, 10);
 }

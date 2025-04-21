@@ -1,15 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './NestedList.css';
 import { ellipsis } from '../../Global/functions';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import DotMenu from '../../Components/DotMenu';
+import { setRootPath, setCopyListItemPath, setCutListItemPath } from '../../store/listSlice';
 
 // Recursive component for rendering individual items
-export default function NestedListItem({ item, index, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItemButtonClick, setAsRoot, toggleOpen, insertInto }) {
+export default function NestedListItem({ item, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItemButtonClick, toggleOpen, insertInto, pasteAfter, pasteInto }) {
   // State for UI interactions
   const textareaRef = useRef(null);
   const { settings } = useSelector(state => state.menu);
-  
+  const { copyListItemPath, cutListItemPath } = useSelector(state => state.list);
+  const dispatch = useDispatch();
+
+  // Check if this item is selected for copy or cut
+  const isSelected = 
+    (copyListItemPath && JSON.stringify(copyListItemPath) === JSON.stringify(path)) || 
+    (cutListItemPath && JSON.stringify(cutListItemPath) === JSON.stringify(path));
+
+  // Check if there's an item in clipboard (copy or cut)
+  const hasClipboardItem = copyListItemPath !== null || cutListItemPath !== null;
+
   // Check if this item has nested items
   const hasNested = item.nested && item.nested.length > 0;
   
@@ -52,10 +63,9 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
 
   return (
     <div className="nested-list-item" >
-      <div className="nested-item-header" onClick={() => toggleOpen(path)}>
+      <div className={`nested-item-header ${isSelected ? 'selected-item' : ''}`} onClick={() => toggleOpen(path)}>
         {/* Arrow */}
         <span className={`arrow ${item.isOpen ? 'open' : ''}`}>▶</span>
-
         
         {/* Text and dot menu */}
         <div className="nested-title">
@@ -113,6 +123,30 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
               duplicateItem(path);
             }}>Duplicate</button>
 
+            {/* Copy */}
+            <button onClick={(e) => {
+              dispatch(setCopyListItemPath([...path]));
+            }}>Copy</button>
+
+            {/* Cut */}
+            <button onClick={(e) => {
+              dispatch(setCutListItemPath([...path]));
+            }}>Cut</button>
+
+            {/* Paste After - only show if there's something in clipboard */}
+            {hasClipboardItem && (
+              <button onClick={(e) => {
+                pasteAfter(path);
+              }}>Paste After</button>
+            )}
+
+            {/* Paste Into - only show if there's something in clipboard */}
+            {hasClipboardItem && (
+              <button onClick={(e) => {
+                pasteInto(path);
+              }}>Paste Into</button>
+            )}
+
             {/* Delete */}
             <button onClick={(e) => {
               deleteItemButtonClick(item, path);
@@ -120,7 +154,7 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
 
             {/* Set As Root */}
             <button onClick={(e) => {
-              setAsRoot(path);
+              dispatch(setRootPath([...path]));
             }}>Set as Root</button>
 
             {/* Cancel (close menu) */}
@@ -146,9 +180,10 @@ export default function NestedListItem({ item, index, depth = 0, path = [], upda
               duplicateItem={duplicateItem}
               addAfter={addAfter}
               deleteItemButtonClick={deleteItemButtonClick}
-              setAsRoot={setAsRoot}
               toggleOpen={toggleOpen}
               insertInto={insertInto}
+              pasteAfter={pasteAfter}
+              pasteInto={pasteInto}
             />
           ))}
         </div>

@@ -16,6 +16,8 @@
 
 */
 
+import { generateId } from "../../Global/functions";
+
 const testData = {
     content: "Root List",
     isOpen: true,
@@ -327,14 +329,19 @@ export function openAllListItems(listID, open = true) {
     localStorage.setItem('note-lists', JSON.stringify(lists));
   }
   
-  function getListData(listID) {
+  export function getListData(listID) {
     return JSON.parse(localStorage.getItem(`note-list-${listID}`));
   }
   
-  function saveListData(listID, data) {
+  export function saveListData(listID, data) {
     localStorage.setItem(`note-list-${listID}`, JSON.stringify(data));
   }
   
-  function generateId() {
-    return Math.random().toString(36).substring(2, 10);
-  }
+
+  // Empty list template
+export const createEmptyList = () => ({
+  id: generateId(),
+  content: "New List",
+  isOpen: true,
+  nested: []
+});

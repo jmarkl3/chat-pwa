@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import './NestedList.css';
 import NestedListItem from './NestedListItem';
-import { ellipsis } from '../../Global/functions';
+import { ellipsis, generateId } from '../../Global/functions';
 import ListsSelector from '../../Components/Menus/ListsSelector';
 import ConfirmationBox from '../../Components/ConfirmationBox';
 import { useDispatch, useSelector } from 'react-redux';
 import { setListID } from '../../store/idsSlice';
 import "./JsonList.css"
-import { setListData } from '../../store/listSlice';
+import { setListData, setRootPath, clearClipboardPaths } from '../../store/listSlice';
+import { createEmptyList } from './ListFunctions';
 
 /*
   commands to add:
@@ -34,27 +35,15 @@ import { setListData } from '../../store/listSlice';
         so this would need to be saed in a game name ref
 
 */
-// Helper to generate unique IDs
-const generateId = () => Math.random().toString(36).substr(2, 9);
-
-// Empty list template
-const createEmptyList = () => ({
-  id: generateId(),
-  content: "New List",
-  isOpen: true,
-  nested: []
-});
 
 function NestedList() {
   
   const dispatch = useDispatch();
-  const { listUpdateTimestamp } = useSelector(state => state.main);
-  const { selectedListID, listData } = useSelector(state => state.list);
+  const { selectedListID, listData, rootPath, copyListItemPath, cutListItemPath } = useSelector(state => state.list);
 
   // State for the nested list listData
   const [deleteItemData, setDeleteItemData] = useState(null);
   // State for tracking the current root path
-  const [rootPath, setRootPath] = useState([]);
 
   // Save listData whenever it changes
   useEffect(() => {
@@ -104,7 +93,7 @@ function NestedList() {
     // Set the new list as active
     dispatch(setListData(newList))
     dispatch(setListID(newId));
-    setRootPath([]);
+    dispatch(setRootPath([]))
 
     setTimeout(() => {
       let newItemInput = document.getElementById("textarea-"+newId)
@@ -383,7 +372,7 @@ function NestedList() {
   // Function to set a new root path
   const setAsRoot = (path) => {
     console.log('Setting new root path:', path);
-    setRootPath([...path]);
+    dispatch(setRootPath([...path]))
   };
 
   // Function to toggle open/closed state
@@ -463,6 +452,160 @@ function NestedList() {
     return path.slice(0, index + 1);
   };
 
+  // Function to paste a copied or cut item after the specified path
+  const pasteAfter = (targetPath) => {
+    console.log(`Pasting item after path [${targetPath.join(',')}]`);
+    
+    // Create a deep copy of the current listData
+    const newData = JSON.parse(JSON.stringify(listData));
+    
+    // If no item is copied or cut, do nothing
+    if (!copyListItemPath && !cutListItemPath) {
+      console.log('Nothing to paste');
+      return;
+    }
+    
+    // If target path is empty, we can't paste after root
+    if (targetPath.length === 0) {
+      console.log('Cannot paste after root item');
+      return;
+    }
+    
+    // Get the source path (either copy or cut)
+    const sourcePath = copyListItemPath || cutListItemPath;
+    
+    // Get the source item
+    let sourceParent = newData;
+    for (let i = 0; i < sourcePath.length - 1; i++) {
+      sourceParent = sourceParent.nested[sourcePath[i]];
+    }
+    const sourceIndex = sourcePath[sourcePath.length - 1];
+    const sourceItem = JSON.parse(JSON.stringify(sourceParent.nested[sourceIndex]));
+    
+    // If we're cutting, we need to check if the target is a child of the source
+    if (cutListItemPath) {
+      // Check if target is a child of source
+      const isTargetChildOfSource = targetPath.length > sourcePath.length && 
+        JSON.stringify(targetPath.slice(0, sourcePath.length)) === JSON.stringify(sourcePath);
+      
+      if (isTargetChildOfSource) {
+        console.log('Cannot paste: target is a child of the source');
+        return;
+      }
+    }
+    
+    // Navigate to the target parent
+    let targetParent = newData;
+    for (let i = 0; i < targetPath.length - 1; i++) {
+      targetParent = targetParent.nested[targetPath[i]];
+    }
+    const targetIndex = targetPath[targetPath.length - 1];
+    
+    // For a cut operation, we need to remove the original item first
+    // But we need to adjust the target index if the source comes before the target in the same parent
+    if (cutListItemPath) {
+      // If source and target have the same parent
+      const sameParent = sourcePath.length === targetPath.length && 
+        JSON.stringify(sourcePath.slice(0, -1)) === JSON.stringify(targetPath.slice(0, -1));
+      
+      // Remove the source item
+      sourceParent.nested.splice(sourceIndex, 1);
+      
+      // If source and target have the same parent and source comes before target,
+      // we need to adjust the target index
+      if (sameParent && sourceIndex < targetIndex) {
+        // Insert at targetIndex - 1 because we removed an item before it
+        targetParent.nested.splice(targetIndex, 0, sourceItem);
+      } else {
+        // Insert at targetIndex + 1 (after the target)
+        targetParent.nested.splice(targetIndex + 1, 0, sourceItem);
+      }
+    } else {
+      // For copy operation, we don't need to remove anything, just add a deep copy
+      // Give the copied item and all its nested items new IDs
+      addIds(sourceItem);
+      
+      // Insert the copy after the target
+      targetParent.nested.splice(targetIndex + 1, 0, sourceItem);
+    }
+    
+    // Update the state with the new listData
+    dispatch(setListData(newData));
+    
+    // Clear the clipboard after a cut operation
+    if (cutListItemPath) {
+      dispatch(clearClipboardPaths());
+    }
+  };
+
+  // Function to paste a copied or cut item into the specified path
+  const pasteInto = (targetPath) => {
+    console.log(`Pasting item into path [${targetPath.join(',')}]`);
+    
+    // Create a deep copy of the current listData
+    const newData = JSON.parse(JSON.stringify(listData));
+    
+    // If no item is copied or cut, do nothing
+    if (!copyListItemPath && !cutListItemPath) {
+      console.log('Nothing to paste');
+      return;
+    }
+    
+    // Get the source path (either copy or cut)
+    const sourcePath = copyListItemPath || cutListItemPath;
+    
+    // Get the source item
+    let sourceParent = newData;
+    for (let i = 0; i < sourcePath.length - 1; i++) {
+      sourceParent = sourceParent.nested[sourcePath[i]];
+    }
+    const sourceIndex = sourcePath[sourcePath.length - 1];
+    const sourceItem = JSON.parse(JSON.stringify(sourceParent.nested[sourceIndex]));
+    
+    // If we're cutting, we need to check if the target is a child of the source
+    if (cutListItemPath) {
+      // Check if target is the source or a child of source
+      const isTargetSourceOrChild = 
+        JSON.stringify(targetPath) === JSON.stringify(sourcePath) ||
+        (targetPath.length > sourcePath.length && 
+         JSON.stringify(targetPath.slice(0, sourcePath.length)) === JSON.stringify(sourcePath));
+      
+      if (isTargetSourceOrChild) {
+        console.log('Cannot paste: target is the source or a child of the source');
+        return;
+      }
+    }
+    
+    // Navigate to the target
+    let target = newData;
+    for (let i = 0; i < targetPath.length; i++) {
+      target = target.nested[targetPath[i]];
+    }
+    
+    // For a cut operation, we need to remove the original item first
+    if (cutListItemPath) {
+      // Remove the source item
+      sourceParent.nested.splice(sourceIndex, 1);
+    } else {
+      // For copy operation, give the copied item and all its nested items new IDs
+      addIds(sourceItem);
+    }
+    
+    // Make sure the target is open to show the pasted item
+    target.isOpen = true;
+    
+    // Add the item to the target's nested array
+    target.nested.push(sourceItem);
+    
+    // Update the state with the new listData
+    dispatch(setListData(newData));
+    
+    // Clear the clipboard after a cut operation
+    if (cutListItemPath) {
+      dispatch(clearClipboardPaths());
+    }
+  };
+
   // Get the current root node based on rootPath
   const rootNode = rootPath.length > 0 ? getNodeAtPath(rootPath) : listData;
 
@@ -480,7 +623,7 @@ function NestedList() {
       <div className="nested-list-container">
           <div className="current-path">
             <button 
-              onClick={() => setRootPath([])}
+              onClick={() => dispatch(setRootPath([]))}
               className="path-button"
             >
               Root
@@ -491,7 +634,7 @@ function NestedList() {
                 <React.Fragment key={i}>
                   <span className="path-separator">&gt;</span>
                   <button 
-                    onClick={() => setRootPath(getPathToIndex(rootPath, i))}
+                    onClick={() => dispatch(setRootPath(getPathToIndex(rootPath, i)))}
                     className="path-button"
                   >
                     {ellipsis(node.content, 10)}
@@ -499,6 +642,14 @@ function NestedList() {
                 </React.Fragment>
               );
             })}
+            {(copyListItemPath || cutListItemPath) && (
+              <button 
+                onClick={() => dispatch(clearClipboardPaths())}
+                className="path-button clear-clipboard"
+              >
+                Clear Clipboard
+              </button>
+            )}
           </div>
           <div className="nested-list-container-scroll">
             {listData ? (
@@ -516,6 +667,8 @@ function NestedList() {
                   setAsRoot={setAsRoot}
                   toggleOpen={toggleOpen}
                   insertInto={insertInto}
+                  pasteAfter={pasteAfter}
+                  pasteInto={pasteInto}
                 />
               </>
             ) : (

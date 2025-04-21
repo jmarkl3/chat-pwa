@@ -24,10 +24,30 @@ export const listSlice = createSlice({
     setListData: (state, action) => {
       state.listData = action.payload;
     },
-
+    setCopyListItemPath: (state, action) => {
+      state.copyListItemPath = action.payload;
+      // Clear cut path when setting copy path
+      state.cutListItemPath = null;
+    },
+    setCutListItemPath: (state, action) => {
+      state.cutListItemPath = action.payload;
+      // Clear copy path when setting cut path
+      state.copyListItemPath = null;
+    },
+    clearClipboardPaths: (state) => {
+      state.copyListItemPath = null;
+      state.cutListItemPath = null;
+    }
   }
 });
 
-export const { setSelectedListID, setRootPath, setListData, updateListTimestamp } = listSlice.actions;
+export const { 
+  setSelectedListID, 
+  setRootPath, 
+  setListData, 
+  setCopyListItemPath, 
+  setCutListItemPath,
+  clearClipboardPaths
+} = listSlice.actions;
 
 export default listSlice.reducer;

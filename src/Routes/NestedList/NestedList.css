@@ -76,3 +76,12 @@
   width: calc(100% - 80px);
   display: inline-block;
 }
+
+/* Styling for selected items (copy/cut) */
+.selected-item {
+  background-color: #a3d4ff !important; /* Medium baby blue color */
+  border-radius: 4px;
+  width: 100%;
+  padding: 5px;
+  box-sizing: border-box;
+}
