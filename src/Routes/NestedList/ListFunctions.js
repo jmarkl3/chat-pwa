@@ -621,3 +621,258 @@ export function pasteInto(listID, targetPath, copyListItemPath, cutListItemPath,
   
   return newData;
 }
+
+/**
+ * Toggles the open/closed state of a node at the specified path
+ * @param {string} listID - The ID of the list to modify
+ * @param {Array} path - The path to the node to toggle
+ * @param {Function} onDataUpdated - Callback function to handle updated data
+ * @returns {Object} The updated list data
+ */
+export function toggleOpen(listID, path, onDataUpdated) {
+  console.log('Toggling open state at path:', path);
+  
+  // Load and create a deep copy of the current list data
+  const listData = loadList(listID);
+  const newData = JSON.parse(JSON.stringify(listData));
+  
+  // Navigate to the target node
+  let current = newData;
+  for (let i = 0; i < path.length; i++) {
+    current = current.nested[path[i]];
+  }
+  
+  // Toggle the isOpen state
+  current.isOpen = !current.isOpen;
+  console.log('New isOpen state:', current.isOpen);
+  
+  // Save the updated data to localStorage
+  saveListData(listID, newData);
+  
+  // Update the list timestamp
+  updateListTimestamp(listID);
+  
+  // Call the callback with the updated data
+  if (onDataUpdated) {
+    onDataUpdated(newData);
+  }
+  
+  return newData;
+}
+
+/**
+ * Inserts a new empty item inside a node's nested list
+ * @param {string} listID - The ID of the list to modify
+ * @param {Array} path - The path to the parent node
+ * @param {Function} onDataUpdated - Callback function to handle updated data
+ * @returns {string} The ID of the newly created item
+ */
+export function insertInto(listID, path, onDataUpdated) {
+  console.log('Inserting new item into path:', path);
+  
+  // Load and create a deep copy of the current list data
+  const listData = loadList(listID);
+  const newData = JSON.parse(JSON.stringify(listData));
+  
+  // Navigate to the target node
+  let current = newData;
+  for (let i = 0; i < path.length; i++) {
+    current = current.nested[path[i]];
+  }
+  
+  // Create empty node with same structure
+  const newId = generateId();
+  const emptyNode = {
+    id: newId,
+    content: "",
+    isOpen: true,
+    nested: []
+  };
+  
+  // Add the new item to the nested array
+  current.nested.push(emptyNode);
+  console.log('Added new item to nested array');
+  
+  // Make sure the parent is open to show the new item
+  current.isOpen = true;
+  console.log('Opened parent node');
+  
+  // Save the updated data to localStorage
+  saveListData(listID, newData);
+  
+  // Update the list timestamp
+  updateListTimestamp(listID);
+  
+  // Call the callback with the updated data
+  if (onDataUpdated) {
+    onDataUpdated(newData);
+  }
+  
+  return newId;
+}
+
+/**
+ * Duplicates a node and inserts it after the original
+ * @param {string} listID - The ID of the list to modify
+ * @param {Array} path - The path to the node to duplicate
+ * @param {Function} onDataUpdated - Callback function to handle updated data
+ * @returns {Object} The updated list data
+ */
+export function duplicateListItem(listID, path, onDataUpdated) {
+  console.log(`Duplicating item at path [${path.join(',')}]`);
+  
+  // Load and create a deep copy of the current list data
+  const listData = loadList(listID);
+  const newData = JSON.parse(JSON.stringify(listData));
+  
+  // If path is empty, we can't duplicate root
+  if (path.length === 0) {
+    console.log('Cannot duplicate root item');
+    return newData;
+  }
+  
+  // Navigate to the parent that contains the item to duplicate
+  let parent = newData;
+  for (let i = 0; i < path.length - 1; i++) {
+    parent = parent.nested[path[i]];
+  }
+  console.log('Found parent:', parent.content);
+  
+  // Get the array of items and current index
+  const items = parent.nested;
+  const currentIndex = path[path.length - 1];
+  
+  // Create deep copy of the item to duplicate
+  const duplicatedItem = JSON.parse(JSON.stringify(items[currentIndex]));
+  // Give the duplicated item and all its nested items new IDs
+  addIds(duplicatedItem);
+  console.log('Duplicating item:', duplicatedItem.content);
+  
+  // Insert the duplicate after the original
+  items.splice(currentIndex + 1, 0, duplicatedItem);
+  console.log('New array length:', items.length);
+  
+  // Save the updated data to localStorage
+  saveListData(listID, newData);
+  
+  // Update the list timestamp
+  updateListTimestamp(listID);
+  
+  // Call the callback with the updated data
+  if (onDataUpdated) {
+    onDataUpdated(newData);
+  }
+  
+  return newData;
+}
+
+/**
+ * Adds an empty node after the specified path
+ * @param {string} listID - The ID of the list to modify
+ * @param {Array} path - The path after which to add the new node
+ * @param {Function} onDataUpdated - Callback function to handle updated data
+ * @returns {string} The ID of the newly created item
+ */
+export function addAfterListItem(listID, path, onDataUpdated) {
+  console.log(`Adding empty node after path [${path.join(',')}]`);
+  
+  // Load and create a deep copy of the current list data
+  const listData = loadList(listID);
+  const newData = JSON.parse(JSON.stringify(listData));
+  
+  // If path is empty, we can't add after root
+  if (path.length === 0) {
+    console.log('Cannot add after root item');
+    return null;
+  }
+  
+  // Navigate to the parent that contains the reference item
+  let parent = newData;
+  for (let i = 0; i < path.length - 1; i++) {
+    parent = parent.nested[path[i]];
+  }
+  console.log('Found parent:', parent.content);
+  
+  // Get the array of items and current index
+  const items = parent.nested;
+  const currentIndex = path[path.length - 1];
+  
+  // Create empty node with same structure
+  const newId = generateId();
+  const emptyNode = {
+    id: newId,
+    content: "",
+    isOpen: true,
+    nested: []
+  };
+  console.log('Adding empty node after index:', currentIndex);
+  
+  // Insert the empty node after the current item
+  items.splice(currentIndex + 1, 0, emptyNode);
+  console.log('New array length:', items.length);
+  
+  // Save the updated data to localStorage
+  saveListData(listID, newData);
+  
+  // Update the list timestamp
+  updateListTimestamp(listID);
+  
+  // Call the callback with the updated data
+  if (onDataUpdated) {
+    onDataUpdated(newData);
+  }
+  
+  return newId;
+}
+
+/**
+ * Deletes a node at the specified path
+ * @param {string} listID - The ID of the list to modify
+ * @param {Array} path - The path to the node to delete
+ * @param {Function} onDataUpdated - Callback function to handle updated data
+ * @returns {Object} The updated list data
+ */
+export function deleteListItem(listID, path, onDataUpdated) {
+  console.log('Deleting item at path:', path);
+  
+  // Load and create a deep copy of the current list data
+  const listData = loadList(listID);
+  const newData = JSON.parse(JSON.stringify(listData));
+  
+  // If path is empty, we can't delete root
+  if (path.length === 0) {
+    console.log('Cannot delete root item');
+    return newData;
+  }
+  
+  // Navigate to the parent that contains the item to delete
+  let parent = newData;
+  for (let i = 0; i < path.length - 1; i++) {
+    parent = parent.nested[path[i]];
+  }
+  console.log('Found parent:', parent.content);
+  
+  // Get the array of items and target index
+  const items = parent.nested;
+  const targetIndex = path[path.length - 1];
+  
+  // Log what we're about to delete
+  console.log('Deleting item:', items[targetIndex].content);
+  
+  // Remove the item
+  items.splice(targetIndex, 1);
+  console.log('New array length:', items.length);
+  
+  // Save the updated data to localStorage
+  saveListData(listID, newData);
+  
+  // Update the list timestamp
+  updateListTimestamp(listID);
+  
+  // Call the callback with the updated data
+  if (onDataUpdated) {
+    onDataUpdated(newData);
+  }
+  
+  return newData;
+}

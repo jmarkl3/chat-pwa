@@ -4,10 +4,10 @@ import { ellipsis } from '../../Global/functions';
 import { useDispatch, useSelector } from 'react-redux';
 import DotMenu from '../../Components/DotMenu';
 import { setRootPath, setCopyListItemPath, setCutListItemPath, setListData, clearClipboardPaths } from '../../store/listSlice';
-import { moveListItemUp, moveListItemDown, updateListItemContent, pasteAfter, pasteInto } from './ListFunctions';
+import { moveListItemUp, moveListItemDown, updateListItemContent, pasteAfter, pasteInto, toggleOpen, insertInto, duplicateListItem, addAfterListItem } from './ListFunctions';
 
 // Recursive component for rendering individual items
-export default function NestedListItem({ item, depth = 0, path = [], duplicateItem, addAfter, deleteItemButtonClick, toggleOpen, insertInto }) {
+export default function NestedListItem({ item, depth = 0, path = [], deleteItemButtonClick }) {
   // State for UI interactions
   const textareaRef = useRef(null);
   const { settings } = useSelector(state => state.menu);
@@ -50,14 +50,33 @@ export default function NestedListItem({ item, depth = 0, path = [], duplicateIt
       // Alt + Enter inserts into
       if (e.altKey && settings.newLineOnEnter) {
         e.preventDefault();
-        insertInto(path);
+        const newId = insertInto(selectedListID, path, (updatedData) => {
+          dispatch(setListData(updatedData));
+        });
+        
+        // Focus the new textarea
+        setTimeout(() => {
+          let newItemInput = document.getElementById("textarea-"+newId);
+          if(newItemInput)
+            newItemInput.focus();
+        }, 100);
+        
         return;
       }
 
       // Regular Enter inserts after (when the setting is true)
       if (settings.newLineOnEnter) {
         e.preventDefault();
-        addAfter(path);
+        const newId = addAfterListItem(selectedListID, path, (updatedData) => {
+          dispatch(setListData(updatedData));
+        });
+        
+        // Focus the new textarea
+        setTimeout(() => {
+          let newItemInput = document.getElementById("textarea-"+newId);
+          if(newItemInput)
+            newItemInput.focus();
+        }, 100);
       }
     }
   };
@@ -69,9 +88,16 @@ export default function NestedListItem({ item, depth = 0, path = [], duplicateIt
     });
   };
 
+  // Handle toggle open/close
+  const handleToggleOpen = () => {
+    toggleOpen(selectedListID, path, (updatedData) => {
+      dispatch(setListData(updatedData));
+    });
+  };
+
   return (
     <div className="nested-list-item" >
-      <div className={`nested-item-header ${isSelected ? 'selected-item' : ''}`} onClick={() => toggleOpen(path)}>
+      <div className={`nested-item-header ${isSelected ? 'selected-item' : ''}`} onClick={handleToggleOpen}>
         {/* Arrow */}
         <span className={`arrow ${item.isOpen ? 'open' : ''}`}>▶</span>
         
@@ -108,12 +134,30 @@ export default function NestedListItem({ item, depth = 0, path = [], duplicateIt
           <DotMenu>
             {/* Add After */}
             <button onClick={(e) => {
-              addAfter(path);
+              const newId = addAfterListItem(selectedListID, path, (updatedData) => {
+                dispatch(setListData(updatedData));
+              });
+              
+              // Focus the new textarea
+              setTimeout(() => {
+                let newItemInput = document.getElementById("textarea-"+newId);
+                if(newItemInput)
+                  newItemInput.focus();
+              }, 100);
             }}>Add After</button>
 
             {/* Insert Into */}
             <button onClick={(e) => {
-              insertInto(path);
+              const newId = insertInto(selectedListID, path, (updatedData) => {
+                dispatch(setListData(updatedData));
+              });
+              
+              // Focus the new textarea
+              setTimeout(() => {
+                let newItemInput = document.getElementById("textarea-"+newId);
+                if(newItemInput)
+                  newItemInput.focus();
+              }, 100);
             }}>Insert Into</button>
 
             {/* Move Up */}
@@ -132,7 +176,9 @@ export default function NestedListItem({ item, depth = 0, path = [], duplicateIt
 
             {/* Duplicate */}
             <button onClick={(e) => {
-              duplicateItem(path);
+              duplicateListItem(selectedListID, path, (updatedData) => {
+                dispatch(setListData(updatedData));
+              });
             }}>Duplicate</button>
 
             {/* Copy */}
@@ -201,16 +247,11 @@ export default function NestedListItem({ item, depth = 0, path = [], duplicateIt
               index={nestedIndex}
               depth={depth + 1}
               path={[...path, nestedIndex]}
-              duplicateItem={duplicateItem}
-              addAfter={addAfter}
               deleteItemButtonClick={deleteItemButtonClick}
-              toggleOpen={toggleOpen}
-              insertInto={insertInto}
             />
           ))}
         </div>
       )}
-
     </div>
   );
 }

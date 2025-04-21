@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import './NestedList.css';
 import NestedListItem from './NestedListItem';
-import { ellipsis, generateId } from '../../Global/functions';
+import { ellipsis } from '../../Global/functions';
 import ListsSelector from '../../Components/Menus/ListsSelector';
 import ConfirmationBox from '../../Components/ConfirmationBox';
 import { useDispatch, useSelector } from 'react-redux';
 import { setListID } from '../../store/idsSlice';
 import "./JsonList.css"
 import { setListData, setRootPath, clearClipboardPaths } from '../../store/listSlice';
-import { createEmptyList, addIds, testData } from './ListFunctions';
+import { createEmptyList, addIds, testData, deleteListItem } from './ListFunctions';
 
 /*
   commands to add:
@@ -45,95 +45,6 @@ function NestedList() {
   const [deleteItemData, setDeleteItemData] = useState(null);
   // State for tracking the current root path
 
-  // Function to duplicate a node and insert it after the original
-  const duplicateItem = (path) => {
-    console.log(`Duplicating item at path [${path.join(',')}]`);
-    
-    // Create a deep copy of the current listData
-    const newData = JSON.parse(JSON.stringify(listData));
-    
-    // If path is empty, we can't duplicate root
-    if (path.length === 0) {
-      console.log('Cannot duplicate root item');
-      return;
-    }
-    
-    // Navigate to the parent that contains the item to duplicate
-    let parent = newData;
-    for (let i = 0; i < path.length - 1; i++) {
-      parent = parent.nested[path[i]];
-    }
-    console.log('Found parent:', parent.content);
-    
-    // Get the array of items and current index
-    const items = parent.nested;
-    const currentIndex = path[path.length - 1];
-    
-    // Create deep copy of the item to duplicate
-    const duplicatedItem = JSON.parse(JSON.stringify(items[currentIndex]));
-    // Give the duplicated item and all its nested items new IDs
-    addIds(duplicatedItem);
-    console.log('Duplicating item:', duplicatedItem.content);
-    
-    // Insert the duplicate after the original
-    items.splice(currentIndex + 1, 0, duplicatedItem);
-    console.log('New array length:', items.length);
-    
-    // Update the state with the new listData
-    dispatch(setListData(newData))
-  };
-
-  // Function to add an empty node after the specified path
-  const addAfter = (path) => {
-    console.log(`Adding empty node after path [${path.join(',')}]`);
-    
-    // Create a deep copy of the current listData
-    const newData = JSON.parse(JSON.stringify(listData));
-    
-    // If path is empty, we can't add after root
-    if (path.length === 0) {
-      console.log('Cannot add after root item');
-      return;
-    }
-    
-    // Navigate to the parent that contains the reference item
-    let parent = newData;
-    for (let i = 0; i < path.length - 1; i++) {
-      parent = parent.nested[path[i]];
-    }
-    console.log('Found parent:', parent.content);
-    
-    // Get the array of items and current index
-    const items = parent.nested;
-    const currentIndex = path[path.length - 1];
-    
-    // Create empty node with same structure
-    const newId = generateId();
-    const emptyNode = {
-      id: newId,
-      content: "",
-      isOpen: true,
-      nested: []
-    };
-    console.log('Adding empty node after index:', currentIndex);
-    
-    // Insert the empty node after the current item
-    items.splice(currentIndex + 1, 0, emptyNode);
-    console.log('New array length:', items.length);
-    
-    // Update the state with the new listData
-    dispatch(setListData(newData))
-
-    setTimeout(() => {
-      let newItemInput = document.getElementById("textarea-"+newId)
-      if(newItemInput)
-        newItemInput.focus()
-    }, 100);
-
-    // Return the ID of the newly created item
-    return newId;
-  };
-
   const deleteItemButtonClick = (itemData, path) => {
     // Check if confirmation is needed
     const needsConfirmation = itemData.content.length > 10 || (itemData.nested && itemData.nested.length > 0);
@@ -147,106 +58,10 @@ function NestedList() {
       });
     } else {
       // If no confirmation needed, delete immediately
-      deleteItem(path);
+      deleteListItem(selectedListID, path, (updatedData) => {
+        dispatch(setListData(updatedData));
+      });
     }
-  };
-
-  // Function to delete a node at the specified path
-  const deleteItem = (path) => {
-    console.log(`Deleting item at path [${path.join(',')}]`);
-    
-    // Create a deep copy of the current listData
-    const newData = JSON.parse(JSON.stringify(listData));
-    
-    // If path is empty, we can't delete root
-    if (path.length === 0) {
-      console.log('Cannot delete root item');
-      return;
-    }
-    
-    // Navigate to the parent that contains the item to delete
-    let parent = newData;
-    for (let i = 0; i < path.length - 1; i++) {
-      parent = parent.nested[path[i]];
-    }
-    console.log('Found parent:', parent.content);
-    
-    // Get the array of items and target index
-    const items = parent.nested;
-    const targetIndex = path[path.length - 1];
-    
-    // Log what we're about to delete
-    console.log('Deleting item:', items[targetIndex].content);
-    
-    // Remove the item
-    items.splice(targetIndex, 1);
-    console.log('New array length:', items.length);
-    
-    // Update the state with the new listData
-    dispatch(setListData(newData))
-  };
-
-  // Function to toggle open/closed state
-  const toggleOpen = (path) => {
-    console.log('Toggling open state at path:', path);
-    
-    // Create a deep copy of the current listData
-    const newData = JSON.parse(JSON.stringify(listData));
-    
-    // Navigate to the target node
-    let current = newData;
-    for (let i = 0; i < path.length; i++) {
-      current = current.nested[path[i]];
-    }
-    
-    // Toggle the isOpen state
-    current.isOpen = !current.isOpen;
-    console.log('New isOpen state:', current.isOpen);
-    
-    // Update the state with the new listData
-    dispatch(setListData(newData))
-  };
-
-  // Function to insert a new item inside a node's nested list
-  const insertInto = (path) => {
-    console.log('Inserting new item into path:', path);
-    
-    // Create a deep copy of the current listData
-    const newData = JSON.parse(JSON.stringify(listData));
-    
-    // Navigate to the target node
-    let current = newData;
-    for (let i = 0; i < path.length; i++) {
-      current = current.nested[path[i]];
-    }
-    
-    // Create empty node with same structure
-    const newId = generateId();
-    const emptyNode = {
-      id: newId,
-      content: "",
-      isOpen: true,
-      nested: []
-    };
-    
-    // Add the new item to the nested array
-    current.nested.push(emptyNode);
-    console.log('Added new item to nested array');
-    
-    // Make sure the parent is open to show the new item
-    current.isOpen = true;
-    console.log('Opened parent node');
-    
-    // Update the state with the new listData
-    dispatch(setListData(newData))
-
-    setTimeout(() => {
-      let newItemInput = document.getElementById("textarea-"+newId)
-      if(newItemInput)
-        newItemInput.focus()
-    }, 100);
-
-    return newId;
   };
 
   // Helper to get node at a specific path
@@ -272,7 +87,9 @@ function NestedList() {
         <ConfirmationBox
           message={deleteItemData.message}
           onConfirm={() => {
-            deleteItem(deleteItemData.path);
+            deleteListItem(selectedListID, deleteItemData.path, (updatedData) => {
+              dispatch(setListData(updatedData));
+            });
             setDeleteItemData(null);
           }}
           onCancel={() => setDeleteItemData(null)}
@@ -316,11 +133,7 @@ function NestedList() {
                   item={rootNode}
                   index={0}
                   path={rootPath}
-                  duplicateItem={duplicateItem}
-                  addAfter={addAfter}
                   deleteItemButtonClick={deleteItemButtonClick}
-                  toggleOpen={toggleOpen}
-                  insertInto={insertInto}
                 />
               </>
             ) : (
