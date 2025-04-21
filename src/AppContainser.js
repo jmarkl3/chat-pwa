@@ -36,7 +36,7 @@ function AppContainser() {
     
     const { chatID, listID } = useSelector(state => state.main);
     const { componentDisplay } = useSelector(state => state.menu);
-    const { selectedListID } = useSelector(state => state.list);
+    const { selectedListID, listData } = useSelector(state => state.list);
 
     const { settings } = useSelector(state => state.menu);
     const [messages, setMessages] = useState([]);
@@ -68,6 +68,30 @@ function AppContainser() {
     useEffect(()=>{
       selectedListIDRef.current = listID
     },[listID])
+
+    // Save listData whenever it changes - moved from NestedList to AppContainser
+    useEffect(() => {
+      if (selectedListID && listData) {
+        // Save the full list listData
+        localStorage.setItem(`note-list-${selectedListID}`, JSON.stringify(listData));
+
+        // Update the lists index
+        const listsStr = localStorage.getItem('note-lists') || '[]';
+        const lists = JSON.parse(listsStr);
+        const timestamp = Date.now();
+
+        const updatedLists = lists.filter(l => l.id !== selectedListID);
+        updatedLists.push({
+          id: selectedListID,
+          content: listData.content,
+          timestamp: timestamp
+        });
+
+        // Sort by timestamp, most recent first
+        updatedLists.sort((a, b) => b.timestamp - a.timestamp);
+        localStorage.setItem('note-lists', JSON.stringify(updatedLists));
+      }
+    }, [listData, selectedListID]);
 
     // Load messages when chat ID changes
     useEffect(() => {
@@ -782,7 +806,7 @@ function AppContainser() {
               // Save the updated list
               localStorage.setItem(`note-list-${listId}`, JSON.stringify(listData));
               
-              // Update lists metadata with new timestamp
+              // Update last modified
               const listsStr = localStorage.getItem('note-lists') || '[]';
               const lists = JSON.parse(listsStr);
               const timestamp = Date.now();
@@ -883,6 +907,7 @@ function AppContainser() {
               const listsStr = localStorage.getItem('note-lists') || '[]';
               const lists = JSON.parse(listsStr);
               const listIndex = lists.findIndex(l => l.id === listId);
+              
               if (listIndex >= 0) {
                 lists[listIndex].timestamp = Date.now();
                 localStorage.setItem('note-lists', JSON.stringify(lists));

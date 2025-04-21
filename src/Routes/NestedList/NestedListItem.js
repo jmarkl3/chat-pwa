@@ -3,14 +3,15 @@ import './NestedList.css';
 import { ellipsis } from '../../Global/functions';
 import { useDispatch, useSelector } from 'react-redux';
 import DotMenu from '../../Components/DotMenu';
-import { setRootPath, setCopyListItemPath, setCutListItemPath } from '../../store/listSlice';
+import { setRootPath, setCopyListItemPath, setCutListItemPath, setListData, clearClipboardPaths } from '../../store/listSlice';
+import { moveListItemUp, moveListItemDown, updateListItemContent, pasteAfter, pasteInto } from './ListFunctions';
 
 // Recursive component for rendering individual items
-export default function NestedListItem({ item, depth = 0, path = [], updateContent, moveItem, duplicateItem, addAfter, deleteItemButtonClick, toggleOpen, insertInto, pasteAfter, pasteInto }) {
+export default function NestedListItem({ item, depth = 0, path = [], duplicateItem, addAfter, deleteItemButtonClick, toggleOpen, insertInto }) {
   // State for UI interactions
   const textareaRef = useRef(null);
   const { settings } = useSelector(state => state.menu);
-  const { copyListItemPath, cutListItemPath } = useSelector(state => state.list);
+  const { copyListItemPath, cutListItemPath, selectedListID } = useSelector(state => state.list);
   const dispatch = useDispatch();
 
   // Check if this item is selected for copy or cut
@@ -61,6 +62,13 @@ export default function NestedListItem({ item, depth = 0, path = [], updateConte
     }
   };
 
+  // Handle content change
+  const handleContentChange = (newContent) => {
+    updateListItemContent(selectedListID, path, newContent, (updatedData) => {
+      dispatch(setListData(updatedData));
+    });
+  };
+
   return (
     <div className="nested-list-item" >
       <div className={`nested-item-header ${isSelected ? 'selected-item' : ''}`} onClick={() => toggleOpen(path)}>
@@ -82,8 +90,8 @@ export default function NestedListItem({ item, depth = 0, path = [], updateConte
                   // Adjust height on content change
                   e.target.style.height = 'auto';
                   e.target.style.height = e.target.scrollHeight + 'px';
-                  // Update content in parent
-                  updateContent(e.target.value, path);
+                  // Update content using our function
+                  handleContentChange(e.target.value);
                 }}
                 style={{
                   width: '100%',
@@ -110,12 +118,16 @@ export default function NestedListItem({ item, depth = 0, path = [], updateConte
 
             {/* Move Up */}
             <button onClick={(e) => {
-              moveItem(path, 'up');
+              moveListItemUp(selectedListID, path, (updatedData) => {
+                dispatch(setListData(updatedData));
+              });
             }}>Move Up</button>
 
             {/* Move Down */}
             <button onClick={(e) => {
-              moveItem(path, 'down');
+              moveListItemDown(selectedListID, path, (updatedData) => {
+                dispatch(setListData(updatedData));
+              });
             }}>Move Down</button>
 
             {/* Duplicate */}
@@ -136,14 +148,28 @@ export default function NestedListItem({ item, depth = 0, path = [], updateConte
             {/* Paste After - only show if there's something in clipboard */}
             {hasClipboardItem && (
               <button onClick={(e) => {
-                pasteAfter(path);
+                pasteAfter(selectedListID, path, copyListItemPath, cutListItemPath, 
+                  (updatedData) => {
+                    dispatch(setListData(updatedData));
+                  },
+                  () => {
+                    dispatch(clearClipboardPaths());
+                  }
+                );
               }}>Paste After</button>
             )}
 
             {/* Paste Into - only show if there's something in clipboard */}
             {hasClipboardItem && (
               <button onClick={(e) => {
-                pasteInto(path);
+                pasteInto(selectedListID, path, copyListItemPath, cutListItemPath, 
+                  (updatedData) => {
+                    dispatch(setListData(updatedData));
+                  },
+                  () => {
+                    dispatch(clearClipboardPaths());
+                  }
+                );
               }}>Paste Into</button>
             )}
 
@@ -175,15 +201,11 @@ export default function NestedListItem({ item, depth = 0, path = [], updateConte
               index={nestedIndex}
               depth={depth + 1}
               path={[...path, nestedIndex]}
-              updateContent={updateContent}
-              moveItem={moveItem}
               duplicateItem={duplicateItem}
               addAfter={addAfter}
               deleteItemButtonClick={deleteItemButtonClick}
               toggleOpen={toggleOpen}
               insertInto={insertInto}
-              pasteAfter={pasteAfter}
-              pasteInto={pasteInto}
             />
           ))}
         </div>

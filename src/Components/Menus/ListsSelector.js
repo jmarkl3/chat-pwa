@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import { setListID } from '../../store/idsSlice';
 import { setComponentDisplay, setMenuOpen } from '../../store/menuSlice';
-import { setSelectedListID } from '../../store/listSlice';
+import { setSelectedListID, setListData, setRootPath } from '../../store/listSlice';
 import ConfirmationBox from '../ConfirmationBox';
 import './ListsSelector.css';
 import SlidePanel from '../SlidePanel';
+import { createNewList } from '../../Routes/NestedList/ListFunctions';
 
 function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
     const dispatch = useDispatch();
@@ -19,11 +20,9 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
     useEffect(() => {
       // Load lists from localStorage
       const listsStr = localStorage.getItem('note-lists') || '[]';
-      console.log("listsStr: ", listsStr)
       let loadedLists = JSON.parse(listsStr);
       // Sort by timestamp
       loadedLists = loadedLists.sort((a, b) => b.timestamp - a.timestamp);
-      console.log("listsStr sorted: ", listsStr)
       setLists(loadedLists);
     }, [isOpen]); // Reload when window opens
   
@@ -181,29 +180,20 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
     };
 
     const handleCreateNewList = () => {
-      const newList = {
-        id: Date.now().toString(),
-        content: "New List",
-        timestamp: Date.now()
-      };
+      // Use the createNewList function from ListFunctions.js
+      const newId = createNewList((id, newList) => {
+        // Update Redux state with the new list data
+        dispatch(setListData(newList));
+        dispatch(setSelectedListID(id));
+        dispatch(setListID(id));
+        dispatch(setRootPath([]));
+        
+        // Update UI
+        const listsStr = localStorage.getItem('note-lists') || '[]';
+        setLists(JSON.parse(listsStr));
+      });
       
-      // Save new list
-      localStorage.setItem(`note-list-${newList.id}`, JSON.stringify({
-        id: newList.id,
-        content: newList.content,
-        isOpen: true,
-        nested: []
-      }));
-      
-      // Get current lists from localStorage and update
-      const listsStr = localStorage.getItem('note-lists') || '[]';
-      const currentLists = JSON.parse(listsStr);
-      const updatedLists = [newList, ...currentLists];
-      localStorage.setItem('note-lists', JSON.stringify(updatedLists));
-      setLists(updatedLists);
-      
-      // Select the new list
-      dispatch(setListID(newList.id));
+      // Close the panel and switch to list view
       dispatch(setComponentDisplay("list"));
       dispatch(setMenuOpen(false));
       setIsOpen(false);
@@ -307,7 +297,6 @@ function ListsSelector({ isOpen, setIsOpen = ()=>{} }) {
         )}
       </div>
     </SlidePanel>
-
   )
 }
 
