@@ -4,7 +4,7 @@ import Chat from './Routes/Chat/Chat';
 import NestedList from './Routes/NestedList/NestedList';
 import { loadSettings, updateSetting, setComponentDisplay } from './store/menuSlice';
 import { setChatID, setListID, updateListTimestamp } from './store/idsSlice';
-import { CHATS_STORAGE_KEY, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, FORMAT_PREFACE, PROMPT_PREFACE_KEY, PROMPT_PREFACE, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, STORAGE_KEY, POINTS_STORAGE_KEY } from './Global/Data';
+import { CHATS_STORAGE_KEY, LONG_TERM_MEMORY_KEY, NOTE_STORAGE_KEY, FORMAT_PREFACE, PROMPT_PREFACE_KEY, PROMPT_PREFACE, INACTIVITY_MESSAGE, AVAILABLE_COMMANDS, STORAGE_KEY, POINTS_STORAGE_KEY, conversationalGamesObject } from './Global/Data';
 import { removeSpecialCharacters, ellipsis } from './Global/functions';
 import ChatInputArea from './Routes/Chat/ChatInputArea';
 import Menu from './Components/Menus/Menu';
@@ -46,7 +46,7 @@ function AppContainser() {
     const [chats, setChats] = useState({});
   
     // For the current working list
-    const workingListIDRef = useRef(null);
+    const selectedListIDRef = useRef(null);
     // For replay (maybe not needed naymore)
     const lastSpokenTextRef = useRef('');
     // For the inactivity timer so user can be reminded
@@ -65,7 +65,7 @@ function AppContainser() {
   
     // Maintain the ref same as the listID in redux sate
     useEffect(()=>{
-      workingListIDRef.current = listID
+      selectedListIDRef.current = listID
     },[listID])
 
     // Load messages when chat ID changes
@@ -337,7 +337,7 @@ function AppContainser() {
     }
 }
     // the list form promptPreface
-    const createContestString = () => {
+    const createContentString = () => {
       let contextString = ""
 
       // Get the title data for all lists (get each time so current)
@@ -345,8 +345,8 @@ function AppContainser() {
       contextString += "lists: "+listsStr+"\n"
   
       // If there's a working list, add its data
-      if (workingListIDRef.current) {
-        const listData = localStorage.getItem(`note-list-${workingListIDRef.current}`);
+      if (selectedListIDRef.current) {
+        const listData = localStorage.getItem(`note-list-${selectedListIDRef.current}`);
         if (listData) {
           const listWithIndexValues = addIndexsToNestedList(listData)
           console.log("listWithIndexValues: ", listWithIndexValues)
@@ -363,6 +363,8 @@ function AppContainser() {
       
       // Response format instructions
       contextString += "Always follow this: "+FORMAT_PREFACE+"\n"
+      
+      contextString += "Game rules: "+conversationalGamesObject["connect3"]
   
       // Custom prompt preface (custom if there is one, else default)
       const promptPreface = localStorage.getItem(PROMPT_PREFACE_KEY) || PROMPT_PREFACE;
@@ -371,106 +373,114 @@ function AppContainser() {
       return contextString
     }
   
+
+
+
+
+  
     // Sends a message to the API and waits for a response
     async function fetchDeepSeek(userMessage) {
-        const now = new Date();
-        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const timeInfo = `Current time: ${now.toLocaleTimeString()}, ${days[now.getDay()]}, ${now.toLocaleDateString()}`;
-  
-        const apiKey = process.env.REACT_APP_DEEPSEEK_KEY;
-        if (!apiKey) {
-          console.error('REACT_APP_DEEPSEEK_KEY is not configured');
-          throw new Error('DeepSeek API key is not configured');
-        }
-  
-        const url = 'https://api.deepseek.com/chat/completions';
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        };
-  
-        console.log("key: ", process.env.REACT_APP_DEEPSEEK_KEY)
-        console.log("process.env: ", process.env)
-  
-        const body = JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            // The contest like the preface, memory, date, etc
-            { role: 'user', content: createContestString() },
-            // The number of previous messages to include is in the settings
-            ...messages.slice(-settings.previousMessagesCount || -4).map(msg => ({
-              role: msg.role,
-              content: msg.content
-            })),
-            userMessage,
-            { role: 'system', content: FORMAT_PREFACE }
-          ],
-          stream: false,
-        });
-  
-        const response = await fetch(url, {
-          method: 'POST',
-          headers: headers,
-          body: body,
-        });
-  
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-  
-        try {
+      const now = new Date();
+      const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const timeInfo = `Current time: ${now.toLocaleTimeString()}, ${days[now.getDay()]}, ${now.toLocaleDateString()}`;
 
-        const data = await response.json();
-        console.log("retch data response: ", data)
-        const responseContent = data?.choices[0]?.message?.content
-        // Parses the json, handles commands or points, returns message text
-        const processedContent = processResponse(responseContent);
-        const assistantMessage = {
-          // in case there is anything interesting in here
-          ...processedContent,
-          role: 'assistant',
-          content: processedContent?.content,
-          contentRaw: responseContent,
-          timestamp: Date.now(),
-        };
-        
-        // Add assistant message to localStorage and messages array state
-        addMessageToChat(assistantMessage);
-  
-        // Speak the response if TTS is enabled
-        speakText(assistantMessage.content);
-        
-        // Reset inactivity timer after model responds
-        resetInactivityTimer();
-        scrollToBottom();
-      } catch (error) {
-        // console .error('Error:', error);
-        const errorMessage = {
-          role: 'assistant',
-          content: 'Sorry, there was an error processing your request. error: '+error,
+      const apiKey = process.env.REACT_APP_DEEPSEEK_KEY;
+      if (!apiKey) {
+        console.error('REACT_APP_DEEPSEEK_KEY is not configured');
+        throw new Error('DeepSeek API key is not configured');
+      }
+
+      const url = 'https://api.deepseek.com/chat/completions';
+      const headers = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      };
+
+      console.log("key: ", process.env.REACT_APP_DEEPSEEK_KEY)
+      console.log("process.env: ", process.env)
+
+      const bodyJson = {
+        model: 'deepseek-chat',
+        messages: [
+          // The contest like the preface, memory, date, etc
+          { role: 'user', content: createContentString() },
+          // The number of previous messages to include is in the settings
+          ...messages.slice(-settings.previousMessagesCount || -4).map(msg => ({
+            role: msg.role,
+            content: msg.content
+          })),
+          userMessage,
+          { role: 'system', content: FORMAT_PREFACE }
+        ],
+        stream: false,
+      }
+      console.log("body jaon: ", bodyJson)
+      const body = JSON.stringify(bodyJson)
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: body,
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      try {
+
+      const data = await response.json();
+      console.log("retch data response: ", data)
+      const responseContent = data?.choices[0]?.message?.content
+      // Parses the json, handles commands or points, returns message text
+      const processedContent = processResponse(responseContent);
+      const assistantMessage = {
+        // in case there is anything interesting in here
+        content: processedContent?.content,
+        role: 'assistant',
+        processedContent: processedContent,
+        contentRaw: responseContent,
+        timestamp: Date.now(),
+      };
+      
+      // Add assistant message to localStorage and messages array state
+      addMessageToChat(assistantMessage);
+
+      // Speak the response if TTS is enabled
+      speakText(assistantMessage.content);
+      
+      // Reset inactivity timer after model responds
+      resetInactivityTimer();
+      scrollToBottom();
+    } catch (error) {
+      // console .error('Error:', error);
+      const errorMessage = {
+        role: 'assistant',
+        content: 'Sorry, there was an error processing your request. error: '+error,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, errorMessage]);
+      speakText(errorMessage.content);
+      
+      // Add error message to chat history
+      setChats(prev => {
+        const currentChat = prev[chatIdRef.current];
+        if (!currentChat) return prev;
+        const updatedChat = {
+          messages: [...currentChat.messages, errorMessage],
           timestamp: Date.now()
         };
-        setMessages(prev => [...prev, errorMessage]);
-        speakText(errorMessage.content);
-        
-        // Add error message to chat history
-        setChats(prev => {
-          const currentChat = prev[chatIdRef.current];
-          if (!currentChat) return prev;
-          const updatedChat = {
-            messages: [...currentChat.messages, errorMessage],
-            timestamp: Date.now()
-          };
-          const updated = {
-            ...prev,
-            [chatIdRef.current]: updatedChat
-          };
-          localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
-          return updated;
-        });
-      }
-      setIsLoading(false);
+        const updated = {
+          ...prev,
+          [chatIdRef.current]: updatedChat
+        };
+        localStorage.setItem(CHATS_STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
     }
+    setIsLoading(false);
+  }
+
   
     // #endregion sending and recieving
   
@@ -659,7 +669,7 @@ function AppContainser() {
     const processResponse = (text) => {
       // TODO: look for content: in the response as a fallback, if not and no json use the full response as the message, if json and no message put <no message>
       try{
-        let json = extractJSON2(text)
+        let json = extractCommands(text)
         handleApiCommand(json.commands)
         addToPoints(json.points);
         return json
@@ -669,7 +679,50 @@ function AppContainser() {
         return {content: text}
       }
     };
-  
+    function extractCommands(string) {
+      // Split the string into parts using the command delimiter '##'
+      const parts = string.split('##');
+      
+      // The first part is always the message content
+      const content = parts[0].trim();
+      
+      // Initialize commands array
+      const commands = [];
+      
+      // Process each command after the first part
+      for (let i = 1; i < parts.length; i++) {
+        const commandPart = parts[i].trim();
+        if (!commandPart) continue; // skip empty commands
+        
+        // Split the command into its components
+        const commandComponents = commandPart.split(',,');
+        
+        // The first component is the command name
+        const cmd = commandComponents[0].trim();
+        
+        // The remaining components are variables
+        const vars = [];
+        for (let j = 1; j < commandComponents.length; j++) {
+          const variable = commandComponents[j].trim();
+          if (variable) { // only add non-empty variables
+            vars.push(variable);
+          }
+        }
+        
+        // Add the command to the commands array
+        commands.push({
+          cmd: cmd,
+          vars: vars
+        });
+      }
+      
+      // Return the structured object
+      return {
+        content: content,
+        commands: commands
+      };
+    }
+
     function handleApiCommand(commands){
       commands.forEach(cmd => {
         console.log("Processing "+cmd)
@@ -848,8 +901,8 @@ function AppContainser() {
         else if (cmd.command === "load list" && cmd.variables && cmd.variables.length > 0) {
           const listId = cmd.variables[0];
           dispatch(setListID(listId))
-          workingListIDRef.current = listId
-          console.log("set workingListIDRef to ", workingListIDRef)
+          selectedListIDRef.current = listId
+          console.log("set selectedListIDRef to ", selectedListIDRef)
         }
         else if (cmd.command === "switch view") {
           try {

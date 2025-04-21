@@ -21,6 +21,34 @@ export const AVAILABLE_COMMANDS = `Available commands:
     command view chat sets the view to chat or list or swaps
 `;
 export const FORMAT_PREFACE = `
+  The response will be processed to extract a message and also commands.
+  THe first part will be the message that the user sees, there can be only one message per response, and it goes until two # characters are seen (like this ##).
+  after the ## there can be commands. The command have different parts which are seperated by two ,, characters (like this ,,).
+  there can be multiple commands after the message each seperated by ##. 
+
+  Available commands:
+  "add to memory" - adds first variable to persistant memory 
+  "add to note" - adds first variable to note in local storage (only visible to user)
+  "create list" - creates a new list with name from first variable and loads it
+  "load list" - loads a list into tempMem. Variables: listId
+  "insert after" - adds an item to a list after the specified node. Variables: listId (or "loaded" to insert into the currently loaded list), nodeId (the id of the node to insert after) 
+  "insert into" - inserts an item into the specified node. Variables: listId (or "loaded"), nodeId (the id of the node to insert into) 
+  "add to item" - appends to the content of a list item (closest option to modifying a list item)
+  "move item after" - ,,nodeId1,,nodeId2 moves node 1 to be after node 2 
+  "move item into" - ,,nodeId1,,nodeId2 moves node 1 inside of node 2
+  "switch view" - switches the view, optiosn are list or chat, only if the user specifically asks for this not any other time 
+  "add points" - "##add points,,10"
+
+  Example:
+  user; "hello"
+  sustem: "Hello, whare are you doing?"
+  user: "I'm driving, please createa list called test list"
+  system: "Sure, doing that now ## create list,,test list##add to long term memory,,created a list called test list <date>"
+  "modify list item" vars: [<list id>, [...path], "new content string"] updates the content  of an item
+
+
+  `;
+export const FORMAT_PREFACE2 = `
   Please format your responses as JSON with the following structure (the json will be parsed from this so it must be exact): 
   ONLY ONE JSON CAN BE SENT AT A TIME!! NEVER send more than one json, it will not be parsed
   {
@@ -124,6 +152,32 @@ ask the user to solve basic math problems in their head like multiplication or m
 also ask them riddles and logic word puzzles
 
 `
+export const conversationalGamesObject = {
+  connect3: `
+    Player one generates a subject word
+    Player 2 thinks of and describes 3 anicdotes that this subject reminds them of each with one word that summarizes it
+    (like a story, joke, interesting fact about it etc)
+    they then chose one word for the next round
+    and also ask player 1 to summarize what has heppened so far (the chain of words) (if the user does not ask still just summarize what has happened so far)
+    Player 1 them gives 3 anicdotes about the new subject, each with a summary word, then chooses one for player 2 to continue with, and asks player 2 to list all of the words so far
+    player 2 then summarizes all of the chosen words and 3 connections that have beenlisted so far, tells 3 anicdotes for the new subject each with the summary, and chooses a word for player 1 to continue with 
+    this continues back and fourth for 10 rounds
+
+  `,
+  listing: `
+    Player one asks player 2 to list relivant things:
+    Subjects that make people feel s cartain way.
+    Ex: make people feel happy, like a winner, vulnerable, excited, angry, etc, etc
+    Conversation subjects that fit a certain criteria.
+    ex: interesting, encourage sharing vulnerability, spark debate
+    Jokes (in general or about a subject)
+    Stories (about a subject or in genreal)
+    Character traits.
+    ex: positive traits, negative traits, traits of "redneck people", winners, etc etc
+    Times you were successful (if nothign comes up try specifying a few base points like being related to some subject)
+
+  `
+}
 export const PROMPT_PREFACE = `
   This is a speech based conversation app, the system usually responds with answers short enough to be spoken with javascript tts. 
 
@@ -206,7 +260,6 @@ export const PROMPT_PREFACE = `
 
 
 ` + conversationalGames;
-
 export const PROMPT_PREFACE_KEY = 'chat-app-prompt-preface';
 export const DEFAULT_SETTINGS = {
   ttsEnabled: true,
